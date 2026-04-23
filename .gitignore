@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.local
+.env.*.local
+dist/
+build/
+.cache/
+.DS_Store
+*.log
+coverage/
+.claude/settings.local.json
+.wrangler/
+tmp/
+*.zip
+!examples/**/*.zip
