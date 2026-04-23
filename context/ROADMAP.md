@@ -13,28 +13,35 @@ Webster is a **Council of Claude Managed Agents** that autonomously redesigns a 
 
 ## Where we are right now (2026-04-23)
 
-- **Branch**: `main`, 4 commits ahead of `origin/main` (push-blocked by permission policy — Richie's action)
+- **Branch**: `main`, 5 commits ahead of `origin/main` (push-blocked by permission policy — Richie's action)
 - **Submission runway**: ~70 hours to deadline
-- **Shipped**: Layers 1–4 + 7 — 24 features
+- **Shipped**: Layers 1–4 + 7 — 24 features in ~12 hours of focus-work
 - **In-progress**: 1 (Layer 1 live-artifact pattern)
 - **Blocked**: Layer 6 video (5 features, Richie voice record)
-- **Open loops**: 3 submission-critical (see below)
-- **Post-submission scope**: Layers 8–10 (v2, v3, v4)
+- **Open loops**: 3 deadline-critical + 4 scope-expansion layers (see below)
+- **Full submission scope** (updated): Layers 1–11 — everything ships before 4/26
+
+## Timeline correction (my estimation bias)
+
+My earlier estimates assumed calendar-hours. Actual tempo: **24 features in 12 hours** with Forge + Pi workers dispatched in parallel. The remaining 4 layers (L8 + L9 + L10 + L11) total ~55 focus-hours of feature work, which at your tempo compresses to ~18–25h of your wall time. Fits in 70h runway with room for the video, form, and a voice-surgery polish pass.
+
+Operating assumption from here forward: **every feature you name is in pre-submission scope unless you explicitly say otherwise.**
 
 ## Layer-by-layer truth
 
-| Layer | Theme                                | Status                                   | Features                               |
-| ----- | ------------------------------------ | ---------------------------------------- | -------------------------------------- |
-| L1    | Routine + Orchestrator               | shipped                                  | #2–6 done; #1 cut; #5 in-progress      |
-| L2    | 7 Managed Agent Critics              | shipped                                  | #7–#12 done                            |
-| L3    | **Critic Genealogy (HERO)**          | shipped, live-validated                  | #13–#17 done                           |
-| L4    | Onboarding Skill                     | shipped                                  | #18, #19, #23, #24 done; #20–#22 cut   |
-| L5    | Substrate + Mock History             | core shipped                             | #27 done; #25, #26, #28 cut            |
-| L6    | Meta Video                           | blocked                                  | #29–#33 waiting on voice record        |
-| L7    | Polish                               | mostly shipped                           | #34–#36 done; #37 todo (Richie action) |
-| L8    | **v2: Apply worker, text-only**      | planned                                  | #38 done; #39a–e, #40a–d todo          |
-| L9    | **v3: Visual review + Autoresearch** | planned (committed 0bb9db2 this session) | #41a–d, #42–#46 todo                   |
-| L10   | **v4: Designer scope expansion**     | PROPOSED — not yet in FEATURES.md        | #47–#49 drafted, awaiting your call    |
+| Layer | Theme                                      | Status                                 | Features                                 |
+| ----- | ------------------------------------------ | -------------------------------------- | ---------------------------------------- |
+| L1    | Routine + Orchestrator                     | shipped                                | #2–6 done; #1 cut; #5 in-progress        |
+| L2    | 7 Managed Agent Critics                    | shipped                                | #7–#12 done                              |
+| L3    | **Critic Genealogy (HERO)**                | shipped, live-validated                | #13–#17 done                             |
+| L4    | Onboarding Skill                           | shipped                                | #18, #19, #23, #24 done; #20–#22 cut     |
+| L5    | Substrate + Mock History                   | core shipped                           | #27 done; #25, #26, #28 cut              |
+| L6    | Meta Video                                 | blocked                                | #29–#33 waiting on voice record          |
+| L7    | Polish                                     | mostly shipped                         | #34–#36 done; #37 todo (Richie action)   |
+| L8    | **v2: Apply worker, text-only**            | planned — ships FIRST                  | #38 done; #39a–e, #40a–d todo            |
+| L10   | **v2.5: Designer scope expansion**         | planned — ships SECOND                 | #47–#49 todo (kind+constraints+verifier) |
+| L9    | **v3: Visual review + Autoresearch**       | planned — ships THIRD (0bb9db2)        | #41a–d, #42–#46 todo                     |
+| L11   | **v4: Planner + experiment-aware council** | planned — ships LAST (closes the loop) | #50–#53 todo (NEW this session)          |
 
 ## What's new THIS session (session 4)
 
@@ -42,20 +49,35 @@ Webster is a **Council of Claude Managed Agents** that autonomously redesigns a 
 - `475e129` — `context/v2-design.md` grill-me answers; Layer 8 decomposed into #39a-e + #40a-d
 - `a1cb0e5` — advisor-caught regression fix: "No more patient churn" restored in Issue 4 hero
 - `0bb9db2` — Layer 9 added (9 sub-features: visual-reviewer chain + autoresearch chain) + 6 hero screenshots as motivating evidence
+- `f34858d` — `context/ROADMAP.md` — single source of truth for roadmap + narrative
+- **PENDING (this phase)**: `context/DOMAIN-MODEL.md` (NEW) + Layer 10 + Layer 11 added to FEATURES.md
 
-All 4 commits local-only. Push permission policy blocks direct push to main; Richie-action item.
+All commits local-only. Push permission policy blocks direct push to main; Richie-action item.
 
-## The three open loops for 4/26
+## Architectural shift locked this session
 
-Nothing else matters until these land:
+Autoresearch is NOT a back-end post-merge feedback loop. It's the **input** to the next council run. A **planning agent** sits before the 5 critics + redesigner, reads last week's verdict + what-changed, decides experiment direction for this week, then the council runs with `plan.md` as context.
+
+This is the shift from **autonomous weekly redesigner** → **autonomous experiment agent**. See `context/DOMAIN-MODEL.md` for the formal model + week lifecycle + grill-me questions on the 7 remaining architectural decisions.
+
+## Deadline-critical loops for 4/26
+
+**Human-only actions** (no Claude can do these):
 
 1. **Cerebral Valley submission form** (#37; ~15 min; Richie-only)
 2. **Demo video voice record** (Layer 6 blocker; ~1h record + Saturday assembly)
-3. **Push 4 local commits to origin/main** (1-min terminal action)
+3. **Push local commits to origin/main** (1-min terminal action, required before submission)
 
-Everything else is v2+ or polish. Stay out of it until 1/2/3 are done.
+**Scope-expansion layers that ALSO ship pre-submission** (Claude+worker parallelizable):
 
-## Post-submission roadmap — L8 → L10 → L9 (dependency order)
+4. **Layer 8** — apply worker text-only (~18h feature work)
+5. **Layer 10** — designer scope expansion (~7h feature work)
+6. **Layer 9** — visual review + autoresearch measurement (~18h feature work)
+7. **Layer 11** — planner agent + experiment-aware council (~12h feature work, NEW)
+
+Ordering: 1–3 anytime. 4–7 in dependency order (L8 → L10 → L9 → L11). Grill-me on DOMAIN-MODEL.md open questions unblocks L11 implementation.
+
+## Pre-submission roadmap — L8 → L10 → L9 → L11 (dependency order)
 
 All three layers exist to make Webster **genuinely autonomous**, not just autonomously-change-producing. Build order matters:
 
@@ -75,7 +97,7 @@ All three layers exist to make Webster **genuinely autonomous**, not just autono
 
 **Testable when**: `wbs @prompts/fifth-wbs-session.md` produces a PR with real code diffs, not just `proposal.md`.
 
-### L10 (v2.5) — Designer scope expansion | ~7h total | PROPOSED
+### L10 (v2.5) — Designer scope expansion | ~7h total
 
 **Why it exists**: session-4 proved text-only proposals aren't enough. Longer copy needs smaller font-size to keep hero rhythm. Without L10, the council is a **copy-editor council**, not a **design council**. L10 lets the designer propose CSS/layout/component changes as first-class issues.
 
@@ -86,8 +108,6 @@ All three layers exist to make Webster **genuinely autonomous**, not just autono
 | #49 | Visual-reviewer constraint verifier (asserts declared constraints in rendered output) | 2     |
 
 **Testable when**: council proposes "shorter subhead + 0.75× hero font-size + 3-line desktop H1 constraint" as ONE atomic issue; apply worker executes all three together; visual-reviewer confirms constraint met.
-
-**Greenlight needed from Richie before I add #47–49 to FEATURES.md.**
 
 ### L9 (v3) — Visual review + Autoresearch | ~18h total
 
@@ -114,14 +134,29 @@ All three layers exist to make Webster **genuinely autonomous**, not just autono
 
 **Testable when**: visual-reviewer blocks a known-bad session-4-style regression; autoresearch rolls back a week that hurts proxy metrics; baseline promoter advances after 2 good weeks.
 
+### L11 (v4) — Planner + experiment-aware council | ~12h total | NEW
+
+**Why it exists**: L9 measures last week's experiment. But measurement without decision is half a loop. L11 adds a **planning agent** that sits BEFORE the 5 critics + redesigner, reads last week's verdict + what-changed, decides direction for this week (promote / hold / rollback), and feeds `plan.md` as context to the council run. Closes the autonomy loop — Webster becomes an **experiment agent**, not a weekly redesigner.
+
+| #   | Feature                                                                                                           | Hours |
+| --- | ----------------------------------------------------------------------------------------------------------------- | ----- |
+| #50 | `agents/webster-planner.json` (Opus 4.7) — reads verdict + what-changed, decides next-experiment direction        | 2     |
+| #51 | Verdict → plan pipeline — orchestrator invokes planner with verdict.json + proposal.md + apply-log + monitor data | 3     |
+| #52 | Plan → council integration — critics + redesigner read plan.md as input context                                   | 3     |
+| #53 | Cold-start behavior — week 1 with no prev verdict; planner outputs "explore broadly" default plan                 | 2     |
+
+**Testable when**: week N+1 council run reads week N verdict automatically; planner outputs plan.md before critics spawn; critics + redesigner have plan.md in context; end-to-end cycle (propose → apply → review → merge → measure → verdict → plan → propose) runs in simulator without human touch between measure and plan.
+
+**Grill-me questions blocking L11**: 7 open decisions listed in `context/DOMAIN-MODEL.md`. Richie answers → implementation unblocks.
+
 ## Decisions waiting on you
 
 Ranked by blast radius:
 
-1. **Push path for 4 local commits** — direct push to main, OR PR branch? (blocks submission)
+1. **Push path for 5 local commits** — direct push to main, OR PR branch? (blocks submission)
 2. **Cerebral Valley submission form** (#37) — Richie-only 15-min task
 3. **Voice record scheduling** — Sat AM? blocks Layer 6 video (~3h cleanup after)
-4. **L10 greenlight** — do I draft #47–#49 into FEATURES.md now? (my recommendation: yes, after L8 kickoff, before L9 ships)
+4. **L11 grill-me answers** — 7 open questions in `context/DOMAIN-MODEL.md` unblock planner implementation
 5. **Session-4 hero voice-surgery** — revert copy to BEFORE wording (85/100), or trim line 3 (75/100), or keep as cautionary-tale artifact (45/100)? My pick: option 1 after v2 apply worker lands, as the first-ever apply-worker PR demo
 6. **`[R-confirm]` in `context/v2-design.md`** (3 items): visual-regression cost threshold, `gpt-image-1` as image backend default, PR `summary.json` alongside markdown
 
@@ -129,11 +164,11 @@ Ranked by blast radius:
 
 Everything else is noise until these land:
 
-1. **Submit by 4/26** — form + video + push origin
-2. **L8 #39a kickoff** (post-submission) — first real apply worker run
-3. **L10 #47 greenlight** — makes #39a and everything downstream actually meaningful
+1. **Submit by 4/26** — form + video + push origin (human-only actions)
+2. **Answer L11 grill-me** — 7 questions in `context/DOMAIN-MODEL.md` unblock the planner agent and the full-cycle autonomous claim
+3. **Kick off L8 #39a** — apply worker core. First real PR with mutated code. Everything downstream (L10 → L9 → L11) layers on top
 
-The rest exists. Those three are the **bottleneck path**.
+The rest exists. Those three are the **bottleneck path**. Full submission scope is now all 11 layers — ~18–25h wall time at your tempo, fits in 70h runway.
 
 ## How this doc relates to the rest
 

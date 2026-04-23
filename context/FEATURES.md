@@ -16,7 +16,7 @@
 - **In-progress**: 1 (live run artifacts in `history/` — session 3 produced real artifacts; row update pending separate reconciliation)
 - **Blocked**: 5 (demo video — Richie voice)
 - **Cut**: 7 (out of submission scope; rationale inline)
-- **Todo**: 19 (1 submission form + 9 Layer 8 v2 sub-features + 9 Layer 9 v3 sub-features; Layers 8–9 are post-submission)
+- **Todo**: 26 (1 submission form + 9 Layer 8 + 9 Layer 9 + 3 Layer 10 + 4 Layer 11; all pre-submission per session-4 Phase 7 scope update)
 
 Hero feature (Critic Genealogy) shipped with live Opus 4.7 validation. All 7 Managed Agents registered. Council fan-out + redesigner + PR automation scripted in `prompts/second-wbs-session.md`. CI green, 29 tests pass. Two scope reassignments below (critic-flow skill renamed; orchestrator moved from TS to bash-in-markdown prompt) — both ship equivalent functionality.
 
@@ -139,6 +139,31 @@ Key design calls (captured here to avoid re-deriving):
 | 44  | todo   | **Verdict engine** — weekly cron: pulls last 7d analytics window, compares to baseline window, emits `{verdict, confidence, metric_deltas[]}`. Asymmetric rollback gate (only `hurt` with p<0.05). Proxy-first, CVR-confirming.                                                                               | 3     |
 | 45  | todo   | **Auto-rollback worker** — on `hurt` above threshold: `git revert` merge commit, CF Pages preview auto-deploys from revert PR, commit `history/<week>/rollback.md` with evidence. Opens as draft PR so Richie can override before it hits main.                                                               | 2     |
 | 46  | todo   | **Baseline promoter** — on sustained `improved` (default N=2 weeks): update baseline pointer to current sha, archive superseded baseline, log promotion event. Each promotion tightens the next week's bar.                                                                                                   | 1     |
+
+## Layer 10: Designer scope expansion (v2.5 — pre-submission)
+
+Added session 4 Phase 7 after Richie's diagnosis that session-4 hero regression was a **designer-scope failure**, not an apply-worker failure. The redesigner had no mechanism to propose "longer copy + reduced hero font-size together" — the proposal schema is text-only by construction. L10 makes the council a design council, not a copy-editor council.
+
+See `context/DOMAIN-MODEL.md` for the full entity + data-flow model.
+
+| #   | Status | Feature                                                                                                                                                                                                                                                                                                                                                                            | Hours |
+| --- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| 47  | todo   | **Proposal schema v2 (kind-aware + constraints)** — each issue declares `kind: text\|css\|component\|asset` plus a `constraints: { preserves[], within{} }` block. Redesigner emits multi-kind atomic issues. Enables "copy change + font-size reduction, preserving 3-line desktop hero" as ONE unit.                                                                             | 2     |
+| 48  | todo   | **Apply worker multi-kind routing** — apply gains a tool per kind. Text → find-replace (current #39a). CSS → token mutation (tailwind config, CSS custom properties, utility class edits). Component → structural edit (Astro component props, layout breakpoints, conditional rendering). Asset → invokes #40. Validates output against the issue's constraints before advancing. | 3     |
+| 49  | todo   | **Visual-reviewer constraint verifier** — extends #41c. Reads proposal's constraint block, asserts it in rendered output. Example: "hero H1 must be exactly 3 visible lines at 1440×900" → measures element height + line-count → blocks PR if violated. Catches proposer/apply mismatches that content-presence checks miss.                                                      | 2     |
+
+## Layer 11: Planner + experiment-aware council (v4 — pre-submission)
+
+Added session 4 Phase 7 after Richie's autoresearch integration correction: autoresearch is **input to the next council run**, not a back-end post-merge feedback loop. New `webster-planner` agent sits before the 5 critics + redesigner, reads last week's verdict + what-changed, decides experiment direction this week, emits `plan.md` that becomes council context.
+
+Closes the autonomy loop — Webster becomes an experiment agent, not a weekly redesigner. See `context/DOMAIN-MODEL.md` for week lifecycle + data flow + open grill-me questions blocking implementation.
+
+| #   | Status | Feature                                                                                                                                                                                                                                                                                               | Hours |
+| --- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| 50  | todo   | **`agents/webster-planner.json`** (Opus 4.7) — reads verdict + proposal + apply-log + monitor anomaly report. Outputs `plan.md` with `{classification, next_action, direction_hint, new_baseline_sha?, rationale}`. next_action ∈ {promote_and_experiment, hold_baseline, revert_and_retry}.          | 2     |
+| 51  | todo   | **Verdict → plan pipeline** — orchestrator step: after week N-1's verdict engine (#44) commits verdict.json, invokes webster-planner session with verdict.json + last-week proposal.md + apply-log + monitor report as input. Planner writes history/<week-N>/plan.md.                                | 3     |
+| 52  | todo   | **Plan → council integration** — modify orchestrator (`prompts/second-wbs-session.md`) so critics + redesigner receive plan.md as part of initial user.message context. Critics weight findings per plan's `direction_hint`. Redesigner synthesizes findings + plan → proposal.                       | 3     |
+| 53  | todo   | **Cold-start behavior** — week 1 has no prev verdict. Planner runs in "explore broadly" mode: reads monitor's initial anomaly baseline + analytics snapshot + site/ current state, outputs a default plan with direction_hint="broad exploration, no prior experiment data". Unblocks first live run. | 2     |
 
 ## Totals (historical — initial plan)
 
