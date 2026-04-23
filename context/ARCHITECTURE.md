@@ -1,6 +1,8 @@
 # Architecture
 
 > Mirrors [[webster-architecture]] in vault. Canonical source is this file for in-repo operators; vault file for cross-session memory.
+>
+> **Submission state**: Layers 1–4 + Layer 7 shipped. Layer 5 (`site/` fork + analytics pixel + `scripts/seed-mock-history.ts`) is scoped out for submission — the mock seeder is inlined in `prompts/second-wbs-session.md` Step 1 instead of a separate script, and the redesigner emits `proposal.md` instead of `proposal.diff`. Layer 6 (video) is blocked on Richie's voice record. See `context/FEATURES.md` for per-row status.
 
 ## System Overview
 
@@ -46,11 +48,11 @@
 
 ### Layer 1: Routine + Orchestrator
 
-- `routines/weekly-lp-improve.yaml` — Claude Code Routine, weekly cron, wires env + GitHub triggers
-- `webster/orchestrator.ts` — Claude Code CLI entry, reads state, fans out, opens PR
-- Shared agent skill `skills/critic-flow/SKILL.md` — universal e2e flow: _read context → critique → write findings → exit_
+- `routines/weekly-lp-improve.yaml` — cut from submission; weekly trigger is manual `wbs @prompts/second-wbs-session.md`
+- `prompts/second-wbs-session.md` — bash-in-markdown orchestrator (replaces the planned `webster/orchestrator.ts`), reads state, fans out, runs genealogy, opens PR
+- Shared agent skill `skills/webster-lp-audit/SKILL.md` — universal e2e flow: _read context → critique → write findings → exit_
 - Per-critic context: `context/critics/{name}/findings.md`
-- Run artifacts: `history/YYYY-MM-DD/{analytics.json, council-output/, synthesis.md, proposal.diff, decision.json}`
+- Run artifacts: `history/YYYY-MM-DD/{analytics.json, council-output/, synthesis.md, proposal.md, decision.json}`
 
 ### Layer 2: Managed Agent Critics (7 pre-registered)
 
@@ -65,13 +67,13 @@ Environment `environments/webster-council-env.json`:
 
 Agent specs (JSON, not YAML — matches `POST /v1/agents` schema):
 
-- `agents/monitor.json` — Haiku 4.5
+- `agents/webster-monitor.json` — Haiku 4.5
 - `agents/brand-voice-critic.json` — Sonnet 4.6
 - `agents/fh-compliance-critic.json` — Sonnet 4.6
 - `agents/seo-critic.json` — Sonnet 4.6
 - `agents/conversion-critic.json` — Sonnet 4.6
 - `agents/copy-critic.json` — Sonnet 4.6
-- `agents/redesigner.json` — Opus 4.7
+- `agents/webster-redesigner.json` — Opus 4.7
 
 Each spec has: `name`, `model`, `system` (multi-line string with escaped \n), `tools: [{type: agent_toolset_20260401}]`, `metadata`. **No `callable_agents`** (research preview).
 
@@ -83,7 +85,7 @@ Works in **public beta** — runtime agent creation is supported without researc
 
 ### Layer 4: Onboarding Skill
 
-`skills/onboard-smb/SKILL.md` — universal markdown skill, works in Claude Code + claude.ai.
+`skills/webster-onboarding/SKILL.md` — universal markdown skill, works in Claude Code + claude.ai.
 
 Flow:
 

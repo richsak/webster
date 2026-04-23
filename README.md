@@ -85,6 +85,8 @@ The live council runner is a bash-in-markdown prompt: [`prompts/second-wbs-sessi
 
 Expected wall-clock: 25–35 min. Expected API cost: ~$0.10–0.15 per run.
 
+**Submission note**: all 7 agent specs are registered against the live Anthropic API (IDs in `environments/webster-council-env.id` + `context/*/id.txt`), the genealogy hero is live-validated (~$0.03 Opus 4.7 dry-run documented above), and the full orchestration prompt is committed. The end-to-end 6-agent fan-out that produces `history/YYYY-MM-DD/` artifacts is the operator-triggered weekly run — `history/` is empty at submission time by design. Loop has been exercised component-by-component.
+
 ## Quality gates
 
 Mirrors Forge's validation discipline. One command:
