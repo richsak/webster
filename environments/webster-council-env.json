@@ -9,12 +9,12 @@
     "networking": {
       "type": "limited",
       "allowed_hosts": [
-        "https://api.github.com",
-        "https://github.com",
-        "https://raw.githubusercontent.com",
-        "https://api.anthropic.com",
-        "https://certified.richerhealth.ca",
-        "https://richerhealth.ca"
+        "api.github.com",
+        "github.com",
+        "raw.githubusercontent.com",
+        "api.anthropic.com",
+        "certified.richerhealth.ca",
+        "richerhealth.ca"
       ],
       "allow_mcp_servers": true,
       "allow_package_managers": true
