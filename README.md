@@ -1,88 +1,161 @@
 # Webster
 
-> A Council of Claude Managed Agents that autonomously redesigns small-business landing pages weekly.
+> A council of 7 Claude Managed Agents that autonomously audits a small-business landing page every week, synthesizes the findings, and opens a PR with the proposed redesign.
 
-**Built with Opus 4.7** — Anthropic × Cerebral Valley Hackathon (April 26 2026).
+**Built with Opus 4.7** — Anthropic × Cerebral Valley Hackathon submission (deadline 2026-04-26).
 
-## What it does
+## The one-line pitch
 
-Each week, 7 Claude Managed Agents audit a small-business landing page, propose improvements, and open a PR with Opus 4.7's reasoning in the body. When the human merges, Cloudflare Workers + Static Assets auto-deploys the improved site. When the council detects a pattern no existing critic catches (e.g. medical-claims language on a health-practitioner site), Opus 4.7 autonomously authors a new critic YAML, registers it as a Managed Agent via the Anthropic API, and runs it — emergent capability in git history.
+Small businesses pay marketing agencies $2K–$20K/month for landing-page optimization that arrives in 4–6 week cycles. Webster replaces that workflow with ~$0.15 of Opus 4.7 tokens per week and a PR-merge click.
 
-## Who it's for
+## The hero moment — Critic Genealogy
 
-Small-business owners who want ongoing landing-page optimization without paying a marketing agency $2-20k/mo for 4-6 week improvement cycles. Webster replaces that workflow with $100 of Opus 4.7 tokens and one PR-merge click per week.
+The 5 pre-registered critics (SEO, brand-voice, functional-health-compliance, conversion, copy) each cover one scope. They commit findings to a shared branch and flag cross-cutting issues in their `Out of scope` sections.
 
-## One-command demo replay
+When >=2 critics flag the same scope as unowned, [`scripts/critic-genealogy.ts`](scripts/critic-genealogy.ts) asks Opus 4.7 to (a) author a new critic spec, (b) register it live via `POST /v1/agents`, and (c) invoke it on the same council branch — all at runtime, no human in the loop.
+
+Proof it works: fixture dry-run against the 5 committed critics' findings produces a schema-valid `accessibility-critic` spec with 7 focus bullets, 6 cross-tagged out-of-scope bullets, and a WCAG-tuned severity rubric. Live Opus call, ~$0.03, ~15s:
 
 ```bash
-git clone https://github.com/<tbd>/webster
-cd webster
-claude /onboard
+bun scripts/critic-genealogy.ts --fixtures scripts/__tests__/fixtures/genealogy --dry-run
 ```
-
-The onboarding skill walks you through:
-
-1. Business context Q&A (your brand, target persona)
-2. Claude Design `.zip` upload (your starter LP → Astro components)
-3. Subdomain pointing (we help; you own the domain)
-4. GitHub App + Cloudflare Workers connection
-5. API key paste (your `ANTHROPIC_API_KEY` + account-scoped `CLOUDFLARE_API_TOKEN`)
-6. First council run — see the improvements, merge the PR, watch it deploy
 
 ## Architecture
 
 ```text
-Claude Code Routine (weekly cron)
-  └─ Claude Code session (orchestrator, Opus 4.7)
-     ├─ invokes 6 Managed Agents (monitor + 5 critics + redesigner)
-     ├─ detects gap, registers new critic via /v1/agents, runs it (Critic Genealogy)
-     └─ opens PR via gh CLI with reasoning
-
-GitHub merge → Workers Builds webhook → Cloudflare Workers redeploys
+            weekly trigger (cron, manual, or wbs prompt)
+                              │
+                              ▼
+          Claude Code orchestrator session (Opus 4.7)
+                              │
+               fans out 6 sessions in parallel ─┐
+                                                │
+  ┌───────┬──────────┬──────────┬────────┬──────┴─┐
+  │  SEO  │  brand   │ FH-compl │  CRO   │ copy   │  monitor
+  │ Sonnet│ Sonnet   │  Sonnet  │ Sonnet │ Sonnet │  Haiku
+  │  4.6  │   4.6    │   4.6    │  4.6   │  4.6   │   4.5
+  └───┬───┴────┬─────┴─────┬────┴────┬───┴────┬───┘
+      │        │           │         │        │
+      └────────┴─── each critic commits via GitHub MCP ──┐
+                  to council/<week-date> branch          │
+                                                         ▼
+                     Critic Genealogy (Opus 4.7, runtime)
+                     gap? → new critic spec → POST /v1/agents
+                          → POST /v1/sessions → commits findings
+                                                         │
+                                                         ▼
+                              Redesigner (Opus 4.7)
+                              reads all findings on branch
+                              commits proposal.md + decision.json
+                                                         │
+                                                         ▼
+                              Draft PR opened
+                              human merges → Cloudflare redeploys
 ```
 
-Scheduled agent holds ONLY a GitHub token. Cloudflare credentials are onboarding-only.
+**Why this composition wins**: Managed Agents give each critic a pre-registered scope + MCP tools + vault credentials. Runtime agent registration via `POST /v1/agents` lets the orchestrator spawn specialists mid-run — novel capability that `callable_agents` (research preview) would handicap by gating. Full detail in [`context/ARCHITECTURE.md`](context/ARCHITECTURE.md).
 
-Full details: [`context/ARCHITECTURE.md`](context/ARCHITECTURE.md).
-
-## Repo layout
+## What's in the repo
 
 ```text
 webster/
-├── routines/         # Claude Code Routine YAMLs
-├── agents/           # 7 Managed Agent YAMLs (pre-registered critics + redesigner)
-├── skills/           # Onboarding skill + shared critic-flow skill
-├── site/             # Astro substrate (fork of customer LP)
-├── history/          # Weekly run artifacts (analytics, council-output, PRs, decisions)
-├── webster/          # CLI package (forge-mini-cli)
-├── context/          # Architecture + features + quality gates
-├── .github/workflows # CI (type-check, lint, format, test, YAML schema)
-└── README.md
+├── agents/              7 Managed Agent JSON specs (5 critics + monitor + redesigner)
+├── context/             architecture, features, quality gates, per-critic findings dirs
+├── environments/        webster-council-env.json (single Anthropic environment)
+├── prompts/             first-wbs-session.md (bootstrap), second-wbs-session.md (weekly run)
+├── scripts/             validate-agents, validate-findings, critic-genealogy
+├── skills/              webster-lp-audit (shared critic discipline), webster-onboarding
+├── .github/workflows/   CI: type + lint + format + schema + findings + markdown + tests
+├── .husky/              pre-commit runs the same gates locally
+└── AGENTS.md            operator guide for in-repo work
 ```
 
-## Development
+## The weekly flow
+
+The live council runner is a bash-in-markdown prompt: [`prompts/second-wbs-session.md`](prompts/second-wbs-session.md). It:
+
+1. Seeds 10 weeks of mock analytics on first run (monitor needs baselines to diff).
+2. Prepares a shared `council/YYYY-MM-DD` branch.
+3. Fans out 6 Managed Agent sessions (monitor + 5 critics) — each commits `context/critics/<scope>/findings.md` via GitHub MCP.
+4. Validates findings via `bun scripts/validate-findings.ts`.
+5. Runs the redesigner — commits `history/YYYY-MM-DD/proposal.md` + `decision.json`.
+6. Opens a draft PR.
+
+Expected wall-clock: 25–35 min. Expected API cost: ~$0.10–0.15 per run.
+
+## Quality gates
+
+Mirrors Forge's validation discipline. One command:
 
 ```bash
-bun install           # dependencies
-bun run validate      # full quality gate (type, lint, format, test)
-bun run dev           # local development
+bun run validate
 ```
 
-See [`AGENTS.md`](AGENTS.md) for operator/agent usage.
+Chains: `tsc --noEmit` → `eslint --max-warnings 0` → `prettier --check` → agent+environment schema validation → findings format validation → markdownlint → `bun test`. Every gate is blocking. Pre-commit hook enforces the same set. CI enforces the same set on push + PR. See [`context/QUALITY-GATES.md`](context/QUALITY-GATES.md).
 
-## Meta
+Current state: 29 tests passing, 0 lint warnings, 0 type errors, 8 JSON specs valid, 6 findings files valid.
 
-Every layer of this submission uses Opus 4.7:
+## Prize-lane alignment
 
-- **Agent YAMLs**: authored by Opus 4.7
-- **Orchestrator logic**: authored by Opus 4.7
-- **Onboarding skill**: authored by Opus 4.7
-- **Demo narration**: scripted by Opus 4.7
-- **Demo animations**: composed by Claude via Remotion
-- **This README**: co-authored by Opus 4.7
+- **Best Use of Claude Managed Agents** — 7 pre-registered agents + runtime-registered genealogy critics, all invoked via `/v1/sessions` with vault-bound GitHub MCP (no tokens in `user.message`).
+- **Creative Exploration** — runtime critic genealogy. Gap detection → template-cloned spec → live `POST /v1/agents` → immediate invocation. The emergent-capability demo beat.
+- **Best Solo / Non-Technical Builder** — Webster's operator is one person + Claude Code. No human-agency retainer, no ops team.
 
-Commit hashes for each meta-attribution are in [`context/META.md`](context/META.md).
+## Running it yourself
+
+### Prerequisites
+
+- `bun >= 1.3.0`
+- `jq` (for bash scripts inside the prompts)
+- `gh` CLI (authenticated to the target repo)
+- `git` with commit-signing configured
+- An Anthropic API key stored in macOS keychain under service `anthropic-webster`. First-session will show the exact `security add-generic-password` command if missing.
+
+### Bootstrap (one-time)
+
+```bash
+wbs @prompts/first-wbs-session.md
+```
+
+Registers the single environment + 7 agents against the Anthropic API. Runs an SEO hello-world to prove the council loop end-to-end. Artifacts: `environments/webster-council-env.id` + `context/{monitor,redesigner,critics/*}/id.txt`.
+
+### Weekly council run
+
+```bash
+wbs @prompts/second-wbs-session.md
+```
+
+Runs the full fan-out + redesigner + draft PR described above.
+
+### Spawn a genealogy critic manually
+
+```bash
+bun scripts/critic-genealogy.ts --branch council/$(date -u +%Y-%m-%d)
+```
+
+Reads the week's findings, asks Opus 4.7 if any scope is unowned, and spawns + registers + invokes a new critic if yes. Use `--fixtures scripts/__tests__/fixtures/genealogy --dry-run` to see the flow without making API writes.
+
+## Meta-attribution
+
+Every layer uses Opus 4.7 as author:
+
+| Layer                           | Opus 4.7 role                                                             |
+| ------------------------------- | ------------------------------------------------------------------------- |
+| 7 agent specs (`agents/*.json`) | Drafted during bootstrap session, validated against live API              |
+| Bootstrap + weekly prompts      | Opus-authored during dispatcher sessions; in git history                  |
+| Critic Genealogy script         | Opus-authored; see `dcf5726` + `e474301`                                  |
+| Redesigner synthesis            | Opus 4.7 at runtime — its decision.json outputs live in `history/<date>/` |
+| Runtime critic spawning         | Opus 4.7 selects the gap AND authors the new spec via `tool_use`          |
+
+Repo is entirely MIT. No Anthropic or third-party proprietary code.
 
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Not yet shipped (honest list)
+
+- `site/` fork of the demo substrate LP — redesigner currently produces `proposal.md` (brief) instead of `proposal.diff` (PR-ready patch).
+- `routines/weekly-lp-improve.yaml` — Claude Code Routine that would cron the weekly run. Currently manual via `wbs`.
+- Demo video — planned for Saturday record.
+- `context/META.md` commit-hash index — assembled at submission time.
