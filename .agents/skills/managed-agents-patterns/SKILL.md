@@ -11,11 +11,18 @@ Canonical JSON specs for pre-registered Claude Managed Agents that form Webster'
 
 ## Product identity (don't conflate)
 
-We target **Claude Managed Agents** — Anthropic-hosted agent harness. Beta header: `managed-agents-2026-04-01`. Endpoints: `/v1/agents`, `/v1/environments`, `/v1/sessions`.
+We target **Claude Managed Agents** — Anthropic-hosted agent harness. Primary beta header: `managed-agents-2026-04-01`. Endpoints: `/v1/agents`, `/v1/environments`, `/v1/sessions`, `/v1/sessions/{id}/events`.
 
-This is NOT:
-- `agent-api-2026-03-01` — different product (Agent API primitives / Agent SDK path). Headers are mutually incompatible.
-- `/v1/messages` — the raw Messages API (no harness).
+This is NOT `/v1/messages` — the raw Messages API (no harness).
+
+**Beta header per endpoint (verified 2026-04-23):**
+- `POST /v1/environments` → `managed-agents-2026-04-01`
+- `POST /v1/agents` → `managed-agents-2026-04-01`
+- `POST /v1/sessions` → `managed-agents-2026-04-01`
+- `POST /v1/sessions/{id}/events` → `managed-agents-2026-04-01`
+- `GET /v1/sessions/{id}/stream` → **`agent-api-2026-03-01`** (different header; registration header is rejected)
+
+Earlier doc treated `agent-api-2026-03-01` as a separate-product header. That was wrong — Managed Agents' stream endpoint happens to delegate to Agent API infrastructure, so the two headers are complementary per-endpoint, not mutually exclusive per-product.
 
 The hackathon prize lane ("Best Use of Claude Managed Agents") wants the hosted harness, which is what we're building against.
 
@@ -91,10 +98,10 @@ Environments are NOT embedded in the agent spec. Create once per Webster workspa
     "networking": {
       "type": "limited",
       "allowed_hosts": [
-        "https://api.github.com",
-        "https://github.com",
-        "https://raw.githubusercontent.com",
-        "https://api.anthropic.com"
+        "api.github.com",
+        "github.com",
+        "raw.githubusercontent.com",
+        "api.anthropic.com"
       ],
       "allow_mcp_servers": true,
       "allow_package_managers": true
@@ -194,6 +201,11 @@ This is the DEMO HERO BEAT. No research-preview gate. Works today in public beta
 4. No `resources: [{type: github_repository, ...}]` field. Clone via bash at session start.
 5. `callable_agents` triggers research-preview-only validation. Omit from base template.
 6. Response returns `id`, not `agent_id`. Update jq extractions.
+7. **`allowed_hosts` takes BARE hostnames, not URLs.** `"github.com"` (right) / `"https://github.com"` (wrong). API 400: "contains a URL scheme. Entries must be bare hostnames like google.com." (Verified 2026-04-23.)
+8. **`/v1/sessions/{id}/stream` uses a different beta header** than registration. Use `anthropic-beta: agent-api-2026-03-01`, not `managed-agents-2026-04-01`. Wrong header returns `"this API is in beta: add agent-api-2026-03-01 to the anthropic-beta header"`. (Verified 2026-04-23.)
+9. **POST response bodies contain raw unescaped newlines inside `system` strings** when curl streams body + trailer together. `jq` chokes on the mixed stream. Workaround: `curl -o /tmp/resp.json -w '%{http_code}' …` and jq on the file, OR use LIST-after-POST to recover the `id` (LIST responses are clean).
+10. **Session ID prefix is `sesn_`**, not `sess_`. Event ID prefix is `sevt_`. Don't pattern-match on `sess_`.
+11. **Container-side commit signing infra can 400.** In Managed Agents cloud envs, `/tmp/code-sign` handled by the harness may reject commits with HTTP 400 `source: Field required`. If the session needs to push, the agent should set `git config --local commit.gpgsign false` (repo-local scope, NOT `--no-gpg-sign` flag) and push unsigned. Flag it in findings as an infra issue, don't silently bypass via the flag. (Observed 2026-04-23.)
 
 ## Do
 
