@@ -1,0 +1,23 @@
+{
+  "name": "webster-council-env",
+  "config": {
+    "type": "cloud",
+    "packages": {
+      "apt": ["git", "jq"],
+      "npm": ["@astrojs/cloudflare"]
+    },
+    "networking": {
+      "type": "limited",
+      "allowed_hosts": [
+        "https://api.github.com",
+        "https://github.com",
+        "https://raw.githubusercontent.com",
+        "https://api.anthropic.com",
+        "https://certified.richerhealth.ca",
+        "https://richerhealth.ca"
+      ],
+      "allow_mcp_servers": true,
+      "allow_package_managers": true
+    }
+  }
+}
