@@ -207,6 +207,91 @@ This is the DEMO HERO BEAT. No research-preview gate. Works today in public beta
 9. **POST response bodies contain raw unescaped newlines inside `system` strings** when curl streams body + trailer together. `jq` chokes on the mixed stream. Workaround: `curl -o /tmp/resp.json -w '%{http_code}' …` and jq on the file, OR use LIST-after-POST to recover the `id` (LIST responses are clean).
 10. **Session ID prefix is `sesn_`**, not `sess_`. Event ID prefix is `sevt_`. Don't pattern-match on `sess_`.
 11. **Container-side commit signing infra can 400.** In Managed Agents cloud envs, `/tmp/code-sign` handled by the harness may reject commits with HTTP 400 `source: Field required`. If the session needs to push, the agent should set `git config --local commit.gpgsign false` (repo-local scope, NOT `--no-gpg-sign` flag) and push unsigned. Flag it in findings as an infra issue, don't silently bypass via the flag. (Observed 2026-04-23.)
+12. **Agent update uses `POST /v1/agents/{id}` with `version`** — NOT `PATCH`. PATCH returns 404. The request body can include any mutable field (`system`, `tools`, `mcp_servers`, etc.) plus `version` for optimistic concurrency. Array fields are fully replaced; no-op updates preserve the current version (no new version generated). (Verified 2026-04-23.)
+13. **Archive is not reversible.** `POST /v1/agents/{id}/archive` succeeds instantly and cannot be undone (no unarchive endpoint). Archived agents cannot start new sessions but existing sessions continue. Treat archive as a one-way door and re-register with the same name if you need to recover. DELETE requires the `agent-api-2026-03-01` beta header. (Observed 2026-04-23.)
+14. **`mcp_servers` without a matching `mcp_toolset` in `tools` fails schema validation.** Error: "mcp_servers [X] declared but no mcp_toolset in tools references them". Every entry in `mcp_servers` needs a corresponding `{"type": "mcp_toolset", "mcp_server_name": "X"}` in `tools`. (Verified 2026-04-23.)
+15. **MCP toolset permission policy defaults to `always_ask`.** For autonomous sessions (no human operator), the session will hang waiting for approval on every MCP call. Explicitly set `"default_config": {"enabled": true, "permission_policy": {"type": "always_allow"}}` on the `mcp_toolset` entry. (Verified 2026-04-23.)
+16. **Vault credential URL matching is string-equality.** The `mcp_server_url` in a `static_bearer` credential and the `url` in the agent's `mcp_servers` entry must match character-for-character after the platform's normalization. Platform appears to strip a trailing slash on storage but restore it on match; use the doc's canonical form (`https://api.githubcopilot.com/mcp/`) in both places and don't overthink it. (Observed 2026-04-23.)
+17. **GitHub MCP at `https://api.githubcopilot.com/mcp/` does NOT require a Copilot subscription** — a fine-grained PAT with repo `Contents: write` is enough. Handshake returns server info `github-mcp-server/remote-...`. (Verified 2026-04-23 against a non-Copilot account.)
+
+## MCP + vault pattern (GitHub as reference implementation)
+
+The agent definition declares the server; the vault supplies the credential; the session references the vault. Secrets never enter `user.message` text or session event history.
+
+**Agent spec fragment** — add to every agent that needs GitHub IO:
+
+```json
+{
+  "mcp_servers": [
+    {
+      "type": "url",
+      "name": "github",
+      "url": "https://api.githubcopilot.com/mcp/"
+    }
+  ],
+  "tools": [
+    { "type": "agent_toolset_20260401" },
+    {
+      "type": "mcp_toolset",
+      "mcp_server_name": "github",
+      "default_config": {
+        "enabled": true,
+        "permission_policy": { "type": "always_allow" }
+      }
+    }
+  ]
+}
+```
+
+**Vault credential** — one per vault per MCP server URL (409 on duplicate):
+
+```bash
+curl -sS https://api.anthropic.com/v1/vaults/$VAULT_ID/credentials \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "anthropic-beta: managed-agents-2026-04-01" \
+  -H "content-type: application/json" \
+  -d @- <<EOF
+{
+  "display_name": "richsak webster PAT",
+  "auth": {
+    "type": "static_bearer",
+    "mcp_server_url": "https://api.githubcopilot.com/mcp/",
+    "token": "$(security find-generic-password -s github-webster -a "$USER" -w)"
+  }
+}
+EOF
+```
+
+Fetch the PAT from macOS keychain (or your secret store of choice) at credential-creation time. The token is write-only on the resource — never returned by GET.
+
+**Session creation** — reference the vault:
+
+```bash
+curl -sS https://api.anthropic.com/v1/sessions \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "anthropic-beta: managed-agents-2026-04-01" \
+  -H "content-type: application/json" \
+  -d "{\"agent\": \"$AGENT_ID\", \"environment_id\": \"$ENV_ID\", \"vault_ids\": [\"$VAULT_ID\"], \"title\": \"...\"}"
+```
+
+**Agent-side git ops via MCP** — no shell git, no clone, no container credentials:
+
+| What the agent needs             | MCP tool                | Notes                                                  |
+| -------------------------------- | ----------------------- | ------------------------------------------------------ |
+| Read file at path on ref         | `get_file_contents`     | Returns content + SHA. Pass `ref` to select branch.    |
+| List directory contents          | `get_file_contents`     | Pass `path=dir/` — returns array of entries.           |
+| Scoped grep across repo          | `search_code`           | Use `q='term repo:owner/repo path:... extension:...'`. |
+| Create a branch                  | `create_branch`         | 422 if branch exists — fall through.                   |
+| Commit one file to a branch      | `create_or_update_file` | Requires SHA if file exists on branch.                 |
+| Commit multiple files atomically | `push_files`            | Single commit, multiple files.                         |
+
+The agent's system prompt should explicitly state "the container has no git credentials; use only MCP for file IO" — otherwise it may try shell git first and waste tokens on failing clones.
+
+**Rotation** — `POST /v1/vaults/{v}/credentials/{c}` with `auth.token` updated. No agent or session change required; credential resolution re-runs at the next session `idle → running` transition.
+
+**Blast radius** — because the token never enters `user.message` or session event history, session log leaks don't expose it. The only exposure paths are: (a) the vault resource itself (token is write-only in the API), and (b) whoever has your workspace API key (who could update the credential). Rotate when either is compromised.
 
 ## Do
 
