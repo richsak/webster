@@ -1,0 +1,19 @@
+# Webster-local Forge config.
+# Purpose: define Webster-specific Pi worker profile that overrides Ralph loop's Claude implementation
+# with a Pi/Codex (gpt-5.4 high reasoning) worker. Saves Claude subscription for the dispatcher session.
+
+worktree:
+  baseBranch: main
+
+workerProfiles:
+  pi-ralph-implement:
+    provider: pi
+    piProvider: openai-codex
+    model: gpt-5.4
+    modelReasoningEffort: high
+    contextMode: fresh
+    description: Ralph loop autonomous story implementation — GPT-5.4 high reasoning. One story per iteration, fresh session each time.
+    handoffHints:
+      - Read PRD state from disk at the start of each iteration; do not carry memory across iterations.
+      - Validate before committing; never commit broken code.
+      - Mark story done in tracking file only after green validation.

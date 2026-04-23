@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+    Webster dispatcher liveness check.
+    Fires every 30 minutes. Checks if any forge workflows are active. If none AND
+    context/FEATURES.md has pending items, pops a macOS notification reminding Richie
+    to re-run `wbs`. Does NOT auto-start the dispatcher (which is interactive).
+
+    To install:
+      cp ~/Projects/webster/deploy/webster-dispatcher.plist ~/Library/LaunchAgents/com.richsak.webster.dispatcher.plist
+      launchctl load ~/Library/LaunchAgents/com.richsak.webster.dispatcher.plist
+
+    To uninstall:
+      launchctl unload ~/Library/LaunchAgents/com.richsak.webster.dispatcher.plist
+      rm ~/Library/LaunchAgents/com.richsak.webster.dispatcher.plist
+    -->
+    <key>Label</key>
+    <string>com.richsak.webster.dispatcher</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/zsh</string>
+        <string>-c</string>
+        <string>
+cd /Users/richiesakhon/Projects/webster
+active=$(~/.local/bin/forge isolation list 2>/dev/null | grep -c "^feat/\|^video/" || echo 0)
+pending=$(grep -c "^\- \[ \]" context/FEATURES.md 2>/dev/null || echo 0)
+if [ "$active" = "0" ] &amp;&amp; [ "$pending" -gt "0" ]; then
+    osascript -e "display notification \"$pending pending, 0 active. Run \\\"wbs\\\" to dispatch.\" with title \"Webster Dispatcher\" sound name \"Ping\""
+fi
+        </string>
+    </array>
+
+    <key>StartInterval</key>
+    <integer>1800</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/richiesakhon/Projects/webster/tmp/logs/dispatcher-liveness.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/richiesakhon/Projects/webster/tmp/logs/dispatcher-liveness.err</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
