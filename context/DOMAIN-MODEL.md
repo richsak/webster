@@ -300,6 +300,50 @@ The planner at week N+1 does not re-read every artifact from weeks 1..N. It read
 - Creep prevention: critic re-run gate (#39c) + `webster-visual-reviewer` (#41) can decline individual experiments at apply time if they see risk — natural independence check
 - Traffic note: ~500 weekly visits is thin. Per-section CTR on a half-page region drops power. Planner decides how many experiments to run in parallel based on recent traffic volume (heuristic: ≥1000/week → up to 3 parallel; 500-1000/week → 1-2 parallel; <500/week → 1 only)
 
+## Genealogy governance
+
+> Locked by Richie (Q5.1, 2026-04-23). Bounds the Q5-locked mechanism where the planner can request new critics via L3 genealogy. Prevents token-waste drift without blocking legitimate spawns.
+
+Four layers, cheapest first. Each layer catches what the previous one misses.
+
+**Layer 1 — Opus 4.7 self-limit via prompt rubric** (primary filter, zero code):
+
+Planner's system prompt includes:
+
+> Only emit `genealogy_request` if the concern is provably unowned by any existing critic. Cite which existing critics partially cover it, and name what they miss. If you cannot articulate that gap in one sentence, do not request.
+
+**Layer 2 — Orchestrator dedup check** (secondary filter, ~50 LOC):
+
+Before invoking `scripts/critic-genealogy.ts`, orchestrator compares the `concern` text against each existing critic's `scope` and `description` strings. Heuristic: keyword-overlap ≥60% → block spawn, return plan to planner with "closest existing critic is X; consider `direction_hint` toward X's coverage."
+
+**Layer 3 — Quarterly hard cap** (safety rail, ~10 LOC):
+
+Max 2 spawns per calendar quarter. Blocks runaway even if layers 1 + 2 fail. Rare trigger if filters work. Reset at start of each quarter.
+
+**Layer 4 — Post-spawn retire-on-idle** (pruning, ~30 LOC):
+
+A spawned critic that has not emitted a CRITICAL or HIGH finding in 4 consecutive weeks is archived (config moved to `agents/archive/`, NOT deleted — recoverable if later needed). Frees a slot in the quarterly cap. Insurance against speculative spawns.
+
+**Second-line defense** (already in Q4's gate table):
+
+The token-efficiency gate ("council run cost must not regress at p<0.05") catches runaway AFTER the fact. Governor prevents; gate catches. Two independent checks.
+
+**Token math** (why this matters):
+
+- 1 critic: ~10K tokens/run × 52 weeks = ~520K tokens/year
+- Current 6 critics + redesigner + monitor ≈ 4M tokens/year
+- Ungoverned spawning (~1 new critic/quarter, no retirement): +4 critics/year = +2M tokens/year (~50% annual run cost)
+- With governor (cap 2/quarter, dedup rejects ~60%, retire-idle prunes ~30%): steady state ~10 critics max = +25% over current
+
+Over 3 years: governor saves roughly 10M tokens.
+
+**Escalation paths for blocked requests**:
+
+- Layer 1 block → planner reasons in plan.md, does not emit request. No operator signal.
+- Layer 2 block → planner receives "use direction_hint toward X" and retries in-session.
+- Layer 3 block → planner emits `governor_blocked: { concern, rationale, quarter }` row to `memory.jsonl` for operator review. Operator can manually bypass via `operator-decision.json`.
+- Layer 4 retire → archived critic logged in `memory.jsonl`. Planner reads archive, can re-request with different scope framing.
+
 ## Dependency order (what builds on what)
 
 ```
@@ -357,10 +401,9 @@ Decisions needed before L11 (and some L9) can be implemented:
 
 4. **Promotion threshold** — 🔒 **LOCKED (Richie, 2026-04-23) as Option E (92/100)**: reward-and-gates decision matrix with parallel-experiment support. See "Reward, gates, and promotion logic" section below for full spec. Dominates earlier options (1-week p<0.05, 2-week p<0.05, 4-week CVR) on: separation of reward from validation gates, gate-win lane (promote when reward holds + gates improve), reward+gate-fail archive lane (learning insight even without promotion), parallel independent-variable experiments supported in submission.
 
-5. **Planner overriding critics** — can plan.md tell a critic "don't flag X this week"?
-   - Yes, via a `suppressed_findings[]` field in plan.md — 60/100. Risky; silences validation.
-   - No, planner only influences direction via `direction_hint` — 80/100 (prior pick). Critics remain independent, but planner has no mechanism to address blind spots.
-   - **Planner can request a NEW critic via L3 genealogy** — **88/100, current pick**. Plan emits `genealogy_request: { concern, rationale }`; orchestrator authors the spec. Cannot silence or weight existing critics. Preserves invariant #6. Directly used in Q9 demo arc W4 (bounce-guard-critic spawn).
+5. **Planner overriding critics** — 🔒 **LOCKED (Richie, 2026-04-23) as Option 5C (88/100)**: planner can request a NEW critic via L3 genealogy. Plan emits `genealogy_request: { concern, rationale }`; orchestrator authors the spec via existing `scripts/critic-genealogy.ts`. Cannot silence or weight existing critics. Preserves invariant #6. Directly used in Q9 demo arc W4 (bounce-guard-critic spawn). Prior rejected options: `suppressed_findings[]` (60, silences validation), `direction_hint` only (80, no blind-spot mechanism).
+
+5.1. **Genealogy governance** — 🔒 **LOCKED (Richie, 2026-04-23) as Option 5.1C (90/100)**: four-layer governor bounding 5C's spawn mechanism. See "Genealogy governance" section below for full spec. Prevents token-waste drift over 52-week operation without rigid per-period caps. Token math: ungoverned spawning adds ~50% annual run cost over 3 years; governor C steady-state adds ~25%.
 
 6. **Partial experiments** — if a parallel experiment is skipped (by apply worker / critic re-run / visual reviewer), what does planner do next week?
    - Treat as full experiment; skipped issue rolls forward to next proposal — 75/100 (prior pick).
