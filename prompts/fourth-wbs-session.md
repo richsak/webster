@@ -7,7 +7,7 @@
 Two goals, sequenced so Phase 1 (deploy) runs first — Richie can eyeball the old/new UI in his browser while Phase 2 (grill-me) is active.
 
 1. **Phase 1 — Fork + manual apply + local preview (~45 min).** Mirror `certified.richerhealth.ca` into `site/before/`, clone to `site/after/`, manually apply the 5 `history/2026-04-23/proposal.md` edits, start a local http server, output two URLs.
-2. **Phase 2 — Grill-me on v2 (~30 min).** Invoke the `grill-me` skill on the top-5 planning questions for feature #39 (apply + review/fix loop). Output: `context/v2-design.md`.
+2. **Phase 2 — Grill-me on v2 (~30 min).** Invoke the `grill-me` skill on the top-6 planning questions for features #39 (apply + review/fix loop) and #40 (image-gen tool). Output: `context/v2-design.md`.
 3. **Phase 3 — Translate decisions.** Update `FEATURES.md` Layer 8 with concrete sub-features derived from the grill-me outcome.
 4. **Phase 4 — Checkpoint.**
 
@@ -180,14 +180,17 @@ Recommendation (75/100): Pi worker (Codex gpt-5.4) via a Forge workflow. Rationa
 **Q2. Done-definition.**
 Recommendation (70/100): "Lint+type green" as a hard floor, PLUS re-running the 5 (or 6 with visual-design) council critics against the mutated code and requiring zero new CRITICAL/HIGH findings. Rationale: "green build" is necessary but not sufficient; re-running critics is the system's own quality signal. Alternatives: purely green-build (lower bar), add visual-regression snapshot (stronger but needs a Playwright infra layer). Grill-me: is visual-regression worth the infra cost, or overkill for weekly cadence?
 
-**Q3. Image generation tool.**
-Recommendation (80/100): **Yes, scoped to known asset classes** — apply worker gets a `generate_visual_asset(type, brand_context, dims, prompt)` tool where type ∈ `{og_card, icon, hero_bg, section_illustration}`. Backend: OpenAI `gpt-image-1` (highest quality/cost ratio for small-format assets). Rationale: week 1 proposal already identified one real need (og-card.jpg); without this tool, apply worker either ships broken image URLs or blocks on client assets. Scoping to enumerated types prevents scope creep to "generate any image." Alternatives: no image gen (apply worker stubs placeholders, operator fills later — simpler but incomplete deliverable), Stitch MCP (good for UI mockups, not loose assets like OG cards). Grill-me: is enumerated-type scoping too restrictive? What's the first asset class beyond the four listed that we'd need?
+**Q3. #39 ↔ #40 (image-gen tool) dependency strength.**
+Recommendation (75/100): **Soft dependency.** #39 (apply worker) ships first and stubs image assets with `<!-- asset TBD: og-card -->` comments when encountered. #40 (image-gen tool — enumerated types `{og_card, icon, hero_bg, section_illustration}`, backend `gpt-image-1`) ships as a follow-up that the apply worker starts calling when available. Rationale: unblocks #39 from #40's planning tail (brand-guide schema, cost ceiling, persistence path); degrades gracefully when #40 is down. Alternatives: hard dependency (wait for #40 — delays #39; #40 is the more experimental feature), no dependency (operator fills assets manually forever — drift risk). Grill-me: is "stub + comment" acceptable for v2 week-1, or does the apply PR need to be complete-or-fail? Also: is the enumerated type list correct, or is something obvious missing (testimonial headshots? diagram illustrations?).
 
 **Q4. PR-format: one big PR vs. one per issue.**
 Recommendation (65/100): **One PR per issue** (or per issue-cluster if two issues touch the same file — e.g. Issues 2 + 3 both edit `FounderSection.astro`). Rationale: smaller PRs = easier review, partial-merge-ability (operator can merge Issue 1 and reject Issue 5 independently), clearer Git history. Tradeoff: more PR overhead (5x branches, 5x CI runs). Alternatives: one big PR (simpler automation, all-or-nothing merge). Grill-me: at what issue-count does "one per issue" become too noisy? (2? 5? 10?)
 
 **Q5. Failure fallback when apply can't land an issue.**
 Recommendation (70/100): **Skip + annotate.** If the apply worker can't apply an issue (string mismatch, layout conflict, merge impossible), skip that issue, log a structured annotation to `history/<week>/apply-log.json`, and continue. Do NOT fail the whole run on one skipped issue. Operator review sees the annotation and decides next steps. Rationale: partial progress > blocked-entirely. Alternatives: fail-fast (blocks other fixes for no reason), auto-escalate to Opus-4.7 human-in-loop (expensive, negates autonomy claim). Grill-me: should a CRITICAL-severity skipped issue block the PR from opening at all?
+
+**Q6. Preview URL strategy for the apply PR (how the operator reviews before merge).**
+Recommendation (80/100): **Use host-provided PR preview URLs.** If the production `certified.richerhealth.ca` repo is hosted on Cloudflare Pages / Vercel / Netlify, every PR auto-gets a preview URL like `pr-<n>.<project>.pages.dev` — operator reviews on that URL; zero interference with the production domain. Rationale: standard pattern, zero infra, no custom domain to maintain, disposable per PR. Alternatives: local-only (operator must `git checkout <pr-branch>` + serve locally — high friction for non-technical operators when Webster is sold beyond Richie), custom staging subdomain `staging.richerhealth.ca` (more setup, worth it only for long-lived staging), path-based on prod (`certified.richerhealth.ca/preview/` — BAD: same analytics/robots/origin, real visitors could land there). Grill-me: which host is the real Richer Health repo on today? If it's not on CF Pages / Vercel / Netlify, "wire up PR preview" becomes a prerequisite for #39 to be useful — call it #39f.
 
 ### Deferred to a later grill-me (ack but don't resolve this session)
 
@@ -222,20 +225,29 @@ Grill-me writes answers to `context/v2-design.md` as it goes:
 
 ## Phase 3 — Translate decisions into FEATURES.md
 
-Once Phase 2 concludes, translate the 5 Q&A outcomes into concrete Layer 8 sub-features. Replace the single "#39 NEEDS PLANNING" row with a decomposition like:
+Once Phase 2 concludes, translate the 6 Q&A outcomes into concrete Layer 8 sub-features. Replace the single "#39 NEEDS PLANNING" and "#40 NEEDS PLANNING" rows with decompositions like:
 
-- #39a — Apply worker implementation (Pi Codex via Forge workflow)
-- #39b — Critic re-run gate + done-definition wiring
-- #39c — Image-gen tool (`generate_visual_asset`) — enumerated asset classes
-- #39d — Per-issue PR emission + apply-log.json annotation
-- #39e — Skip+annotate fallback behaviour
+**#39 apply worker sub-features** (from Q1, Q2, Q4, Q5, Q6):
+
+- #39a — Apply worker implementation (from Q1 — e.g. Pi Codex via Forge workflow)
+- #39b — Critic re-run gate + done-definition wiring (from Q2)
+- #39c — Per-issue PR emission + apply-log.json annotation (from Q4)
+- #39d — Skip+annotate fallback behaviour (from Q5)
+- #39e — Preview URL wiring (from Q6 — gates on host identification)
+
+**#40 image-gen tool sub-features** (from Q3):
+
+- #40a — Tool schema + enumerated type list (og_card, icon, hero_bg, section_illustration + any additions from Q3)
+- #40b — Backend wire-up (e.g. `gpt-image-1` client + retry + cost ceiling)
+- #40c — Brand-context input format + asset persistence path
+- #40d — #39 integration pattern (stub-when-absent, invoke-when-present per Q3 "soft dependency" decision)
 
 Assign `todo` status to each. Leave hours as estimate-after-grill-me.
 
 ```bash
 # After editing FEATURES.md:
 git add context/FEATURES.md context/v2-design.md
-git commit -m "docs(v2): grill-me design doc + decomposed #39 sub-features"
+git commit -m "docs(v2): grill-me design doc + decomposed #39/#40 sub-features"
 git push origin main
 ```
 
@@ -266,9 +278,10 @@ grilled v2 apply+loop design in Phase 2, decomposed FEATURES.md #39.
 
 - Q1 worker runtime: <filled in>
 - Q2 done-definition: <filled in>
-- Q3 image-gen tool: <filled in>
+- Q3 #39↔#40 dependency strength: <filled in>
 - Q4 PR format: <filled in>
 - Q5 failure fallback: <filled in>
+- Q6 preview URL strategy: <filled in>
 
 ## Next tick
 
