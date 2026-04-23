@@ -4,7 +4,7 @@
 
 ## System Overview
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │  Claude Code Routine (weekly cron, 1h min cadence)              │
 │  ↓                                                               │
@@ -40,7 +40,7 @@
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Why fan-out, not `callable_agents`**: agent-to-agent invocation (`callable_agents`) is research preview, not public beta. The orchestrator doing fan-out directly via `/v1/sessions` works in public beta today, with the same council behavior. Request research-preview access at https://claude.com/form/claude-managed-agents if you want to move redesigner-calls-critics later.
+**Why fan-out, not `callable_agents`**: agent-to-agent invocation (`callable_agents`) is research preview, not public beta. The orchestrator doing fan-out directly via `/v1/sessions` works in public beta today, with the same council behavior. Request research-preview access at <https://claude.com/form/claude-managed-agents> if you want to move redesigner-calls-critics later.
 
 ## Layer Breakdown
 
@@ -48,7 +48,7 @@
 
 - `routines/weekly-lp-improve.yaml` — Claude Code Routine, weekly cron, wires env + GitHub triggers
 - `webster/orchestrator.ts` — Claude Code CLI entry, reads state, fans out, opens PR
-- Shared agent skill `skills/critic-flow/SKILL.md` — universal e2e flow: *read context → critique → write findings → exit*
+- Shared agent skill `skills/critic-flow/SKILL.md` — universal e2e flow: _read context → critique → write findings → exit_
 - Per-critic context: `context/critics/{name}/findings.md`
 - Run artifacts: `history/YYYY-MM-DD/{analytics.json, council-output/, synthesis.md, proposal.diff, decision.json}`
 
@@ -57,12 +57,14 @@
 **Environment is a separate resource** (`POST /v1/environments`), registered once per workspace and referenced by ID in every session. There is NO in-agent `environment:` or `resources:` field.
 
 Environment `environments/webster-council-env.json`:
+
 - Base: default Ubuntu cloud container (Node, Python, Go, git pre-installed — see `/docs/en/managed-agents/cloud-containers`)
 - Packages: `{apt: [git, jq], npm: [@astrojs/cloudflare]}` as needed
 - Networking: `limited` with `allowed_hosts: [api.github.com, github.com, raw.githubusercontent.com, api.anthropic.com]`, `allow_mcp_servers: true`, `allow_package_managers: true`
 - No GitHub-repo mount primitive exists — the agent `git clone`s at session start via bash using a `GITHUB_TOKEN` passed in the first user.message
 
 Agent specs (JSON, not YAML — matches `POST /v1/agents` schema):
+
 - `agents/monitor.json` — Haiku 4.5
 - `agents/brand-voice-critic.json` — Sonnet 4.6
 - `agents/fh-compliance-critic.json` — Sonnet 4.6
@@ -84,6 +86,7 @@ Works in **public beta** — runtime agent creation is supported without researc
 `skills/onboard-smb/SKILL.md` — universal markdown skill, works in Claude Code + claude.ai.
 
 Flow:
+
 1. Business Q&A → writes `context/business.md`
 2. Claude Design `.zip` upload → Opus translates HTML/JSX → Astro
 3. DNS branch: "is your domain on Cloudflare?" → wrangler `custom_domain` OR `.workers.dev` + user CNAME
@@ -126,7 +129,7 @@ Flow:
 ## Dependencies
 
 - Anthropic Managed Agents API, beta header `managed-agents-2026-04-01` (public beta — verified live 2026-04-23)
-- (Research preview, NOT required for public beta path: `callable_agents`, memory stores, outcomes — request at https://claude.com/form/claude-managed-agents)
+- (Research preview, NOT required for public beta path: `callable_agents`, memory stores, outcomes — request at <https://claude.com/form/claude-managed-agents>)
 - Claude Code (Routines, `/v1/claude_code/routines/{id}/fire`)
 - Claude Design (user-facing, bundle `.zip`)
 - Cloudflare Workers + Static Assets + Workers Builds

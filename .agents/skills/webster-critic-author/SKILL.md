@@ -40,6 +40,7 @@ context/critics/<role>/
 ### 1. Write the JSON spec
 
 Use the base template in `managed-agents-patterns` (JSON, not YAML). Fill in:
+
 - `name`: `<role>-critic`
 - `description`: one-line purpose
 - `model`: `claude-sonnet-4-6` (or per tier)

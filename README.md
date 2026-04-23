@@ -21,6 +21,7 @@ claude /onboard
 ```
 
 The onboarding skill walks you through:
+
 1. Business context Q&A (your brand, target persona)
 2. Claude Design `.zip` upload (your starter LP → Astro components)
 3. Subdomain pointing (we help; you own the domain)
@@ -30,7 +31,7 @@ The onboarding skill walks you through:
 
 ## Architecture
 
-```
+```text
 Claude Code Routine (weekly cron)
   └─ Claude Code session (orchestrator, Opus 4.7)
      ├─ invokes 6 Managed Agents (monitor + 5 critics + redesigner)
@@ -46,7 +47,7 @@ Full details: [`context/ARCHITECTURE.md`](context/ARCHITECTURE.md).
 
 ## Repo layout
 
-```
+```text
 webster/
 ├── routines/         # Claude Code Routine YAMLs
 ├── agents/           # 7 Managed Agent YAMLs (pre-registered critics + redesigner)
@@ -72,6 +73,7 @@ See [`AGENTS.md`](AGENTS.md) for operator/agent usage.
 ## Meta
 
 Every layer of this submission uses Opus 4.7:
+
 - **Agent YAMLs**: authored by Opus 4.7
 - **Orchestrator logic**: authored by Opus 4.7
 - **Onboarding skill**: authored by Opus 4.7

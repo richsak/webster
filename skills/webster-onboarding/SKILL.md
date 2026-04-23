@@ -24,6 +24,7 @@ Ask if any are missing. STOP if any aren't ready — don't try to "mock" them.
 ### Step 1: Business identity (30s)
 
 Ask, one at a time, and wait for each answer:
+
 - Business name?
 - One-line description (what you sell, to whom)?
 - Brand voice: friendly, clinical, casual, premium, or other?
@@ -34,13 +35,14 @@ Write answers to `context/business.md` as a structured markdown file.
 
 Ask the user to paste keys one at a time. Write them to `.env.local` (NOT `.env` — that's tracked):
 
-```
+```ini
 ANTHROPIC_API_KEY=<paste>
 CLOUDFLARE_API_TOKEN=<paste>
 GITHUB_TOKEN=<optional, for private repo access>
 ```
 
 Verify each key works:
+
 - Anthropic: `curl -s https://api.anthropic.com/v1/models -H "x-api-key: $ANTHROPIC_API_KEY" | jq '.data[0]'`
 - Cloudflare: `curl -s https://api.cloudflare.com/client/v4/user/tokens/verify -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"`
 
@@ -61,10 +63,12 @@ Run `bun run build` to verify compile. If it fails: show errors verbatim, STOP.
 Ask: "What domain should Webster deploy to?"
 
 **Branch A — Cloudflare-managed domain**: user's domain is already on Cloudflare.
+
 - Configure `wrangler.jsonc` with `custom_domain: true` and their zone
 - `wrangler deploy` — Cloudflare auto-creates the DNS record
 
 **Branch B — External DNS**: domain is elsewhere.
+
 - Deploy to `<project>.workers.dev` first (`wrangler deploy`)
 - Show user: "In your DNS provider, add a CNAME record pointing `<their-subdomain>` to `<project>.workers.dev`"
 - Wait for DNS propagation (up to 5 min). Verify via `dig <domain>`.

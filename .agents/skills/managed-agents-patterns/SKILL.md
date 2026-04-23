@@ -16,6 +16,7 @@ We target **Claude Managed Agents** — Anthropic-hosted agent harness. Primary 
 This is NOT `/v1/messages` — the raw Messages API (no harness).
 
 **Beta header per endpoint (verified 2026-04-23):**
+
 - `POST /v1/environments` → `managed-agents-2026-04-01`
 - `POST /v1/agents` → `managed-agents-2026-04-01`
 - `POST /v1/sessions` → `managed-agents-2026-04-01`
@@ -29,10 +30,12 @@ The hackathon prize lane ("Best Use of Claude Managed Agents") wants the hosted 
 ## Public beta vs research preview
 
 **Public beta (use freely):**
+
 - Pre-registered agents, environments, sessions, events, MCP, skills, vaults.
 - Runtime agent creation via `POST /v1/agents` from the orchestrator session → this powers Critic Genealogy hero beat.
 
 **Research preview (request access at https://claude.com/form/claude-managed-agents):**
+
 - `callable_agents` — agent-to-agent invocation inside the Managed Agents runtime.
 - Memory tooling, outcomes, multi-agent orchestration as a managed feature.
 
@@ -40,11 +43,11 @@ The hackathon prize lane ("Best Use of Claude Managed Agents") wants the hosted 
 
 ## Model tier table (cost discipline)
 
-| Role | Model | Why |
-|---|---|---|
-| `monitor` | `claude-haiku-4-5` | Analytics anomaly detection — cheap, fires first |
-| 5 critics (SEO, brand-voice, FH-compliance, conversion, copy) | `claude-sonnet-4-6` | Critic default — quality at moderate cost |
-| `redesigner` | `claude-opus-4-7` | Synthesis + proposal generation — quality matters |
+| Role                                                          | Model               | Why                                               |
+| ------------------------------------------------------------- | ------------------- | ------------------------------------------------- |
+| `monitor`                                                     | `claude-haiku-4-5`  | Analytics anomaly detection — cheap, fires first  |
+| 5 critics (SEO, brand-voice, FH-compliance, conversion, copy) | `claude-sonnet-4-6` | Critic default — quality at moderate cost         |
+| `redesigner`                                                  | `claude-opus-4-7`   | Synthesis + proposal generation — quality matters |
 
 Never use Opus 4.7 for critics. Never use Sonnet for the monitor. Tier discipline is part of the demo story.
 
@@ -58,9 +61,7 @@ Specs are JSON files under `agents/<role>-critic.json` — curl posts them direc
   "description": "<one-line purpose>",
   "model": "claude-sonnet-4-6",
   "system": "You are a <role> in Webster's landing-page improvement council.\n\n# Scope\nYour job is ONLY <specific responsibility>. You do NOT:\n- Propose redesigns (that's the redesigner's job)\n- Judge other critics (critics are independent)\n- Touch git, deploy, or anything outside reading LP + writing findings\n\n# Input\nAt session start, read from /workspace:\n- `site/` — current landing page source\n- `context/business.md` — brand + business identity\n- `context/critics/<your-name>/findings.md` — your previous findings (memory)\n- `history/last-week/` — last week's run for diff context\n\nThe orchestrator clones the Webster repo into /workspace at session start (see environment setup). You have `git` via bash.\n\n# Output\nWrite findings to `context/critics/<your-name>/findings.md`, then stage and commit:\n  git add context/critics/<your-name>/findings.md\n  git commit -m 'chore(<role>-critic): week YYYY-MM-DD findings'\n  git push\n\nFindings format:\n# Findings — Week YYYY-MM-DD\n\n## Issues identified\n- [CRITICAL|HIGH|MEDIUM|LOW] <one-line issue> — <evidence from LP>\n\n## Patterns observed\n- <recurring pattern across multiple weeks>\n\n## Out of scope (flag for redesigner or Genealogy)\n- <issue you noticed but don't own>\n",
-  "tools": [
-    { "type": "agent_toolset_20260401" }
-  ],
+  "tools": [{ "type": "agent_toolset_20260401" }],
   "mcp_servers": [],
   "metadata": {
     "role": "critic",

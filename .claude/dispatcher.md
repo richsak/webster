@@ -49,6 +49,7 @@ Auto-compaction is a coarse event — it fires at 20% with whatever is still in 
 **Where**: `.claude/checkpoints/<YYYY-MM-DDTHHMMSSZ>-<trigger>.md`. Create the dir if missing. Gitignored — session state, not project state.
 
 **When to write** (any of these — don't wait for all to line up):
+
 - `dispatch-pass` — end of every dispatch loop, BEFORE you exit. Record what you dispatched, what changed in FEATURES.md, what's next.
 - `decision` — after making a non-trivial architecture / scope / model / workflow-choice decision. Record the decision and the 1-line why.
 - `resolved` — after resolving a blocker or completing a multi-step investigation. Record what was stuck, what fixed it, where the fix lives.
@@ -64,16 +65,20 @@ trigger: dispatch-pass
 ---
 
 ## What happened
+
 <1-3 lines of prose — no narration of tool calls>
 
 ## Current state
+
 - <files modified, workflows dispatched, decisions made — bullet points>
 
 ## Next tick
+
 - <what to do next or what to read first when resuming>
 ```
 
 **Rules**:
+
 - Checkpoints are for FUTURE-YOU, not for the user. Skip pleasantries.
 - If a checkpoint would duplicate the last one, skip it.
 - Never paste raw tool output. Distilled findings only.
@@ -84,6 +89,7 @@ trigger: dispatch-pass
 The 20% compaction threshold exists because Opus retrieval degrades past ~200–250K. Every token you let into context is a token that raises compaction frequency and risks demoting older signal. Default to LESS context, not more.
 
 Token-wasting patterns to avoid:
+
 - `grep -r` without `--include` filter or path scope — dumps thousands of irrelevant matches. Scope first: `grep -r "X" --include="*.yaml" .forge/workflows/`.
 - `cat` on a file >200 lines when you need one section — use `Read` with `offset`/`limit`, or `grep -n "X" file` first to locate the section.
 - Re-reading a file you already read this session — if you need to remember it, write a checkpoint note instead.
@@ -91,21 +97,22 @@ Token-wasting patterns to avoid:
 - Letting a failed tool call's full stderr into context — distill the relevant error line and move on.
 
 When a tool call DOES return >200 lines of output:
+
 1. Extract only the lines that answer your question.
 2. Write a `post-probe` checkpoint capturing the distilled answer.
 3. Do NOT quote the raw output back in subsequent reasoning — reason from the checkpoint.
 
 ## Workflow Selection
 
-| Feature type | Workflow | Branch pattern |
-|---|---|---|
-| PRD with multiple stories (Webster's preferred batch mode) | `webster-ralph-dag` | `feat/ralph-<batch-slug>` |
-| Feature with plan in hand | `forge-plan-to-pr` | `feat/<slug>` |
-| Idea, no plan yet | `forge-idea-to-pr` | `feat/<slug>` |
-| Remotion video composition | `forge-remotion-generate` | `video/<comp-slug>` |
-| PR review | `forge-comprehensive-pr-review` | `review/pr-<N>` |
-| GitHub issue fix | `forge-fix-github-issue` | `fix/issue-<N>` |
-| General / ambiguous | `forge-assist` | `assist/<slug>` |
+| Feature type                                               | Workflow                        | Branch pattern            |
+| ---------------------------------------------------------- | ------------------------------- | ------------------------- |
+| PRD with multiple stories (Webster's preferred batch mode) | `webster-ralph-dag`             | `feat/ralph-<batch-slug>` |
+| Feature with plan in hand                                  | `forge-plan-to-pr`              | `feat/<slug>`             |
+| Idea, no plan yet                                          | `forge-idea-to-pr`              | `feat/<slug>`             |
+| Remotion video composition                                 | `forge-remotion-generate`       | `video/<comp-slug>`       |
+| PR review                                                  | `forge-comprehensive-pr-review` | `review/pr-<N>`           |
+| GitHub issue fix                                           | `forge-fix-github-issue`        | `fix/issue-<N>`           |
+| General / ambiguous                                        | `forge-assist`                  | `assist/<slug>`           |
 
 **Branch slug rule**: lowercase, hyphen-separated, ≤30 chars, no punctuation.
 
@@ -114,6 +121,7 @@ When a tool call DOES return >200 lines of output:
 Invoke via `forge <args>` (wrapper at `~/.local/bin/forge` routes to `bun ~/Projects/forge/packages/cli/src/cli.ts`).
 
 Essential:
+
 - `forge workflow list` — show available workflows (discovers from Webster's `.forge/workflows/` + Forge defaults)
 - `forge workflow run <name> --branch <branch> "<message>"` — dispatch in worktree
 - `forge isolation list` — show active branches/worktrees
@@ -121,6 +129,7 @@ Essential:
 - `forge complete <branch>` — finalize a branch
 
 Background invocation pattern (use this, not synchronous):
+
 ```bash
 nohup forge workflow run <name> --branch <branch> "<message>" > tmp/logs/<branch>.log 2>&1 &
 disown

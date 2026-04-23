@@ -5,30 +5,32 @@
   "type": "module",
   "description": "A Council of Claude Managed Agents that autonomously redesigns small-business landing pages weekly.",
   "license": "MIT",
+  "repository": "github:richsak/webster",
+  "engines": {
+    "bun": ">=1.3.0"
+  },
   "scripts": {
     "type-check": "tsc --noEmit",
-    "lint": "bun x eslint . --cache",
-    "lint:fix": "bun x eslint . --cache --fix",
-    "format": "bun x prettier --write .",
-    "format:check": "bun x prettier --check .",
+    "lint": "eslint . --cache",
+    "lint:fix": "eslint . --cache --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "validate:agents": "bun scripts/validate-agents.ts",
+    "validate:findings": "bun scripts/validate-findings.ts",
+    "validate:md": "markdownlint-cli2",
+    "validate": "bun run type-check && bun run lint --max-warnings 0 && bun run format:check && bun run validate:agents && bun run validate:findings && bun run validate:md && bun test",
     "test": "bun test",
-    "validate:yaml": "bun scripts/validate-yaml.ts",
-    "validate": "bun run type-check && bun run lint --max-warnings 0 && bun run format:check && bun run validate:yaml && bun run test",
-    "dev": "bun run webster/cli.ts",
-    "build": "bun build webster/cli.ts --outdir dist --target bun",
-    "seed:history": "bun scripts/seed-mock-history.ts",
     "prepare": "husky"
   },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.30.0"
-  },
   "devDependencies": {
-    "@types/bun": "latest",
-    "@typescript-eslint/eslint-plugin": "^8.0.0",
-    "@typescript-eslint/parser": "^8.0.0",
-    "eslint": "^9.0.0",
-    "husky": "^9.0.0",
-    "prettier": "^3.0.0",
-    "typescript": "^5.4.0"
+    "@types/bun": "^1.3.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "eslint": "^9.18.0",
+    "husky": "^9.1.7",
+    "markdownlint-cli2": "^0.17.2",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.22.0"
   }
 }

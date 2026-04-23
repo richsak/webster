@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://webster.dev/schemas/agent.schema.json",
+  "title": "Webster Managed Agent Spec",
+  "description": "Schema for Anthropic Managed Agents registered via POST /v1/agents with beta header managed-agents-2026-04-01. Derived from the 7 committed specs that successfully registered on 2026-04-23.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "description", "model", "system", "tools"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$",
+      "minLength": 3,
+      "maxLength": 64,
+      "description": "Kebab-case unique identifier. Server rejects duplicates."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500,
+      "description": "Human-readable one-liner. Shown in /v1/agents listing."
+    },
+    "model": {
+      "type": "string",
+      "enum": [
+        "claude-opus-4-7",
+        "claude-opus-4-7-20260101",
+        "claude-sonnet-4-6",
+        "claude-sonnet-4-6-20260101",
+        "claude-haiku-4-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "description": "Exact model ID. Update this enum when adding new models."
+    },
+    "system": {
+      "type": "string",
+      "minLength": 50,
+      "description": "System prompt. NOTE: the field is 'system', NOT 'system_prompt'. The live Managed Agents API rejects 'system_prompt'."
+    },
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["agent_toolset_20260401"],
+                "description": "Canonical toolset bundle for Managed Agents beta."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "mcp_server_name"],
+            "properties": {
+              "type": { "type": "string", "enum": ["mcp_toolset"] },
+              "mcp_server_name": {
+                "type": "string",
+                "description": "Name of the MCP server in mcp_servers config."
+              },
+              "default_config": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "enabled": { "type": "boolean" },
+                  "permission_policy": {
+                    "type": "object",
+                    "required": ["type"],
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": ["always_allow", "require_approval", "deny"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "mcp_servers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "name", "url"],
+        "properties": {
+          "type": { "type": "string", "enum": ["url"] },
+          "name": { "type": "string" },
+          "url": { "type": "string", "format": "uri" }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": ["critic", "monitor", "redesigner", "orchestrator"]
+        },
+        "scope": { "type": "string" }
+      }
+    }
+  }
+}

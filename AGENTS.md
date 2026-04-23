@@ -24,13 +24,13 @@ Ship the Webster submission for the Anthropic × Cerebral Valley "Built with Opu
 
 ## Stream allocation (parallel worktrees)
 
-| Stream | Operator | Worktree | Features |
-|---|---|---|---|
-| 1 | Claude Code Opus 4.7 | `main` | Orchestrator + Critic Genealogy + Routine config |
-| 2 | Codex heartbeat | `agents` | 7 Managed Agent YAMLs + environment config |
-| 3 | Codex heartbeat | `skill` | Onboarding skill + Claude Design .zip parser |
-| 4 | Claude Code or Forge | `video` | Remotion comps + animations |
-| 5 | Claude Code | `substrate` | LP fork + analytics pixel + 10-week mock history seeder |
+| Stream | Operator             | Worktree    | Features                                                |
+| ------ | -------------------- | ----------- | ------------------------------------------------------- |
+| 1      | Claude Code Opus 4.7 | `main`      | Orchestrator + Critic Genealogy + Routine config        |
+| 2      | Codex heartbeat      | `agents`    | 7 Managed Agent YAMLs + environment config              |
+| 3      | Codex heartbeat      | `skill`     | Onboarding skill + Claude Design .zip parser            |
+| 4      | Claude Code or Forge | `video`     | Remotion comps + animations                             |
+| 5      | Claude Code          | `substrate` | LP fork + analytics pixel + 10-week mock history seeder |
 
 Merge cadence: Thursday EOD, Friday EOD, Saturday noon.
 

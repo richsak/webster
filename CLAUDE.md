@@ -19,6 +19,7 @@ Guidance for Claude Code sessions operating on this repo.
 ## Quality bar
 
 Mirror Forge's validation pattern (it's what Richie's trained on):
+
 - Zero lint warnings tolerated
 - Full type check blocking
 - Format check blocking (prettier)
@@ -59,6 +60,7 @@ Use `TaskCreate` / `TaskUpdate` for multi-step work within a single session. Tas
 ## Skill invocation
 
 Webster ships two skills:
+
 - `skills/onboard-smb/SKILL.md` — end-user onboarding flow (universal)
 - `skills/critic-flow/SKILL.md` — shared critic run flow (referenced by all 7 agents)
 

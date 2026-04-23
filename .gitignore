@@ -13,5 +13,7 @@ coverage/
 .claude/compactions/
 .wrangler/
 tmp/
+.eslintcache
+.claude/scheduled_tasks.lock
 *.zip
 !examples/**/*.zip

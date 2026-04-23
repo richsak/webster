@@ -4,17 +4,17 @@ Primary reference: `.claude/skills/nicolette-richer/references/brand-bible.md` (
 
 ## Quick identity
 
-| Field | Value |
-|-------|-------|
-| Operator | Dr. Nicolette Richer, DSocSci |
-| Credential | Doctorate in Social Sciences (Royal Roads University) |
+| Field                | Value                                                      |
+| -------------------- | ---------------------------------------------------------- |
+| Operator             | Dr. Nicolette Richer, DSocSci                              |
+| Credential           | Doctorate in Social Sciences (Royal Roads University)      |
 | NOT a medical doctor | Disclaimer required wherever health outcomes are discussed |
-| Location | Whistler / Vancouver, BC, Canada |
-| Primary domain | richerhealth.ca |
-| Campaign LP | certified.richerhealth.ca |
-| Corporate arm | richeratwork.com |
-| Booking system | app.acuityscheduling.com/schedule.php?owner=16697295 |
-| Current campaign | B2B Team N&D Certification for US clinic owners |
+| Location             | Whistler / Vancouver, BC, Canada                           |
+| Primary domain       | richerhealth.ca                                            |
+| Campaign LP          | certified.richerhealth.ca                                  |
+| Corporate arm        | richeratwork.com                                           |
+| Booking system       | app.acuityscheduling.com/schedule.php?owner=16697295       |
+| Current campaign     | B2B Team N&D Certification for US clinic owners            |
 
 ## Brand voice (one-liner)
 

@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+
+# Lax pre-commit — blocks on the bugs that cost API credits, not on formatting nits.
+# Runs the agent/env schema validator (catches system_prompt-class bugs) and checks
+# prettier formatting only on staged files. Type-check / full lint / tests run in CI.
+# Tighten after 2026-04-26 hackathon submission.
+
+set -e
+
+bun run validate:agents
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|js|json|md|jsonc)$' || true)
+if [ -n "$staged" ]; then
+  echo "$staged" | xargs bun x prettier --check || {
+    echo ""
+    echo "Formatting issues found. Run: bun run format"
+    exit 1
+  }
+fi

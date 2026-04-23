@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://webster.dev/schemas/environment.schema.json",
+  "title": "Webster Managed Agents Environment Spec",
+  "description": "Schema for POST /v1/environments. Derived from webster-council-env which registered successfully on 2026-04-23.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "config"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$",
+      "minLength": 3,
+      "maxLength": 64
+    },
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string", "enum": ["cloud"] },
+        "packages": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "apt": { "type": "array", "items": { "type": "string" } },
+            "npm": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "networking": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "properties": {
+            "type": { "type": "string", "enum": ["limited", "full", "none"] },
+            "allowed_hosts": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Host-only format (no scheme) — api.github.com, not https://api.github.com."
+            },
+            "allow_mcp_servers": { "type": "boolean" },
+            "allow_package_managers": { "type": "boolean" }
+          }
+        }
+      }
+    }
+  }
+}

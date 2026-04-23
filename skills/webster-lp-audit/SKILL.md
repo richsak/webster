@@ -23,12 +23,15 @@ Write to `context/critics/<your-role>/findings.md`:
 # Findings — Week YYYY-MM-DD
 
 ## Issues identified
+
 - [CRITICAL|HIGH|MEDIUM|LOW] <one-line issue> — <evidence: file:line or quoted line>
 
 ## Patterns observed
+
 - <recurring pattern across weeks, if prior findings exist>
 
 ## Out of scope (flag for redesigner or Genealogy)
+
 - [<scope-owner>] <issue outside your ownership>
 ```
 

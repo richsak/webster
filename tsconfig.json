@@ -15,10 +15,10 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "lib": ["ESNext", "DOM"],
-    "types": ["bun-types"],
+    "lib": ["ESNext"],
+    "types": ["bun"],
     "noEmit": true
   },
-  "include": ["webster/**/*", "scripts/**/*", "tests/**/*"],
-  "exclude": ["node_modules", "dist", "build", "site"]
+  "include": ["scripts/**/*"],
+  "exclude": ["node_modules", "dist", "build", "site", "tmp"]
 }

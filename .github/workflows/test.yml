@@ -33,28 +33,67 @@ jobs:
       - name: Check formatting
         run: bun run format:check
 
-      - name: Validate YAML (agents + routines)
-        run: bun run validate:yaml
+      - name: Validate agent + environment specs
+        run: bun run validate:agents
+
+      - name: Validate findings format
+        run: bun run validate:findings
+
+      - name: Markdown lint
+        run: bun run validate:md
 
       - name: Run tests
         run: bun run test
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shellcheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: "."
+          ignore_paths: "node_modules site tmp history .claude/checkpoints .claude/compactions"
+          additional_files: ".husky/pre-commit"
+          severity: warning
+
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Actionlint
+        uses: reviewdog/action-actionlint@v1
+        with:
+          reporter: github-check
+          fail_on_error: true
 
   site-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check site/ exists
+        id: site-check
+        run: |
+          if [[ -d site && -f site/package.json ]]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "site/ not yet forked — skipping site build"
+          fi
+
       - name: Setup Bun
+        if: steps.site-check.outputs.exists == 'true'
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
       - name: Install site dependencies
+        if: steps.site-check.outputs.exists == 'true'
         working-directory: site
         run: bun install --frozen-lockfile
-        continue-on-error: true
 
       - name: Astro build check
+        if: steps.site-check.outputs.exists == 'true'
         working-directory: site
         run: bun run build
-        continue-on-error: true
