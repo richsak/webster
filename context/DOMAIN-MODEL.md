@@ -195,6 +195,46 @@ DAY 7 — NEXT MONDAY
 5. **Human is the last ratchet, not the first debugger** — human PR review is optional. Auto-rollback fires without human. But nothing is MERGED without passing validation.
 6. **Agents compose, not override** — planner CAN direct critics to focus on X, but critics cannot ignore critical findings. Override is via operator-decision.json (human override, tracked).
 7. **Proposals are kind-aware** (post-L10) — every issue in proposal.md declares kind ∈ {text, css, component, asset} + a constraints block. No silent type-coercion in the apply worker.
+8. **Memory is event-sourced, not agent-private** (NEW, see next section) — every agent's durable state lives on disk in the canonical memory substrate; nothing material sits only in a session context.
+
+## Memory substrate (unified across agents)
+
+> Locked by Richie (Q2 side-note, 2026-04-23): "remember context packages and writes/edits need to happen accordingly so there's a unified memory structure and insights into experiment logs and stuff like that accordingly."
+
+The planner at week N+1 does not re-read every artifact from weeks 1..N. It reads a **distilled event log** plus the last 1–2 weeks' raw artifacts. This is the unified memory:
+
+| File                                          | Writer                                   | Readers                                      | Shape                        |
+| --------------------------------------------- | ---------------------------------------- | -------------------------------------------- | ---------------------------- |
+| `history/baselines.jsonl`                     | planner (on promote)                     | all agents                                   | JSONL, append-only           |
+| `history/memory.jsonl`                        | planner + apply-worker + visual-reviewer | planner (next week), critics (for priors)    | JSONL, append-only event log |
+| `history/<week>/verdict.json`                 | verdict engine (L9 #44)                  | planner                                      | JSON                         |
+| `history/<week>/plan.md`                      | planner                                  | critics + redesigner + apply-worker          | MD w/ YAML frontmatter       |
+| `history/<week>/proposal.md`                  | redesigner                               | apply-worker + visual-reviewer               | MD, kind-aware issue blocks  |
+| `history/<week>/apply-log.json`               | apply-worker                             | visual-reviewer + planner (next week)        | JSON                         |
+| `history/<week>/visual-review.md`             | visual-reviewer                          | planner (next week) + human                  | MD + screenshots             |
+| `history/<week>/council/<critic>-findings.md` | each critic                              | redesigner + planner (next week, for priors) | MD                           |
+
+**Event log row shape** (`history/memory.jsonl`):
+
+```json
+{
+  "ts": "...",
+  "week": "2026-W17",
+  "actor": "planner|apply|visual|verdict|human",
+  "event": "promote|rollback|skip|regression|gap-detected|verdict-ready",
+  "refs": { "baseline_sha": "...", "proposal_id": "...", "finding_id": "..." },
+  "insight": "<one-sentence durable takeaway>"
+}
+```
+
+**Write discipline**:
+
+- JSONL files are append-only. No rewriting history.
+- Week directories are write-once. Amendments go in follow-up files (`plan-revision-1.md`).
+- Every significant agent action MUST emit a `memory.jsonl` row. This is the planner's primary reading substrate at week N+1.
+- Raw artifacts stay in their week directory for audit; the event log is the distillation.
+
+**Why this shape**: if the planner had to re-read 12 weeks of findings + verdicts to decide week 13's direction, it would drown. The event log is the curated history. Raw artifacts are the evidence base, queried on demand by refs.
 
 ## Dependency order (what builds on what)
 
@@ -223,14 +263,9 @@ Decisions needed before L11 (and some L9) can be implemented:
 
 1. **Planner deployment** — Managed Agent (like monitor + redesigner) OR part of orchestrator Claude Code session? My pick: **Managed Agent (80/100)**. Matches pattern, gives it a clean audit trail, same agent-from-outside registration. Counter: embedding in orchestrator avoids a second fan-out round-trip. But orchestrator-embedded loses the "agent that decides" narrative — harder to point at as a council member. Go Managed Agent.
 
-2. **Cold-start behavior** — week 1 has no verdict. What does planner do? Options:
-   - (a) Skip planner on week 1, orchestrator uses default direction (70/100)
-   - (b) Planner reads monitor's anomaly baseline + analytics snapshot, outputs "explore broadly" plan (85/100 — my pick)
-   - (c) Planner refuses to run, council runs without plan.md context (60/100)
+2. **Cold-start behavior** — 🔒 **LOCKED (Richie, 2026-04-23)**: Planner reads monitor's anomaly baseline + analytics snapshot, outputs "explore broadly" plan. Baseline-only analytics are sufficient; planner does not block on absent verdict.
 
-3. **Rollback authority** — can auto-rollback fire without human approval?
-   - Yes on strong-negative signal (p<0.01) — **85/100**, my pick. Asymmetric safety net.
-   - No, always draft PR for human — 55/100. Defeats the "autonomous" claim at the crisis moment.
+3. **Rollback authority** — 🔒 **LOCKED (Richie, 2026-04-23)**: Auto-rollback fires autonomously on p<0.01 negative signal without human approval. Asymmetric safety net — hurt is cheap to revert, blocking on human defeats the autonomous claim at the crisis moment.
 
 4. **Promotion threshold** — what verdict triggers "promote to baseline"?
    - Proxy-improved at p<0.05 for 1 week — 70/100 (fast, but noisy)
