@@ -270,57 +270,61 @@ async function detectGap(
     max_tokens: 4096,
     tools: [
       {
-        name: "report_gap",
+        name: "report_no_gap",
         description:
-          "Report whether a coverage gap exists and, if so, spec a new critic to fill it.",
+          "Report that no coverage gap exists this week. The council's 5 critics covered everything auditable.",
         input_schema: {
           type: "object",
           additionalProperties: false,
-          required: ["gap_found", "new_critic"],
+          required: ["rationale"],
           properties: {
-            gap_found: { type: "boolean" },
-            new_critic: {
-              anyOf: [
-                { type: "null" },
-                {
-                  type: "object",
-                  additionalProperties: false,
-                  required: [
-                    "name",
-                    "scope",
-                    "description",
-                    "rationale",
-                    "focus_owned",
-                    "focus_not_owned",
-                    "severity_rubric",
-                  ],
-                  properties: {
-                    name: { type: "string", pattern: "^[a-z][a-z0-9-]*-critic$" },
-                    scope: { type: "string", pattern: "^[a-z][a-z0-9-]*$" },
-                    description: { type: "string", minLength: 20, maxLength: 500 },
-                    rationale: { type: "string", minLength: 30 },
-                    focus_owned: {
-                      type: "array",
-                      items: { type: "string" },
-                      minItems: 3,
-                      maxItems: 10,
-                    },
-                    focus_not_owned: {
-                      type: "array",
-                      items: { type: "string" },
-                      minItems: 3,
-                      maxItems: 10,
-                    },
-                    severity_rubric: { type: "string", minLength: 50 },
-                  },
-                },
-              ],
+            rationale: {
+              type: "string",
+              minLength: 30,
+              description: "Why no gap — which potential scopes were considered and rejected.",
             },
           },
         },
       },
+      {
+        name: "report_gap",
+        description:
+          "Report a coverage gap and spec the new critic that should fill it. Use ONLY when >=2 critics flagged the same scope as unowned in their Out-of-scope sections.",
+        input_schema: {
+          type: "object",
+          additionalProperties: false,
+          required: [
+            "name",
+            "scope",
+            "description",
+            "rationale",
+            "focus_owned",
+            "focus_not_owned",
+            "severity_rubric",
+          ],
+          properties: {
+            name: { type: "string", pattern: "^[a-z][a-z0-9-]*-critic$" },
+            scope: { type: "string", pattern: "^[a-z][a-z0-9-]*$" },
+            description: { type: "string", minLength: 20, maxLength: 500 },
+            rationale: { type: "string", minLength: 30 },
+            focus_owned: {
+              type: "array",
+              items: { type: "string" },
+              minItems: 3,
+              maxItems: 10,
+            },
+            focus_not_owned: {
+              type: "array",
+              items: { type: "string" },
+              minItems: 3,
+              maxItems: 10,
+            },
+            severity_rubric: { type: "string", minLength: 50 },
+          },
+        },
+      },
     ],
-    tool_choice: { type: "tool", name: "report_gap" },
+    tool_choice: { type: "any" },
     messages: [{ role: "user", content: prompt }],
   };
   const res = await fetch(`${API}/messages`, {
@@ -337,11 +341,19 @@ async function detectGap(
     throw new Error(`gap-detection failed (${res.status}): ${text}`);
   }
   const raw = (await res.json()) as { content: { type: string; name?: string; input?: unknown }[] };
-  const toolUse = raw.content.find((c) => c.type === "tool_use" && c.name === "report_gap");
+  const toolUse = raw.content.find((c) => c.type === "tool_use");
   if (!toolUse?.input) {
     throw new Error(`gap-detection returned no tool_use: ${JSON.stringify(raw)}`);
   }
-  return toolUse.input as GapResponse;
+  if (toolUse.name === "report_no_gap") {
+    const input = toolUse.input as { rationale: string };
+    console.log(`no gap rationale: ${input.rationale}`);
+    return { gap_found: false, new_critic: null };
+  }
+  if (toolUse.name === "report_gap") {
+    return { gap_found: true, new_critic: toolUse.input as NewCriticSpec };
+  }
+  throw new Error(`gap-detection returned unknown tool: ${toolUse.name}`);
 }
 
 function buildSystemPrompt(spec: NewCriticSpec): string {
@@ -426,7 +438,28 @@ export function spliceNewSpec(template: AgentJSON, spec: NewCriticSpec): AgentJS
   };
 }
 
+async function findAgentByName(apiKey: string, name: string): Promise<string | null> {
+  const res = await fetch(`${API}/agents`, {
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": VERSION,
+      "anthropic-beta": BETA,
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`agent list failed (${res.status}): ${await res.text()}`);
+  }
+  const data = (await res.json()) as { data?: { id: string; name: string }[] };
+  const match = data.data?.find((a) => a.name === name);
+  return match?.id ?? null;
+}
+
 async function registerAgent(apiKey: string, spec: AgentJSON): Promise<string> {
+  const existing = await findAgentByName(apiKey, spec.name);
+  if (existing) {
+    console.log(`  agent ${spec.name} already registered: ${existing} — reusing`);
+    return existing;
+  }
   const res = await fetch(`${API}/agents`, {
     method: "POST",
     headers: {

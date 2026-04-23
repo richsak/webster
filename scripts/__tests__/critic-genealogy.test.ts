@@ -76,10 +76,11 @@ describe("parseArgs", () => {
 });
 
 describe("loadExistingCritics", () => {
-  test("returns all 5 committed critics", () => {
-    const critics = loadExistingCritics();
-    const scopes = critics.map((c) => c.scope).sort();
-    expect(scopes).toEqual(["brand-voice", "conversion", "copy", "fh-compliance", "seo"]);
+  test("includes all 5 originally-committed critics", () => {
+    const scopes = loadExistingCritics().map((c) => c.scope);
+    for (const expected of ["brand-voice", "conversion", "copy", "fh-compliance", "seo"]) {
+      expect(scopes).toContain(expected);
+    }
   });
 
   test("each critic has non-empty description", () => {
