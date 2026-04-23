@@ -12,11 +12,11 @@
 
 ## Current submission state (2026-04-23)
 
-- **Done**: 26 (incl. #38 site/ fork shipped session 4)
+- **Done**: 24 (incl. #38 site/ fork shipped session 4)
 - **In-progress**: 1 (live run artifacts in `history/` — session 3 produced real artifacts; row update pending separate reconciliation)
 - **Blocked**: 5 (demo video — Richie voice)
 - **Cut**: 7 (out of submission scope; rationale inline)
-- **Todo**: 10 (1 submission form + 5 #39 sub-features + 4 #40 sub-features; Layer 8 is post-submission v2 roadmap)
+- **Todo**: 19 (1 submission form + 9 Layer 8 v2 sub-features + 9 Layer 9 v3 sub-features; Layers 8–9 are post-submission)
 
 Hero feature (Critic Genealogy) shipped with live Opus 4.7 validation. All 7 Managed Agents registered. Council fan-out + redesigner + PR automation scripted in `prompts/second-wbs-session.md`. CI green, 29 tests pass. Two scope reassignments below (critic-flow skill renamed; orchestrator moved from TS to bash-in-markdown prompt) — both ship equivalent functionality.
 
@@ -116,6 +116,29 @@ Surfaced during the week 2026-04-23 operator review (session 3). This is the "mi
 | 40b | todo   | **Backend wire-up** — OpenAI `gpt-image-1` client (default per Q3; `[R-confirm]`) + retry + cost ceiling of $2/run. Structured error handling for rate limits + NSFW filters. Falls back to stub-comment on hard failure.                                 | 3     |
 | 40c | todo   | **Brand-context input + persistence** — JSON brand-context blob from `context/business.md` + palette file (Q3). Assets to `site/public/assets/generated/<week>/<type>-<slug>.<ext>`; gitignored dedup cache at `.webster/generated-cache/`.               | 2     |
 | 40d | todo   | **#39 integration pattern** — apply worker's stub-when-absent / invoke-when-present flow (Q3 soft dependency). Apply emits `<!-- asset TBD: <type> -->` comments when #40 is unavailable, swaps them for real asset URLs after #40 ships.                 | 1     |
+
+## Layer 9: Autoresearch loop + post-apply visual review (post-submission v3)
+
+Added session 4 Phase 5 after visual evidence that the static critic re-run in #39c cannot catch rendered-layout regressions. Session 4 manual apply ruined hero spacing at all three breakpoints (1440 / 768 / 375) — flagged by Richie, confirmed by screenshot re-review. See `site/screenshots/` for before/after evidence. Layer 9 closes the loop with two complementary agents: **visual-reviewer** ("does it LOOK right?" — runs immediately post-apply) and **autoresearch** ("is it WORKING?" — runs on week+ analytics cycles). Combined, they promote Webster from "autonomous change" to "autonomous improvement."
+
+Key design calls (captured here to avoid re-deriving):
+
+- Proxies (scroll depth, CTA visibility, time-on-page) as fast weekly signal; CVR as slow quarterly confirmation. Small-biz traffic volume (~100–1000/week) makes pure-CVR significance-testing impractical at weekly cadence.
+- Asymmetric rollback: trigger only on `hurt` verdict with p<0.05 negative. Ambiguous changes hold. Prevents rollback-from-noise spiral.
+- Visual-reviewer + #39d per-cluster PRs: smaller PRs tighten attribution for autoresearch verdicts.
+- Baseline promoter rebases comparison anchor after N=2 sustained-improvement weeks — each promotion tightens the next week's bar.
+
+| #   | Status | Feature                                                                                                                                                                                                                                                                                                       | Hours |
+| --- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| 41a | todo   | **Visual-reviewer agent spec** — `agents/webster-visual-reviewer.json` (Opus 4.7 tier). Inputs: preview URL, `history/<week>/proposal.md`, BEFORE URL. Outputs: `history/<week>/visual-review.md` with findings + embedded screenshot refs.                                                                   | 1     |
+| 41b | todo   | **Browser-audit skill** — `skills/webster-browser-audit/SKILL.md` wraps Playwright-headless. Capabilities: 3-breakpoint screenshot (375/768/1440), accessibility-tree text extraction, interaction recording (click CTAs, scroll, form focus, console log capture).                                           | 3     |
+| 41c | todo   | **Proposal-intent verifier** — reads each issue in `proposal.md`, verifies visible presence in rendered output via accessibility-tree extraction (not source grep). Catches content drops like session-4 "No more patient churn" regression. Flags layout overflow via per-breakpoint height-delta vs BEFORE. | 2     |
+| 41d | todo   | **#39 integration pattern** — visual-reviewer runs AFTER #39c critic re-run gate, BEFORE #39d PR emission. Fix-hint loop back to #39a apply worker, max 3 iterations; then skip+annotate per #39d severity-tiered fallback. Blocking on CRITICAL visual regressions.                                          | 1     |
+| 42  | todo   | **Analytics ingestion** — CF Worker pixel → D1 (or PostHog/GA4 webhook). Normalizes events to `{version_sha, metric, value, timestamp}`. Metric tiers: proxies (fast) vs CVR (slow confirmation).                                                                                                             | 3     |
+| 43  | todo   | **Baseline tracker + change log** — per-merge snapshot at `history/baselines.jsonl`: `{version_sha, proposal_ref, decision_ref, baseline_window, promoted_from}`. Append-only; ~1 entry/week. Pin point for verdict-engine comparisons.                                                                       | 2     |
+| 44  | todo   | **Verdict engine** — weekly cron: pulls last 7d analytics window, compares to baseline window, emits `{verdict, confidence, metric_deltas[]}`. Asymmetric rollback gate (only `hurt` with p<0.05). Proxy-first, CVR-confirming.                                                                               | 3     |
+| 45  | todo   | **Auto-rollback worker** — on `hurt` above threshold: `git revert` merge commit, CF Pages preview auto-deploys from revert PR, commit `history/<week>/rollback.md` with evidence. Opens as draft PR so Richie can override before it hits main.                                                               | 2     |
+| 46  | todo   | **Baseline promoter** — on sustained `improved` (default N=2 weeks): update baseline pointer to current sha, archive superseded baseline, log promotion event. Each promotion tightens the next week's bar.                                                                                                   | 1     |
 
 ## Totals (historical — initial plan)
 
