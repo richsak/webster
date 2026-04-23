@@ -6,7 +6,7 @@
 
 ## The one-line pitch
 
-Small businesses pay marketing agencies $2K–$20K/month for landing-page optimization that arrives in 4–6 week cycles. Webster replaces that workflow with ~$0.15 of Opus 4.7 tokens per week and a PR-merge click.
+Small businesses pay marketing agencies $2K–$20K/month for landing-page optimization that arrives in 4–6 week cycles. Webster runs the audit + proposal loop for ~$0.60/month in Opus 4.7 tokens and hands the operator a reviewable draft PR each week. The win is cycle time (minutes vs weeks) and the baseline cost of the analytical loop — a human still reviews the PR before it ships.
 
 ## The hero moment — Critic Genealogy
 
@@ -55,6 +55,8 @@ bun scripts/critic-genealogy.ts --fixtures scripts/__tests__/fixtures/genealogy 
 
 **Why this composition wins**: Managed Agents give each critic a pre-registered scope + MCP tools + vault credentials. Runtime agent registration via `POST /v1/agents` lets the orchestrator spawn specialists mid-run — novel capability that `callable_agents` (research preview) would handicap by gating. Full detail in [`context/ARCHITECTURE.md`](context/ARCHITECTURE.md).
 
+**Honest scope note**: the `site/` fork of the demo substrate LP and the Claude Code Routine cron wiring are manual in this submission — the composition does not depend on either. The redesigner currently emits `proposal.md` (the PR body) instead of `proposal.diff`; diff mode becomes a one-file change once the site source lands.
+
 ## What's in the repo
 
 ```text
@@ -99,7 +101,6 @@ Current state: 29 tests passing, 0 lint warnings, 0 type errors, 8 JSON specs va
 
 - **Best Use of Claude Managed Agents** — 7 pre-registered agents + runtime-registered genealogy critics, all invoked via `/v1/sessions` with vault-bound GitHub MCP (no tokens in `user.message`).
 - **Creative Exploration** — runtime critic genealogy. Gap detection → template-cloned spec → live `POST /v1/agents` → immediate invocation. The emergent-capability demo beat.
-- **Best Solo / Non-Technical Builder** — Webster's operator is one person + Claude Code. No human-agency retainer, no ops team.
 
 ## Running it yourself
 
@@ -152,10 +153,3 @@ Repo is entirely MIT. No Anthropic or third-party proprietary code.
 ## License
 
 MIT. See [LICENSE](LICENSE).
-
-## Not yet shipped (honest list)
-
-- `site/` fork of the demo substrate LP — redesigner currently produces `proposal.md` (brief) instead of `proposal.diff` (PR-ready patch).
-- `routines/weekly-lp-improve.yaml` — Claude Code Routine that would cron the weekly run. Currently manual via `wbs`.
-- Demo video — planned for Saturday record.
-- `context/META.md` commit-hash index — assembled at submission time.
