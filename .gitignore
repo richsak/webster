@@ -9,6 +9,8 @@ build/
 *.log
 coverage/
 .claude/settings.local.json
+.claude/checkpoints/
+.claude/compactions/
 .wrangler/
 tmp/
 *.zip
