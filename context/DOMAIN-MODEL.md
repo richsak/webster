@@ -344,6 +344,45 @@ Over 3 years: governor saves roughly 10M tokens.
 - Layer 3 block → planner emits `governor_blocked: { concern, rationale, quarter }` row to `memory.jsonl` for operator review. Operator can manually bypass via `operator-decision.json`.
 - Layer 4 retire → archived critic logged in `memory.jsonl`. Planner reads archive, can re-request with different scope framing.
 
+## Skip contract
+
+> Locked by Richie (Q6, 2026-04-23). Defines what happens when a parallel experiment is vetoed or fails _before_ reaching the measurement window.
+
+**Skip sources** (all pre-verdict):
+
+| Source             | Trigger                                                               | Stage      |
+| ------------------ | --------------------------------------------------------------------- | ---------- |
+| Apply-worker       | Technical failure — mutation couldn't execute, lint/type/format fails | Apply      |
+| Critic re-run gate | Post-apply critic run surfaces new CRITICAL or >2 new HIGH (#39c)     | Post-apply |
+| Visual-reviewer    | Regression detected at any breakpoint; constraint violation (#41)     | Pre-PR     |
+
+**Contract**:
+
+1. Skipped experiment is **terminal at the current week** — no commit on PR branch, no `baselines.jsonl` promoted row, no rollback needed (nothing shipped).
+2. Orchestrator emits a `memory.jsonl` row:
+   ```json
+   {
+     "ts": "...",
+     "week": "2026-W17",
+     "actor": "apply-worker" | "critic-rerun" | "visual-reviewer",
+     "event": "skip",
+     "exp_id": "exp-NN-<slug>",
+     "reason": "apply-fail" | "critic-veto" | "visual-veto",
+     "details": { "critic_name"?: "...", "finding"?: "...", "visual_check"?: "...", "apply_error"?: "..." },
+     "concern_ref": "<the underlying concern the experiment was addressing>"
+   }
+   ```
+3. `baselines.jsonl` gets entry: `{exp_id, status: "skipped-<reason>", week, concern_ref}`.
+4. Week N+1 planner reads skip rows + base concern. Autonomously decides:
+   - **Re-propose a variant** (different kind or framing addressing the skip reason)
+   - **Pivot** to a different concern (defer this one)
+   - **Drop permanently** (concern isn't worth the experimental slot)
+   - **Escalate to operator** (write `operator-decision.json` row if skip pattern suggests apply-worker or critic limitation)
+
+**Interaction with Q5 genealogy**: if the skip reason points to a coverage gap (concern unowned by existing critics, or critic fired too late — caught post-apply instead of pre-proposal), planner can emit a `genealogy_request` to spawn a pre-proposal-stage critic. Subject to Q5.1 governance.
+
+**Invariant**: a skip is never implicit information loss. Every skip produces one `memory.jsonl` row with enough detail for next-week planning. Planner is the decision-maker about the skipped concern's fate — not a mechanical rule.
+
 ## Dependency order (what builds on what)
 
 ```
@@ -405,10 +444,7 @@ Decisions needed before L11 (and some L9) can be implemented:
 
 5.1. **Genealogy governance** — 🔒 **LOCKED (Richie, 2026-04-23) as Option 5.1C (90/100)**: four-layer governor bounding 5C's spawn mechanism. See "Genealogy governance" section below for full spec. Prevents token-waste drift over 52-week operation without rigid per-period caps. Token math: ungoverned spawning adds ~50% annual run cost over 3 years; governor C steady-state adds ~25%.
 
-6. **Partial experiments** — if a parallel experiment is skipped (by apply worker / critic re-run / visual reviewer), what does planner do next week?
-   - Treat as full experiment; skipped issue rolls forward to next proposal — 75/100 (prior pick).
-   - Treat as failed experiment; planner directs retry on skipped issues — 60/100 (creates loops).
-   - **Per-experiment logging as weak prior, not promotion gate** — 85/100, current pick. Each skip emits a `memory.jsonl` row with reason (apply-failure / critic-veto / visual-veto). Planner reads pattern-level priors ("text-kind skips at 15% this quarter") but does NOT claim per-experiment verdicts — causal identification at ~500 visits/week is too weak. Promotion still requires Q4's bundled matrix.
+6. **Partial experiments (skip contract)** — 🔒 **LOCKED (Richie, 2026-04-23) as Option 6D (92/100)**: skip is terminal at the current week + feeds next-week planning as structured data. No mechanical roll-forward, no in-session retry loops. See "Skip contract" section below for full spec. Dominates prior options (roll-forward 75 creates infinite loops on systemic vetoes; retry-in-session 60 spirals; logging-only 85 doesn't answer "what next for the skipped experiment").
 
 7. **Silent secondary substrates** — other SMB LPs in the repo for generalization proof. Do they run the same L11 flow?
    - Frozen demonstrations, visible in git history but no live council — 80/100 (prior pick).
