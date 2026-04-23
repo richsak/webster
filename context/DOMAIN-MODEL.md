@@ -321,6 +321,30 @@ L11 planner + experiment-aware council (NEW)        ← ships LAST, closes the l
 
 Closing the loop means: week N's verdict informs week N+1's plan informs week N+1's proposal informs week N+1's apply informs week N+1's verdict…
 
+## Demo arc (4-week mock)
+
+> Locked by Richie (Q9, 2026-04-23). Seeded by `scripts/seed-demo-arc.ts` (pending — extends the shipped L5 seeder). Demonstrates every L11 invariant + 6 of 7 Q4 promotion outcomes across 9 experiments and one critic-genealogy spawn.
+
+| Week   | Experiments                                                                                                                                                                      | Verdicts                                                                                                  | Outcomes                                                | Planner direction                                | Demo beat                                               |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------- |
+| **W1** | 1 exp: `exp-01-hero-h1-rewrite` (text)                                                                                                                                           | +15% page-CTR p=0.003, all gates pass                                                                     | Fast-track promote                                      | Cold-start: "explore broadly" (Q2)               | Cold-start path, first win                              |
+| **W2** | 3 parallel: `exp-02-hero-copy-v2` (text), `exp-03-cta-button-component` (component), `exp-04-trust-badge-image` (asset)                                                          | 02: +8% p=0.02 all gates pass; 03: +12% p=0.006 all gates pass; 04: reward 0, brand-voice improved p=0.03 | 03 fast-track, 02 fallback-pending, 04 **gate-win**     | "extend text wins, test component + asset kinds" | Parallel + kind diversity (L10) + gate-win lane         |
+| **W3** | 3 parallel: `exp-05-mid-section-image-swap` (asset), `exp-06-cta-color-shift` (css), `exp-07-subhead-rewrite` (text)                                                             | 05: +10% p=0.008 but bounce +8% p=0.03; 06: reward -11% p=0.004; 07: +4% p=0.08 (ns)                      | 05 **archive-gate-fail**, 06 **auto-rollback**, 07 hold | "deepen asset + css" — intentionally overshoots  | Dramatic beat: partial rollback + gate-fail learning    |
+| **W4** | 2 parallel + genealogy: `exp-08-hero-safety-copy` (text), `exp-09-cta-size-adjust` (css); new `bounce-guard-critic` spawned via L3 genealogy in response to W3 gate-fail pattern | New critic validates; 08: +9% p=0.01 all gates pass; 09: +6% p=0.03 all gates pass                        | Both fast-track promote                                 | "conservative tuning; new critic on bounce risk" | Closing-the-loop + critic genealogy reacting to pattern |
+
+**Invariants demonstrated**: all 8. **Q4 promotion outcomes demonstrated**: 6 of 7 (fast-track, fallback, gate-win, archive-gate-fail, auto-rollback, hold). Missing only "hold-weak-negative" which doesn't fit the narrative arc.
+
+**Git state at W4 end**:
+
+- 9 per-experiment commits on main (per-experiment baseline per Q8)
+- 1 auto-rollback revert commit (W3 exp-06)
+- `agents/bounce-guard-critic.json` added W4 via L3 genealogy spawn
+- `history/baselines.jsonl`: 9 rows with status per Q8 vocabulary (`promoted` / `archived-gate-fail` / `rolled-back`)
+- `history/memory.jsonl`: ~20 event rows by W4
+- PRs on GitHub: W1 (1 commit), W2 (3 commits), W3 (3 commits + revert), W4 (2 commits). All merged.
+
+**Seeder scope**: `scripts/seed-demo-arc.ts` generates the above as pure text/JSON + git commits. No real infrastructure needed to replay the arc at demo time. Council agents + apply worker + planner all run against the seeded inputs when the demo is played back. Estimated effort: ~3-4 hours.
+
 ## Grill-me open questions
 
 Decisions needed before L11 (and some L9) can be implemented:
@@ -333,24 +357,28 @@ Decisions needed before L11 (and some L9) can be implemented:
 
 4. **Promotion threshold** — 🔒 **LOCKED (Richie, 2026-04-23) as Option E (92/100)**: reward-and-gates decision matrix with parallel-experiment support. See "Reward, gates, and promotion logic" section below for full spec. Dominates earlier options (1-week p<0.05, 2-week p<0.05, 4-week CVR) on: separation of reward from validation gates, gate-win lane (promote when reward holds + gates improve), reward+gate-fail archive lane (learning insight even without promotion), parallel independent-variable experiments supported in submission.
 
-5. _(deprecated row, retained for audit trail)_
-   - Proxy-improved at p<0.05 for 1 week — 70/100 (fast, but noisy)
-   - Proxy-improved at p<0.05 for 2 consecutive weeks — 80/100 (superseded)
-   - CVR-improved at p<0.05 (4+ weeks) — 60/100. Too slow; blocks experimentation cadence.
-
-6. **Planner overriding critics** — can plan.md tell a critic "don't flag X this week"?
+5. **Planner overriding critics** — can plan.md tell a critic "don't flag X this week"?
    - Yes, via a `suppressed_findings[]` field in plan.md — 60/100. Risky; silences validation.
-   - No, planner only influences direction via `direction_hint` — **80/100, my pick**. Critics remain independent. Plan shapes proposal, not findings.
+   - No, planner only influences direction via `direction_hint` — 80/100 (prior pick). Critics remain independent, but planner has no mechanism to address blind spots.
+   - **Planner can request a NEW critic via L3 genealogy** — **88/100, current pick**. Plan emits `genealogy_request: { concern, rationale }`; orchestrator authors the spec. Cannot silence or weight existing critics. Preserves invariant #6. Directly used in Q9 demo arc W4 (bounce-guard-critic spawn).
 
-7. **Partial experiments** — if #39d skips 1 of 3 issues in a PR, what does planner do next week?
-   - Treat as full experiment; skipped issue rolls forward to next proposal — 75/100, my pick.
-   - Treat as failed experiment; planner directs retry on skipped issues — 60/100. Creates loops.
+6. **Partial experiments** — if a parallel experiment is skipped (by apply worker / critic re-run / visual reviewer), what does planner do next week?
+   - Treat as full experiment; skipped issue rolls forward to next proposal — 75/100 (prior pick).
+   - Treat as failed experiment; planner directs retry on skipped issues — 60/100 (creates loops).
+   - **Per-experiment logging as weak prior, not promotion gate** — 85/100, current pick. Each skip emits a `memory.jsonl` row with reason (apply-failure / critic-veto / visual-veto). Planner reads pattern-level priors ("text-kind skips at 15% this quarter") but does NOT claim per-experiment verdicts — causal identification at ~500 visits/week is too weak. Promotion still requires Q4's bundled matrix.
 
-8. **Silent secondary substrates** — other SMB LPs in the repo for generalization proof. Do they run the same L11 flow, or are they frozen demonstrations?
-   - Frozen demonstrations, visible in git history but no live council — **80/100, my pick** for submission scope.
-   - Full live flow on all three sites — 40/100. Triples cost + complexity without adding signal.
+7. **Silent secondary substrates** — other SMB LPs in the repo for generalization proof. Do they run the same L11 flow?
+   - Frozen demonstrations, visible in git history but no live council — 80/100 (prior pick).
+   - Full live flow on all three sites — 40/100 (triples cost).
+   - **Onboard + 2 council cycles per secondary** — 90/100, current pick. Each secondary runs `skills/onboard-smb`, week-1 proposal + apply + mocked verdict, week-2 plan consumes week-1 verdict. Shows planner closing the loop on a new substrate — the actual pitch being tested — without ongoing live-flow cost.
 
-Answer these → I implement.
+8. **Baseline reset granularity** — 🔒 **LOCKED (Richie, 2026-04-23) as Option 8B (90/100)**: per-experiment baseline reset. Each experiment becomes its own commit on the PR branch with `Experiment-Id:` trailer. `history/baselines.jsonl` tracks per-experiment entries. Rollback is `git revert <experiment-sha>`. Dominates full-page (55, incompatible with Q4 parallel) and section-level (70, requires synthetic metadata layer).
+
+9. **Demo arc (4-week mock)** — 🔒 **LOCKED (Richie, 2026-04-23)**: 9 experiments across 4 weeks, seeded via `scripts/seed-demo-arc.ts` (extends L5 seeder). See "Demo arc (4-week mock)" section above for the full table. Covers all 8 invariants and 6/7 Q4 outcomes. Includes a critic-genealogy spawn in W4.
+
+_(deprecated Q4 options, retained for audit trail: 1-week p<0.05 (70), 2-week p<0.05 (80, superseded by 4E), 4-week CVR (60).)_
+
+Answer Q5, Q6, Q7 → I implement.
 
 ## What this unlocks
 
