@@ -66,11 +66,15 @@ Deferred as a question for the next grill-me / Phase 2.
 
 - H1 was 3-line `YOUR PRACTICE. / THEIR PLAYBOOK. / PATIENTS NOTICE.`
   Now 3-line `N&D Team Certification / For Multi-Practitioner
-  Clinics. / One protocol. Every practitioner.` (sage-accent on
-  line 3 preserved from original layout; proposal's exact wording
-  was lightly compressed to keep the hero scale intact on desktop).
+  Clinics. / One protocol. Every practitioner. No more patient churn.`
+  (sage-accent on line 3 preserved from original layout).
 - Subhead rewritten to the ICP-framed "Built for clinical group
   directors…" version per proposal.
+- **Post-advisor correction**: first apply pass silently dropped
+  `No more patient churn` from the H1 sage-span. Advisor caught it
+  during session wrap-up; follow-up commit restored the phrase on
+  line 3 and synced `og:description` + `<meta name="description">`
+  to match.
 
 ### Issue 5 — Head-tag foundation — APPLIED
 
