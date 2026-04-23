@@ -9,11 +9,12 @@ Runs the full Webster council ONCE end-to-end:
 1. Seeds 10 weeks of mock analytics history (if missing) so the monitor has baselines.
 2. Prepares `council/$WEEK_DATE` as a shared working branch.
 3. Fans out 6 parallel Managed Agent sessions — monitor + 5 critics — all committing to that branch via GitHub MCP.
-4. Gathers findings, runs the redesigner against them, commits `history/$WEEK_DATE/proposal.md` + `decision.json` to the branch.
-5. Opens a draft PR and writes a completion checkpoint.
+4. Verifies findings, then runs Critic Genealogy — if Opus 4.7 detects a scope no existing critic owns, it spawns a new critic at runtime, registers it, and invokes it on the same branch (fail-open).
+5. Runs the redesigner, which reads all findings (including any spawned-critic output) and commits `history/$WEEK_DATE/proposal.md` + `decision.json` to the branch.
+6. Opens a draft PR and writes a completion checkpoint.
 
-**Expected runtime:** 25–35 min wall-clock (parallel critics ~15 min + redesigner ~10 min + I/O).
-**Expected API cost:** ~$0.10–0.15 (7 sessions × ~10 min × $0.08/hr).
+**Expected runtime:** 30–45 min wall-clock (parallel critics ~15 min + genealogy 0–10 min + redesigner ~10 min + I/O).
+**Expected API cost:** ~$0.13–0.20 (6 parent sessions + ~$0.03 genealogy probe + optional 1 spawned-critic session + redesigner).
 
 ## Pre-flight (MANDATORY — do not skip)
 
@@ -314,6 +315,50 @@ fi
 bun scripts/validate-findings.ts
 ```
 
+## Step 4.5 — Critic Genealogy (0–10 min; fail-open)
+
+Runs `scripts/critic-genealogy.ts` against the committed findings on `$BRANCH`. Opus 4.7 reviews the five critic outputs and decides whether any recurring pattern is unowned by the existing council. If yes, it clones the `brand-voice-critic.json` template, swaps in the new scope, registers the spec via `POST /v1/agents`, creates a session with the vault, invokes the new critic on `$BRANCH`, and commits its findings + spec + session log to `history/$WEEK_DATE/genealogy/`. The redesigner in Step 5 then reads all findings on `$BRANCH` (including the spawned critic's) without further wiring.
+
+**Fail-open**: if genealogy errors for any reason (API hiccup, gap-detection failure, registration 5xx), this step logs and continues. The redesigner still runs against the 5 original critic findings.
+
+```bash
+echo "=== Step 4.5: critic genealogy ==="
+GENEALOGY_LOG="tmp/logs/genealogy.log"
+: > "$GENEALOGY_LOG"
+
+set +e
+bun scripts/critic-genealogy.ts \
+  --branch "$BRANCH" \
+  --week "$WEEK_DATE" \
+  --lp-target "$LP_TARGET" \
+  2>&1 | tee "$GENEALOGY_LOG"
+GENEALOGY_CODE=${PIPESTATUS[0]}
+set -e
+
+if (( GENEALOGY_CODE == 0 )); then
+  if grep -q "no gap detected" "$GENEALOGY_LOG"; then
+    GENEALOGY_STATUS="no gap — council coverage complete"
+    echo "✓ $GENEALOGY_STATUS"
+  elif grep -q "genealogy complete" "$GENEALOGY_LOG"; then
+    SPAWNED=$(grep -oE "gap found: [a-z0-9-]+" "$GENEALOGY_LOG" | head -1 | awk '{print $3}')
+    GENEALOGY_STATUS="spawned ${SPAWNED:-new critic} — findings on branch, feeding redesigner"
+    echo "✓ $GENEALOGY_STATUS"
+  else
+    GENEALOGY_STATUS="returned 0 but output unclear — see tmp/logs/genealogy.log"
+    echo "⚠ $GENEALOGY_STATUS"
+  fi
+else
+  GENEALOGY_STATUS="failed (exit $GENEALOGY_CODE, non-blocking) — see tmp/logs/genealogy.log"
+  echo "⚠ $GENEALOGY_STATUS"
+fi
+
+# If a critic was spawned, it committed findings to $BRANCH via GitHub MCP.
+# Refresh our working tree so subsequent local echoes reflect the freshest state.
+# (The redesigner itself re-fetches via MCP; this reset is for our own visibility.)
+git fetch origin "$BRANCH"
+git reset --hard "origin/$BRANCH"
+```
+
 ## Step 5 — Redesigner session (5–10 min)
 
 Single synthesis call. Reads all findings on `$BRANCH`, commits `history/$WEEK_DATE/proposal.md` + `decision.json` to the same branch.
@@ -362,6 +407,10 @@ Automated fan-out: monitor + 5 critics + redesigner. Findings committed to this 
 
 $(printf -- '- %s\n' "${SUCCEEDED[@]}")
 
+## Critic Genealogy
+
+${GENEALOGY_STATUS:-not run}
+
 ## Redesigner output
 
 - \`$PROPOSAL\`
@@ -404,6 +453,7 @@ Full council fan-out for week $WEEK_DATE. Ran monitor + 5 critics in parallel, t
 ## Results
 
 - Findings with content: ${#SUCCEEDED[@]}/${#FILES[@]}
+- Critic Genealogy: ${GENEALOGY_STATUS:-not run}
 - Redesigner completed: $([[ $REDESIGNER_RESULT -eq 0 ]] && echo yes || echo "no (exit $REDESIGNER_RESULT)")
 - PR: $PR_URL
 - Mock history seeded: $($SEED_NEEDED && echo "yes (10 weeks + current)" || echo "no (already present)")
@@ -418,8 +468,7 @@ Full council fan-out for week $WEEK_DATE. Ran monitor + 5 critics in parallel, t
 
 $( (( ${#STUBBED[@]} > 0 )) && echo "- Re-run the stubbed critics manually and amend the PR:" && printf '  - %s\n' "${STUBBED[@]}" )
 - Fork certified.richerhealth.ca into \`site/\` so the next council can produce a real diff instead of a brief.
-- Critic Genealogy hero demo — orchestrator detects a gap → spawns a new critic at runtime → incorporates findings.
-- Record the demo video showing: fan-out → synthesis → PR.
+- Record the demo video showing: fan-out → genealogy → synthesis → PR.
 EOF
 
 git add "$CKPT"
@@ -439,6 +488,7 @@ exit 0
 
 - **Pre-flight abort**: fix the named prerequisite, re-run the whole prompt. The prompt is idempotent.
 - **One critic times out (Step 3)**: re-run only that critic with `run_agent_session <label> <id> <msg>` after the fan-out completes. Then re-run Step 4 onward.
+- **Genealogy errors (Step 4.5)**: non-blocking by design. `GENEALOGY_STATUS` captures the failure mode; the pipeline proceeds to the redesigner. To retry standalone after the session: `bun scripts/critic-genealogy.ts --branch "$BRANCH" --week "$WEEK_DATE" --lp-target "$LP_TARGET"`.
 - **Redesigner fails (Step 5)**: findings are already on `$BRANCH`. Re-run just Step 5. PR can still be opened in Step 6 with the findings alone (redesigner output becomes MISSING in the body).
 - **Context budget tight** (autocompact at 20%): this prompt is designed to run in one pass; checkpoint-before-compact is your safety net. The dispatcher will autocheckpoint, then this prompt can be re-run.
 - **Anthropic API 5xx on session create**: retry the single curl. Do not re-run steps 1-2.
@@ -446,5 +496,4 @@ exit 0
 ## What this prompt DOES NOT do
 
 - **Does not fork `site/`.** Without `site/`, the redesigner produces a brief (`proposal.md`) instead of a diff (`proposal.diff`). That is by design for this session — `site/` fork belongs in its own focused session (see `context/SITE-FORK-CHECKLIST.md`).
-- **Does not spawn Critic Genealogy.** That's a demo hero beat, its own session.
 - **Does not merge the PR.** The PR is opened as a draft. Human review = approval.
