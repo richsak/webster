@@ -111,7 +111,7 @@ Flow:
 
 ## Dependencies
 
-- Anthropic platform API (Managed Agents, beta header `managed-agents-2026-04-01`)
+- Anthropic platform API (Managed Agents, beta header `agent-api-2026-03-01`)
 - Claude Code (Routines, `/v1/claude_code/routines/{id}/fire`)
 - Claude Design (user-facing, bundle `.zip`)
 - Cloudflare Workers + Static Assets + Workers Builds

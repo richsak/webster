@@ -117,7 +117,7 @@ Agents are pre-registered via `POST /v1/agents` in the ORCHESTRATOR session (Cla
 ```bash
 curl -X POST https://api.anthropic.com/v1/agents \
   -H "x-api-key: $ANTHROPIC_API_KEY" \
-  -H "anthropic-beta: managed-agents-2026-04-01" \
+  -H "anthropic-beta: agent-api-2026-03-01" \
   -H "Content-Type: application/json" \
   --data @agents/brand-voice-critic.yaml
 ```

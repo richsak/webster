@@ -56,7 +56,7 @@ EOF
 ```bash
 curl -sX POST https://api.anthropic.com/v1/agents \
   -H "x-api-key: $ANTHROPIC_API_KEY" \
-  -H "anthropic-beta: managed-agents-2026-04-01" \
+  -H "anthropic-beta: agent-api-2026-03-01" \
   -H "Content-Type: application/json" \
   --data @agents/<role>-critic.yaml \
   | jq -r '.agent_id' > context/critics/<role>/id.txt
@@ -69,7 +69,7 @@ Verify: `cat context/critics/<role>/id.txt` should show a non-empty agent ID.
 ```bash
 curl -sX POST https://api.anthropic.com/v1/sessions \
   -H "x-api-key: $ANTHROPIC_API_KEY" \
-  -H "anthropic-beta: managed-agents-2026-04-01" \
+  -H "anthropic-beta: agent-api-2026-03-01" \
   -H "Content-Type: application/json" \
   -d "{\"agent_id\": \"$(cat context/critics/<role>/id.txt)\", \"input\": \"Audit the current LP at /workspace/repo/site\"}"
 ```
@@ -81,7 +81,7 @@ Edit `agents/redesigner.yaml` → append the new critic's `agent_id` to its `cal
 ```bash
 curl -sX POST https://api.anthropic.com/v1/agents \
   -H "x-api-key: $ANTHROPIC_API_KEY" \
-  -H "anthropic-beta: managed-agents-2026-04-01" \
+  -H "anthropic-beta: agent-api-2026-03-01" \
   -H "Content-Type: application/json" \
   --data @agents/redesigner.yaml
 ```
