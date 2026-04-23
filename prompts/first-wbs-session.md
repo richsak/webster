@@ -14,8 +14,24 @@ Single-pass dispatcher task: register the environment, register all 7 agents, ru
 ## Prerequisites — verify all before Step 1
 
 ```bash
-# 1. Anthropic key present (do NOT echo the key itself)
-[[ -n "$ANTHROPIC_API_KEY" ]] && echo "ANTHROPIC_API_KEY: set" || { echo "ANTHROPIC_API_KEY: MISSING"; exit 1; }
+# 1a. SAFETY: Anthropic key must NOT be in shell env, otherwise the dispatcher (claude process)
+#     bills against $500 API credits instead of Max subscription — and every claude -p / Forge
+#     workflow call from this shell also switches to API billing. Drains credits fast.
+if [[ -n "$ANTHROPIC_API_KEY" ]]; then
+  echo "ERROR: ANTHROPIC_API_KEY is exported in your shell."
+  echo "The dispatcher is now billing against API credits, not Max sub."
+  echo "Fix: exit wbs, 'unset ANTHROPIC_API_KEY', relaunch wbs, then retry this prompt."
+  exit 1
+fi
+
+# 1b. Fetch from macOS keychain on demand (never exported)
+ANTHROPIC_API_KEY=$(security find-generic-password -s anthropic-webster -a "$USER" -w 2>/dev/null)
+if [[ -z "$ANTHROPIC_API_KEY" ]]; then
+  echo "ANTHROPIC_API_KEY: MISSING from keychain."
+  echo "One-time setup: security add-generic-password -U -s anthropic-webster -a \"\$USER\" -w \"sk-ant-...\""
+  exit 1
+fi
+echo "ANTHROPIC_API_KEY: fetched from keychain (Max sub preserved for dispatcher)"
 
 # 2. GitHub token present (required for agents to push findings from inside their container)
 [[ -n "$GITHUB_TOKEN" ]] && echo "GITHUB_TOKEN: set" || { echo "GITHUB_TOKEN: MISSING — generate a fine-grained PAT scoped to richsak/webster (Contents: write, Metadata: read) at https://github.com/settings/personal-access-tokens/new"; exit 1; }
