@@ -10,29 +10,37 @@
 │  ↓                                                               │
 │  Claude Code Session (orchestrator — Opus 4.7)                  │
 │  ├─ reads site/ + history/ + context/critics/*/findings.md     │
-│  ├─ invokes 6 pre-registered Managed Agents via callable_agents │
-│  │   ├─ monitor (Sonnet 4.6) — detects analytics anomalies      │
-│  │   ├─ 5 specialist critics (Sonnet 4.6, parallel)            │
-│  │   │   ├─ SEO                                                 │
-│  │   │   ├─ brand-voice                                         │
-│  │   │   ├─ FH-compliance                                       │
-│  │   │   ├─ conversion                                          │
-│  │   │   └─ copy                                                │
-│  │   └─ redesigner (Opus 4.7) — synthesis + proposal            │
-│  ├─ detects pattern no critic caught (Critic Genealogy)        │
-│  │   ├─ authors new critic YAML → commits to repo              │
+│  │                                                               │
+│  ├─ fan-out: POST /v1/sessions for each of 6 pre-registered     │
+│  │  Managed Agents (parallel), then send user.message event     │
+│  │   ├─ monitor (Haiku 4.5) — detects analytics anomalies       │
+│  │   ├─ 5 specialist critics (Sonnet 4.6)                       │
+│  │   │   ├─ SEO, brand-voice, FH-compliance,                    │
+│  │   │   ├─ conversion, copy                                    │
+│  │   └─ each critic commits findings.md from inside its session │
+│  │                                                               │
+│  ├─ redesigner session (Opus 4.7)                                │
+│  │   ├─ orchestrator gathers committed findings                 │
+│  │   ├─ passes them as input text to redesigner session         │
+│  │   └─ redesigner outputs proposal.diff + decision.json        │
+│  │                                                               │
+│  ├─ Critic Genealogy (runtime creation, public beta)            │
+│  │   ├─ detects pattern no existing critic owns                 │
+│  │   ├─ authors new critic JSON → commits to repo               │
 │  │   ├─ POST /v1/agents (runtime registration)                  │
-│  │   └─ POST /v1/sessions (immediate invocation)                │
-│  ├─ writes proposal.diff + decision.json to history/            │
+│  │   └─ POST /v1/sessions (immediate invocation, fan-in)        │
+│  │                                                               │
 │  └─ opens PR via gh CLI with Opus reasoning in body             │
 │                                                                  │
 │  Human merges PR in GitHub → webhook → Workers Builds           │
 │  → Cloudflare Workers + Static Assets redeploys                 │
 │                                                                  │
-│  Scheduled agent holds ONLY GitHub token.                       │
+│  Orchestrator holds GitHub token + Anthropic API key.           │
 │  Cloudflare creds are onboarding-only, not runtime.             │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+**Why fan-out, not `callable_agents`**: agent-to-agent invocation (`callable_agents`) is research preview, not public beta. The orchestrator doing fan-out directly via `/v1/sessions` works in public beta today, with the same council behavior. Request research-preview access at https://claude.com/form/claude-managed-agents if you want to move redesigner-calls-critics later.
 
 ## Layer Breakdown
 
@@ -46,26 +54,30 @@
 
 ### Layer 2: Managed Agent Critics (7 pre-registered)
 
-Environment config (set via Managed Agents editor UI):
-- Base: Ubuntu 22.04, Node 20+, Python 3.12+
-- Env vars: `ANTHROPIC_API_KEY`, `GITHUB_TOKEN` (no Cloudflare token — not needed at runtime)
-- Networking: limited, `allowed_hosts: [api.anthropic.com, api.github.com, our-mcp-domain]`
-- MCP servers: GitHub MCP (URL) + custom `forge-mini-mcp` (hosted on Cloudflare Workers)
+**Environment is a separate resource** (`POST /v1/environments`), registered once per workspace and referenced by ID in every session. There is NO in-agent `environment:` or `resources:` field.
 
-Agent YAMLs:
-- `agents/monitor.yaml` — Sonnet 4.6
-- `agents/critic-seo.yaml` — Sonnet 4.6
-- `agents/critic-brand-voice.yaml` — Sonnet 4.6
-- `agents/critic-fh-compliance.yaml` — Sonnet 4.6
-- `agents/critic-conversion.yaml` — Sonnet 4.6
-- `agents/critic-copy.yaml` — Sonnet 4.6
-- `agents/redesigner.yaml` — Opus 4.7
+Environment `environments/webster-council-env.json`:
+- Base: default Ubuntu cloud container (Node, Python, Go, git pre-installed — see `/docs/en/managed-agents/cloud-containers`)
+- Packages: `{apt: [git, jq], npm: [@astrojs/cloudflare]}` as needed
+- Networking: `limited` with `allowed_hosts: [api.github.com, github.com, raw.githubusercontent.com, api.anthropic.com]`, `allow_mcp_servers: true`, `allow_package_managers: true`
+- No GitHub-repo mount primitive exists — the agent `git clone`s at session start via bash using a `GITHUB_TOKEN` passed in the first user.message
+
+Agent specs (JSON, not YAML — matches `POST /v1/agents` schema):
+- `agents/monitor.json` — Haiku 4.5
+- `agents/brand-voice-critic.json` — Sonnet 4.6
+- `agents/fh-compliance-critic.json` — Sonnet 4.6
+- `agents/seo-critic.json` — Sonnet 4.6
+- `agents/conversion-critic.json` — Sonnet 4.6
+- `agents/copy-critic.json` — Sonnet 4.6
+- `agents/redesigner.json` — Opus 4.7
+
+Each spec has: `name`, `model`, `system` (multi-line string with escaped \n), `tools: [{type: agent_toolset_20260401}]`, `metadata`. **No `callable_agents`** (research preview).
 
 ### Layer 3: Critic Genealogy (novel mechanic)
 
-Orchestrator detects a pattern no existing critic addressed, authors a new critic YAML, registers it via `POST /v1/agents`, invokes via `POST /v1/sessions`, commits YAML + invocation log to `history/{date}/genealogy/`.
+Orchestrator detects a pattern no existing critic addressed, authors a new critic JSON spec, registers it via `POST /v1/agents`, invokes via `POST /v1/sessions` + user.message event, streams until `session.status_idle`, commits spec + session log to `history/{date}/genealogy/`.
 
-Demo hero beat — this is the $5K Creative Exploration prize moment.
+Works in **public beta** — runtime agent creation is supported without research preview access. Demo hero beat — this is the $5K Creative Exploration prize moment.
 
 ### Layer 4: Onboarding Skill
 
@@ -103,15 +115,18 @@ Flow:
 
 ## Key Invariants
 
-1. **Agents are pre-registered.** Runtime creation via `/v1/agents` is only from outside-the-agent-loop (Claude Code session level).
-2. **State lives in git.** No memory stores, no custom persistence.
-3. **Credentials never reach scheduled agent.** Cloudflare is onboarding-only. Runtime agent holds only GitHub token.
-4. **Skill is universal.** Same markdown, Claude Code + claude.ai.
-5. **Zero fabricated stats.** Mock analytics framed as POC priors.
+1. **Agents are registered from the orchestrator session.** `POST /v1/agents` from Claude Code (orchestrator), never from inside a Managed Agent's own loop. Both pre-registered critics AND runtime-created Genealogy critics are registered this way.
+2. **Environments are separate resources.** `POST /v1/environments` once per workspace; referenced by `environment_id` in every session.
+3. **No `callable_agents`.** Agent-to-agent invocation is research preview. Orchestrator fans out via parallel `/v1/sessions` calls.
+4. **State lives in git.** Critics commit findings from inside their sessions. No managed memory stores (also research preview).
+5. **Credentials**: orchestrator holds `ANTHROPIC_API_KEY` + `GITHUB_TOKEN`. Sessions receive `GITHUB_TOKEN` in the first user.message so they can `git clone` + push. Cloudflare creds are onboarding-only.
+6. **Skill is universal.** Same markdown, Claude Code + claude.ai.
+7. **Zero fabricated stats.** Mock analytics framed as POC priors.
 
 ## Dependencies
 
-- Anthropic platform API (Managed Agents, beta header `managed-agents-2026-04-01`)
+- Anthropic Managed Agents API, beta header `managed-agents-2026-04-01` (public beta — verified live 2026-04-23)
+- (Research preview, NOT required for public beta path: `callable_agents`, memory stores, outcomes — request at https://claude.com/form/claude-managed-agents)
 - Claude Code (Routines, `/v1/claude_code/routines/{id}/fire`)
 - Claude Design (user-facing, bundle `.zip`)
 - Cloudflare Workers + Static Assets + Workers Builds

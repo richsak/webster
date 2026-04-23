@@ -1,13 +1,35 @@
 ---
 name: managed-agents-patterns
 description: |
-  Use when: Authoring a new Claude Managed Agent YAML for Webster's council (critics, monitor, redesigner). Provides the canonical pattern that keeps Codex streams producing consistent configs across 8 agents.
-  Triggers: "new critic yaml", "managed agent pattern", "author managed agent", "critic template".
+  Use when: Authoring Claude Managed Agent specs for Webster's council (critics, monitor, redesigner). Canonical JSON shape, schema gotchas, env-as-separate-resource pattern, fan-out invocation path (public-beta-compatible).
+  Triggers: "new critic spec", "managed agent pattern", "author managed agent", "critic template", "register critic".
 ---
 
 # Managed Agent Pattern (Webster Council)
 
-Canonical YAML for pre-registered Claude Managed Agents that form Webster's Council of 7 (plus redesigner).
+Canonical JSON specs for pre-registered Claude Managed Agents that form Webster's Council of 7 (plus redesigner). Schema verified against live API on 2026-04-23.
+
+## Product identity (don't conflate)
+
+We target **Claude Managed Agents** — Anthropic-hosted agent harness. Beta header: `managed-agents-2026-04-01`. Endpoints: `/v1/agents`, `/v1/environments`, `/v1/sessions`.
+
+This is NOT:
+- `agent-api-2026-03-01` — different product (Agent API primitives / Agent SDK path). Headers are mutually incompatible.
+- `/v1/messages` — the raw Messages API (no harness).
+
+The hackathon prize lane ("Best Use of Claude Managed Agents") wants the hosted harness, which is what we're building against.
+
+## Public beta vs research preview
+
+**Public beta (use freely):**
+- Pre-registered agents, environments, sessions, events, MCP, skills, vaults.
+- Runtime agent creation via `POST /v1/agents` from the orchestrator session → this powers Critic Genealogy hero beat.
+
+**Research preview (request access at https://claude.com/form/claude-managed-agents):**
+- `callable_agents` — agent-to-agent invocation inside the Managed Agents runtime.
+- Memory tooling, outcomes, multi-agent orchestration as a managed feature.
+
+**Implication**: Webster uses orchestrator-fan-out (see below) rather than a redesigner with `callable_agents`. Same council architecture; works in public beta without approval.
 
 ## Model tier table (cost discipline)
 
@@ -17,136 +39,175 @@ Canonical YAML for pre-registered Claude Managed Agents that form Webster's Coun
 | 5 critics (SEO, brand-voice, FH-compliance, conversion, copy) | `claude-sonnet-4-6` | Critic default — quality at moderate cost |
 | `redesigner` | `claude-opus-4-7` | Synthesis + proposal generation — quality matters |
 
-**Never** use Opus 4.7 for critics. Never use Sonnet for the monitor. Tier discipline is part of the demo story.
+Never use Opus 4.7 for critics. Never use Sonnet for the monitor. Tier discipline is part of the demo story.
 
-## Base template
+## Agent spec shape (JSON, not YAML)
 
-```yaml
-name: <agent-slug>                       # e.g., "brand-voice-critic"
-version: "1.0"
-description: <one-line purpose>
+Specs are JSON files under `agents/<role>-critic.json` — curl posts them directly with `--data @file.json`. No YAML-to-JSON conversion step.
 
-model: claude-sonnet-4-6                 # or haiku-4-5 / opus-4-7 per tier table
-
-system_prompt: |
-  You are a <role> in Webster's landing-page improvement council.
-
-  # Scope
-  Your job is ONLY <specific responsibility>. You do NOT:
-  - Propose redesigns (that's the redesigner's job)
-  - Judge other critics (critics are independent)
-  - Touch git, deploy, or anything outside reading LP + writing findings
-
-  # Input
-  Read from the run directory (Webster mounts this via resources):
-  - `lp/` — current landing page source
-  - `context/business.md` — brand + business identity
-  - `context/critics/<your-name>/findings.md` — your previous findings (memory)
-  - `history/last-week/` — last week's run for diff context
-
-  # Output
-  Write findings to `context/critics/<your-name>/findings.md` — git-committed between runs, this is your persistent memory across weekly sessions.
-
-  Format:
-  ```markdown
-  # Findings — Week YYYY-MM-DD
-
-  ## Issues identified
-  - [CRITICAL|HIGH|MEDIUM|LOW] <one-line issue> — <evidence from LP>
-
-  ## Patterns observed
-  - <recurring pattern across multiple weeks>
-
-  ## Out of scope (flag for redesigner or Genealogy)
-  - <issue you noticed but don't own>
-  ```
-
-toolset: agent_toolset_20260401          # bash, read, write, edit, glob, grep, web_fetch, web_search
-
-environment:
-  image: anthropic/claude-agent:ubuntu-22.04
-  ram_gb: 4
-  disk_gb: 5
-  network: unrestricted                  # or 'limited' with allowed_hosts for defense-in-depth
-
-resources:
-  - type: github_repository
-    repo: <user>/<repo>
-    ref: main
-    checkout_path: /workspace/repo
-
-mcp_servers: []                          # remote URL only — no bundled MCPs in sandbox
-
-callable_agents: []                      # only redesigner uses this
+```json
+{
+  "name": "<role>-critic",
+  "description": "<one-line purpose>",
+  "model": "claude-sonnet-4-6",
+  "system": "You are a <role> in Webster's landing-page improvement council.\n\n# Scope\nYour job is ONLY <specific responsibility>. You do NOT:\n- Propose redesigns (that's the redesigner's job)\n- Judge other critics (critics are independent)\n- Touch git, deploy, or anything outside reading LP + writing findings\n\n# Input\nAt session start, read from /workspace:\n- `site/` — current landing page source\n- `context/business.md` — brand + business identity\n- `context/critics/<your-name>/findings.md` — your previous findings (memory)\n- `history/last-week/` — last week's run for diff context\n\nThe orchestrator clones the Webster repo into /workspace at session start (see environment setup). You have `git` via bash.\n\n# Output\nWrite findings to `context/critics/<your-name>/findings.md`, then stage and commit:\n  git add context/critics/<your-name>/findings.md\n  git commit -m 'chore(<role>-critic): week YYYY-MM-DD findings'\n  git push\n\nFindings format:\n# Findings — Week YYYY-MM-DD\n\n## Issues identified\n- [CRITICAL|HIGH|MEDIUM|LOW] <one-line issue> — <evidence from LP>\n\n## Patterns observed\n- <recurring pattern across multiple weeks>\n\n## Out of scope (flag for redesigner or Genealogy)\n- <issue you noticed but don't own>\n",
+  "tools": [
+    { "type": "agent_toolset_20260401" }
+  ],
+  "mcp_servers": [],
+  "metadata": {
+    "role": "critic",
+    "scope": "<role>"
+  }
+}
 ```
 
-## Role-specific additions
+**Key fields:**
+| Field | Notes |
+|---|---|
+| `name` | Required. Human-readable. |
+| `model` | Required. Full model ID string. 4.5+ models only. |
+| `system` | System prompt as a single string. Use `\n` for newlines inside JSON. |
+| `tools` | **Array of objects**. `{"type": "agent_toolset_20260401"}` gives the full built-in toolset (bash, file ops, web, grep, glob, edit). NOT `toolset: "..."`. |
+| `mcp_servers` | Array of MCP server configs (URL + auth). Empty array is fine. |
+| `callable_agents` | **Research preview only**. Do NOT include in base template. |
+| `metadata` | Free-form key/value for your own tracking. |
 
-### `brand-voice-critic`
-- Scope: tone consistency vs `context/business.md` brand voice
-- Severity: CRITICAL (off-brand word/phrase), HIGH (tonal mismatch), MEDIUM (weak word choice), LOW (style nitpick)
+**Response has `id`** (the agent identifier), NOT `agent_id`. Also returns `version` (starts at 1, increments on update).
 
-### `fh-compliance-critic`
-- Scope: functional-health compliance — DSocSci disclaimers, no "treatment"/"cure" claims, proper credential citation
-- Severity: CRITICAL (legal risk), HIGH (disclaimer missing), MEDIUM (weak framing), LOW (polish)
+## Environment (separate resource)
 
-### `conversion-critic`
-- Scope: CTA clarity, trust signals, form friction
-- Uses `web_fetch` to test the live sign-up flow end-to-end
+Environments are NOT embedded in the agent spec. Create once per Webster workspace; reuse across sessions.
 
-### `seo-critic`
-- Scope: meta tags, heading hierarchy, schema markup, Core Web Vitals (reads Lighthouse via `web_fetch`)
+```json
+{
+  "name": "webster-council-env",
+  "config": {
+    "type": "cloud",
+    "packages": {
+      "apt": ["git", "jq"],
+      "npm": ["@astrojs/cloudflare"]
+    },
+    "networking": {
+      "type": "limited",
+      "allowed_hosts": [
+        "https://api.github.com",
+        "https://github.com",
+        "https://raw.githubusercontent.com",
+        "https://api.anthropic.com"
+      ],
+      "allow_mcp_servers": true,
+      "allow_package_managers": true
+    }
+  }
+}
+```
 
-### `copy-critic`
-- Scope: plain-language readability (Hemingway grade ≤8 for consumer-facing sections), concrete-vs-abstract verb ratio
-
-### `monitor` (haiku)
-- Scope: analytics anomaly detection (reads KV analytics store via Cloudflare Worker)
-- Fires FIRST in the council run — informs other critics if anomalies exist
-
-### `redesigner` (opus)
-- Scope: synthesize all critics' findings into ONE redesign proposal
-- `callable_agents: [monitor, brand-voice-critic, fh-compliance-critic, conversion-critic, seo-critic, copy-critic]`
-- Output: `history/YYYY-MM-DD/proposal.diff` + `decision.json`
-- ALSO owns Critic Genealogy: if gap detected, POSTs `/v1/agents` to register a new critic, then invokes it immediately
-
-## Registration flow
-
-Agents are pre-registered via `POST /v1/agents` in the ORCHESTRATOR session (Claude Code). NEVER from inside a Managed Agent's own loop — Managed Agents research preview disallows runtime agent creation from within an agent's sandbox.
+Register once per workspace:
 
 ```bash
-curl -X POST https://api.anthropic.com/v1/agents \
+curl -fsS https://api.anthropic.com/v1/environments \
   -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
   -H "anthropic-beta: managed-agents-2026-04-01" \
-  -H "Content-Type: application/json" \
-  --data @agents/brand-voice-critic.yaml
+  -H "content-type: application/json" \
+  --data @environments/webster-council-env.json \
+  | jq -r '.id' > environments/webster-council-env.id
 ```
 
-Capture the returned `agent_id` in `context/critics/<name>/id.txt`.
+**No `github_repository` resource type exists.** Agents clone the repo at session start via bash using a GitHub token passed as env or in a session init event.
 
-## Critic Genealogy (runtime creation)
+## Registration flow (orchestrator-level only)
 
-The redesigner (Opus 4.7, in the orchestrator session) is the ONLY actor that creates new critics at runtime:
+Agents are registered via `POST /v1/agents` from the ORCHESTRATOR session (Claude Code). NEVER from inside a Managed Agent's own loop.
 
-1. Detects pattern no existing critic addresses
-2. Authors new YAML (`agents/<new-role>-critic.yaml`)
-3. POSTs to `/v1/agents` (orchestrator-level, not inside a Managed Agent)
-4. Invokes via `/v1/sessions` immediately with the new `agent_id`
-5. Commits new spec + session log to `history/YYYY-MM-DD/genealogy/`
+```bash
+AGENT_RESPONSE=$(curl -fsS https://api.anthropic.com/v1/agents \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "anthropic-beta: managed-agents-2026-04-01" \
+  -H "content-type: application/json" \
+  --data @agents/brand-voice-critic.json)
 
-This is the demo hero beat. Keep it clean — a judge should see: "gap → new critic → live invocation → improved proposal" in 30 seconds.
+jq -r '.id' <<< "$AGENT_RESPONSE" > context/critics/brand-voice/id.txt
+jq -r '.version' <<< "$AGENT_RESPONSE" > context/critics/brand-voice/version.txt
+```
+
+## Invocation flow (orchestrator fan-out, public beta)
+
+The orchestrator (Claude Code session, Opus 4.7) invokes each critic sequentially by creating a session per critic, sending a user message, and streaming the result. This replaces the research-preview `callable_agents` pattern.
+
+```bash
+# 1. Start a session for one critic
+SESSION_ID=$(curl -fsS https://api.anthropic.com/v1/sessions \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "anthropic-beta: managed-agents-2026-04-01" \
+  -H "content-type: application/json" \
+  -d "{\"agent\": \"$(cat context/critics/brand-voice/id.txt)\", \"environment_id\": \"$(cat environments/webster-council-env.id)\", \"title\": \"brand-voice week $WEEK_TAG\"}" \
+  | jq -r '.id')
+
+# 2. Send the user message (triggers the agent)
+curl -fsS "https://api.anthropic.com/v1/sessions/$SESSION_ID/events" \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "anthropic-beta: managed-agents-2026-04-01" \
+  -H "content-type: application/json" \
+  -d @- <<EOF
+{
+  "events": [{
+    "type": "user.message",
+    "content": [{"type": "text", "text": "Audit $LP_URL. Commit findings to context/critics/brand-voice/findings.md on branch council/$WEEK_TAG."}]
+  }]
+}
+EOF
+
+# 3. Stream until session.status_idle
+curl -N -fsS "https://api.anthropic.com/v1/sessions/$SESSION_ID/stream" \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "anthropic-beta: managed-agents-2026-04-01" \
+  -H "Accept: text/event-stream" \
+  | <process SSE until 'session.status_idle'>
+```
+
+Do this for all 6 critics (in parallel — the Session API supports concurrent sessions). Then invoke the redesigner with all findings committed to the branch as input.
+
+## Critic Genealogy (runtime creation, public beta)
+
+The orchestrator detects a pattern no existing critic owns, then at runtime:
+
+1. Opus 4.7 in the orchestrator session authors a new critic spec → `agents/<new-role>-critic.json`
+2. POST `/v1/agents` to register → capture `id` in `history/YYYY-MM-DD/genealogy/<new-role>.id`
+3. POST `/v1/sessions` with the new `id` + the Webster environment ID
+4. Send user.message event: "Audit $LP_URL for <the missed pattern>. Commit findings."
+5. Stream until idle, read the committed findings, incorporate into THIS week's redesign proposal
+6. Commit `agents/<new-role>-critic.json` + `history/YYYY-MM-DD/genealogy/<new-role>-session.log` for judge inspection
+
+This is the DEMO HERO BEAT. No research-preview gate. Works today in public beta.
+
+## Schema gotchas (learned the hard way)
+
+1. `system` is a single string, NOT `system_prompt`. (API error: "Extra inputs are not permitted".)
+2. `tools` is an array of objects (`[{"type": "..."}]`), NOT `toolset: "..."`.
+3. Environments are separate resources. Do NOT embed container config in the agent spec.
+4. No `resources: [{type: github_repository, ...}]` field. Clone via bash at session start.
+5. `callable_agents` triggers research-preview-only validation. Omit from base template.
+6. Response returns `id`, not `agent_id`. Update jq extractions.
 
 ## Do
 
-- Keep system prompts ≤50 lines. Verbose prompts = context bloat.
-- One critic = one scope. If scope touches >1 concern, split into 2 critics.
-- Commit `context/critics/<name>/findings.md` every run. Memory lives in git, not in session state.
-- Use `agent_toolset_20260401` — don't craft custom toolsets unless truly necessary.
+- Store agent specs as JSON files at `agents/<role>-critic.json` — posts directly to API.
+- One critic = one scope. Split if scope touches >1 concern.
+- Keep `system` ≤50 lines (escaped newlines). Verbose prompts eat session context.
+- Use `agent_toolset_20260401` — full built-in set covers bash/files/web. Don't craft custom toolsets unless needed.
+- Commit `context/critics/<role>/findings.md` from INSIDE the session — memory lives in git, not session state.
+- Pin environment networking to `limited` with explicit `allowed_hosts`. Default of `unrestricted` is a safety footgun.
 
 ## Don't
 
-- Don't let critics call other critics (`callable_agents: []` for all except redesigner).
-- Don't hardcode API keys. Use `environment.env` with variable refs.
-- Don't bundle custom MCP inside the sandbox — remote URL only.
-- Don't exceed 8 memory stores per session (research preview limit).
-- Don't mix Opus and Sonnet tiers for critics — tier discipline is part of the story.
+- Don't include `callable_agents` in any critic spec unless research preview is approved.
+- Don't hardcode API keys in the spec. Use env vars in the session or a vault.
+- Don't mix Opus and Sonnet tiers for critics — tier discipline is part of the hackathon story.
+- Don't skip the environment registration step. Sessions fail without an `environment_id`.
+- Don't assume `system_prompt`/`toolset`/embedded env will "work" — they won't; the API rejects them.
