@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "EDITOR": "code --wait",
+    "CLAUDE_CODE_DISABLE_1M_CONTEXT": "0",
+    "MAX_THINKING_TOKENS": "128000",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "20",
+    "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1"
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits"
+  },
+  "hooks": {},
+  "enabledPlugins": {},
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "xhigh",
+  "advisorModel": "opus",
+  "skipDangerousModePermissionPrompt": true,
+  "skipAutoPermissionPrompt": true,
+  "voiceEnabled": false,
+  "autoUpdatesChannel": "latest"
+}
