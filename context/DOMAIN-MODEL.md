@@ -47,23 +47,40 @@ redesigner    apply       merged     7-day        verdict        planner
 - `rolled-back` — verdict is `hurt` at p<0.05, auto-rollback fired OR planner directed revert
 - `inconclusive` — verdict is `neutral` or ambiguous, baseline holds, next experiment adjusts direction
 
-## Agent Roster (8 base + dynamic genealogy)
+## Agent Roster (9 base + dynamic genealogy)
 
-| #   | Agent                         | Model                  | Role                                                  | Shipped |
-| --- | ----------------------------- | ---------------------- | ----------------------------------------------------- | ------- |
-| 1   | `webster-monitor`             | Haiku 4.5              | Analytics anomaly detection                           | ✅ L2   |
-| 2   | **`webster-planner`**         | **Opus 4.7**           | **NEW — reads verdict, decides experiment direction** | 📋 L11  |
-| 3   | `seo-critic`                  | Sonnet 4.6             | SEO findings                                          | ✅ L2   |
-| 4   | `brand-voice-critic`          | Sonnet 4.6             | Brand-voice consistency                               | ✅ L2   |
-| 5   | `fh-compliance-critic`        | Sonnet 4.6             | Functional-health medical-claims audit                | ✅ L2   |
-| 6   | `conversion-critic`           | Sonnet 4.6             | Conversion-path + CTA audit                           | ✅ L2   |
-| 7   | `copy-critic`                 | Sonnet 4.6             | Copy quality + voice                                  | ✅ L2   |
-| 8   | `webster-redesigner`          | Opus 4.7               | Synthesizes findings + plan → proposal                | ✅ L2   |
-| 9   | **`webster-apply-worker`**    | **Pi / Codex gpt-5.4** | **Executes proposal against Site**                    | 📋 L8   |
-| 10  | **`webster-visual-reviewer`** | **Opus 4.7**           | **Browser-based post-apply verification**             | 📋 L9   |
-| —   | Genealogy critics             | Sonnet 4.6             | Runtime-created when Opus detects gap                 | ✅ L3   |
+| #   | Agent                         | Model                  | Role                                                       | Shipped |
+| --- | ----------------------------- | ---------------------- | ---------------------------------------------------------- | ------- |
+| 1   | `webster-monitor`             | Haiku 4.5              | Analytics anomaly detection                                | ✅ L2   |
+| 2   | **`webster-planner`**         | **Opus 4.7**           | **NEW — reads verdict, decides experiment direction**      | 📋 L11  |
+| 3   | `seo-critic`                  | Sonnet 4.6             | SEO findings                                               | ✅ L2   |
+| 4   | `brand-voice-critic`          | Sonnet 4.6             | Brand-voice consistency                                    | ✅ L2   |
+| 5   | `fh-compliance-critic`        | Sonnet 4.6             | Functional-health medical-claims audit                     | ✅ L2   |
+| 6   | `conversion-critic`           | Sonnet 4.6             | Conversion-path + CTA audit                                | ✅ L2   |
+| 7   | `copy-critic`                 | Sonnet 4.6             | Copy quality + voice                                       | ✅ L2   |
+| 8   | `visual-design-critic`        | Sonnet 4.6             | Visual rhythm, hierarchy, imagery relevance (pre-proposal) | ✅ L2   |
+| 9   | `webster-redesigner`          | Opus 4.7               | Synthesizes findings + plan → proposal                     | ✅ L2   |
+| 10  | **`webster-apply-worker`**    | **Pi / Codex gpt-5.4** | **Executes proposal against Site**                         | 📋 L8   |
+| 11  | **`webster-visual-reviewer`** | **Opus 4.7**           | **Browser-based post-apply verification**                  | 📋 L9   |
+| —   | Genealogy critics             | Sonnet 4.6             | Runtime-created when Opus detects gap                      | ✅ L3   |
 
-Planner is new (L11). Apply worker + visual-reviewer are planned (L8 / L9).
+Planner is new (L11). Apply worker + visual-reviewer are planned (L8 / L9). Note: `visual-design-critic` (#8, shipped L2, pre-proposal audit) is a distinct agent from `webster-visual-reviewer` (#11, planned L9, post-apply verification) — different stages, different concerns.
+
+## Managed Agent invocation pattern
+
+All Claude Managed Agents in Webster (monitor, planner, 6 critics, redesigner, visual-reviewer) follow the same 5-step pattern, shipped today in `scripts/critic-genealogy.ts`:
+
+| Step                 | Endpoint                       | Frequency                                                         | Purpose                                                                           |
+| -------------------- | ------------------------------ | ----------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 1. Register spec     | `POST /v1/agents`              | Once per spec (idempotent via `GET /v1/agents` name lookup)       | Creates agent ID from `agents/<name>.json` spec                                   |
+| 2. Create session    | `POST /v1/sessions`            | Per run                                                           | Body: `{ agent: agentId, environment_id, vault_ids, title }`                      |
+| 3. Send user message | `POST /v1/sessions/:id/events` | After session create                                              | Body: `{ events: [{ type: "user.message", content: [{ type: "text", text }] }] }` |
+| 4. Poll status       | `GET /v1/sessions/:id`         | Every 30s until `idle` / `completed` / `stopped` (20min deadline) | Wait for agent to finish reasoning                                                |
+| 5. Snapshot          | `GET /v1/sessions/:id`         | After idle                                                        | Orchestrator extracts output events, writes to durable artifacts                  |
+
+All calls carry: `x-api-key`, `anthropic-version: 2023-06-01`, `anthropic-beta: managed-agents-2026-04-01`.
+
+**Orchestrator ownership**: the orchestrator (Claude Code session or `scripts/council-run.ts`-equivalent) is responsible for steps 2–5 AND for marshaling memory-substrate reads (from `history/memory.jsonl` + week artifacts) into the user-message text sent in step 3. This is the same discipline used today for critics (orchestrator fetches `site/` and critic spec, passes into context). The planner inherits this pattern unchanged — no new deployment substrate.
 
 ## Week Lifecycle — DAY-BY-DAY
 
@@ -261,7 +278,7 @@ Closing the loop means: week N's verdict informs week N+1's plan informs week N+
 
 Decisions needed before L11 (and some L9) can be implemented:
 
-1. **Planner deployment** — Managed Agent (like monitor + redesigner) OR part of orchestrator Claude Code session? My pick: **Managed Agent (80/100)**. Matches pattern, gives it a clean audit trail, same agent-from-outside registration. Counter: embedding in orchestrator avoids a second fan-out round-trip. But orchestrator-embedded loses the "agent that decides" narrative — harder to point at as a council member. Go Managed Agent.
+1. **Planner deployment** — 🔒 **LOCKED (Richie, 2026-04-23)**: Claude Managed Agent (Opus 4.7) registered at `POST /v1/agents`, invoked per-run via `POST /v1/sessions` → `POST /v1/sessions/:id/events` → poll `GET /v1/sessions/:id` pattern. Orchestrator owns memory-substrate marshaling: reads `history/memory.jsonl` tail + last 2 weeks' `verdict.json` + current monitor report, concatenates into the user-message text sent in step 3. After planner idles, orchestrator extracts plan.md from session events, writes to `history/<week>/plan.md`, appends one event row to `memory.jsonl`. Identical to the invocation pattern used today by the 6 critics + redesigner (see "Managed Agent invocation pattern" section above). 92/100 — dominates earlier options (Managed-Agent-undefined-marshaling 80, orchestrator-embedded 60, Pi-worker flip 88) on: matches existing pattern, preserves 9-agent-roster narrative, satisfies Q2 side-note via orchestrator marshaling (not a deployment change).
 
 2. **Cold-start behavior** — 🔒 **LOCKED (Richie, 2026-04-23)**: Planner reads monitor's anomaly baseline + analytics snapshot, outputs "explore broadly" plan. Baseline-only analytics are sufficient; planner does not block on absent verdict.
 
