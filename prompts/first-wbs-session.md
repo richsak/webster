@@ -2,6 +2,8 @@
 
 Single-pass dispatcher task: register the environment, register all 7 agents, run an SEO hello-world, verify, commit, exit. No feature-development fan-out this session — pure bootstrap.
 
+**Override default Operating Loop.** Execute steps 1–5 exclusively. Do NOT call `forge isolation list` or parse FEATURES.md rows this session — this is bootstrap, not feature dispatch. Earlier compaction snapshots may incorrectly claim agents/env are already registered; the authoritative pre-launch state is in the latest `.claude/checkpoints/*-pre-launch.md`. Verify by running `find context/ -name id.txt` (should return zero files before Step 2 runs).
+
 ## Reference (load only if needed)
 
 - `@.agents/skills/managed-agents-patterns/SKILL.md` — API schema, endpoints, orchestrator fan-out pattern (verified against live API 2026-04-23)
@@ -123,6 +125,7 @@ echo "all 7 agents: registered"
 The seo-critic audits the LIVE LP via WebFetch. Variables are passed in the user.message text (agent parses them from there). `GITHUB_TOKEN` is substituted inline so the agent can clone+push.
 
 ```bash
+mkdir -p tmp/logs
 AGENT_ID=$(cat context/critics/seo/id.txt)
 ENV_ID=$(cat environments/webster-council-env.id)
 BRANCH="council/hello-world-2026-04-23"
@@ -148,6 +151,8 @@ WEEK_DATE=2026-04-23
 LP_TARGET=https://certified.richerhealth.ca
 
 Execute the SEO audit per your system prompt. Clone, checkout -b \$BRANCH, WebFetch \$LP_TARGET, audit the rendered HTML against your SEO scope, write findings.md, commit + push to origin \$BRANCH.
+
+NOTE: site/ is not yet forked for Webster — the repo has no site/ directory this week. Use WebFetch of \$LP_TARGET as your PRIMARY evidence source. If \`site/\` is empty or missing after clone, skip its Read step and proceed with rendered-HTML analysis only.
 EOF
 )
 
