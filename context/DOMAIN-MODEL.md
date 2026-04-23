@@ -253,6 +253,53 @@ The planner at week N+1 does not re-read every artifact from weeks 1..N. It read
 
 **Why this shape**: if the planner had to re-read 12 weeks of findings + verdicts to decide week 13's direction, it would drown. The event log is the curated history. Raw artifacts are the evidence base, queried on demand by refs.
 
+## Reward, gates, and promotion logic
+
+> Locked by Richie (Q4, 2026-04-23). Framed as reward ≠ gates — promotion operates on a matrix, not a single p-value.
+
+**Reward** (one number maximized):
+
+- **Unified page CTA CTR** = total CTA clicks across all CTAs on the page / total page visits
+- Single reward keeps promotion math clean and prevents double-counting when multiple CTAs improve simultaneously
+- Maps directly to booking-funnel entry
+
+**Per-section CTRs** (learning + attribution, NOT gating):
+
+- `hero_cta_ctr`, `mid_cta_ctr`, `footer_cta_ctr` tracked weekly in `memory.jsonl`
+- Used by planner for `direction_hint` generation
+- Used for stale-section attribution: if section X's CTR is flat for N≥3 weeks despite direct changes to X, planner pivots direction_hint upstream ("test section (X-1) framing/expectation-setting instead of X")
+
+**Validation gates** (each is a veto, independent of reward):
+
+| Gate                        | Direction         | Threshold                                                                          |
+| --------------------------- | ----------------- | ---------------------------------------------------------------------------------- |
+| Brand-voice alignment       | no-regress        | critic re-run at apply time: 0 new CRITICAL, ≤2 new HIGH from `brand-voice-critic` |
+| Bounce rate                 | ceiling           | no regression at p<0.05                                                            |
+| Scroll depth                | floor             | no regression at p<0.05                                                            |
+| Time-on-page                | floor             | no regression at p<0.05                                                            |
+| Token efficiency (run cost) | ceiling           | no regression at p<0.05                                                            |
+| Heatmap sanity              | no new dead zones | `webster-visual-reviewer` check vs prior week's heatmap                            |
+
+**Promotion decision matrix**:
+
+| Reward delta                      | Gates status                             | Outcome                                                           |
+| --------------------------------- | ---------------------------------------- | ----------------------------------------------------------------- |
+| Positive p<0.01 week 1            | all pass                                 | **PROMOTE fast-track**                                            |
+| Positive p<0.05 sustained 2 weeks | all pass                                 | **PROMOTE fallback**                                              |
+| Positive (any)                    | ≥1 gate regresses                        | **NOT PROMOTED — archive as "reward+gate-fail" learning insight** |
+| Zero delta (no stat-sig change)   | ≥1 gate improves at p<0.05, none regress | **PROMOTE gate-win lane**                                         |
+| Zero delta                        | all gates equal                          | Hold baseline                                                     |
+| Negative p<0.01                   | —                                        | **ROLLBACK (Q3 locked)**                                          |
+| Negative p<0.05 to p>0.01         | —                                        | Hold baseline (not strong enough to rollback)                     |
+
+**Parallel independent-variable experiments** (locked in submission scope):
+
+- A week's proposal may contain multiple experiments if each touches an independent DOM region (e.g., hero + footer CTA simultaneously)
+- Each experiment has its own reward (section CTR on its touched region) AND its own gate checks
+- Cross-experiment gate: **unified page CTA CTR must not regress at p<0.05** — prevents the pathological case where each experiment improves its section but users are confused by the sum of simultaneous changes
+- Creep prevention: critic re-run gate (#39c) + `webster-visual-reviewer` (#41) can decline individual experiments at apply time if they see risk — natural independence check
+- Traffic note: ~500 weekly visits is thin. Per-section CTR on a half-page region drops power. Planner decides how many experiments to run in parallel based on recent traffic volume (heuristic: ≥1000/week → up to 3 parallel; 500-1000/week → 1-2 parallel; <500/week → 1 only)
+
 ## Dependency order (what builds on what)
 
 ```
@@ -284,20 +331,22 @@ Decisions needed before L11 (and some L9) can be implemented:
 
 3. **Rollback authority** — 🔒 **LOCKED (Richie, 2026-04-23)**: Auto-rollback fires autonomously on p<0.01 negative signal without human approval. Asymmetric safety net — hurt is cheap to revert, blocking on human defeats the autonomous claim at the crisis moment.
 
-4. **Promotion threshold** — what verdict triggers "promote to baseline"?
+4. **Promotion threshold** — 🔒 **LOCKED (Richie, 2026-04-23) as Option E (92/100)**: reward-and-gates decision matrix with parallel-experiment support. See "Reward, gates, and promotion logic" section below for full spec. Dominates earlier options (1-week p<0.05, 2-week p<0.05, 4-week CVR) on: separation of reward from validation gates, gate-win lane (promote when reward holds + gates improve), reward+gate-fail archive lane (learning insight even without promotion), parallel independent-variable experiments supported in submission.
+
+5. _(deprecated row, retained for audit trail)_
    - Proxy-improved at p<0.05 for 1 week — 70/100 (fast, but noisy)
-   - Proxy-improved at p<0.05 for 2 consecutive weeks — **80/100, my pick**. Matches L9 #46 baseline promoter default.
+   - Proxy-improved at p<0.05 for 2 consecutive weeks — 80/100 (superseded)
    - CVR-improved at p<0.05 (4+ weeks) — 60/100. Too slow; blocks experimentation cadence.
 
-5. **Planner overriding critics** — can plan.md tell a critic "don't flag X this week"?
+6. **Planner overriding critics** — can plan.md tell a critic "don't flag X this week"?
    - Yes, via a `suppressed_findings[]` field in plan.md — 60/100. Risky; silences validation.
    - No, planner only influences direction via `direction_hint` — **80/100, my pick**. Critics remain independent. Plan shapes proposal, not findings.
 
-6. **Partial experiments** — if #39d skips 1 of 3 issues in a PR, what does planner do next week?
+7. **Partial experiments** — if #39d skips 1 of 3 issues in a PR, what does planner do next week?
    - Treat as full experiment; skipped issue rolls forward to next proposal — 75/100, my pick.
    - Treat as failed experiment; planner directs retry on skipped issues — 60/100. Creates loops.
 
-7. **Silent secondary substrates** — other SMB LPs in the repo for generalization proof. Do they run the same L11 flow, or are they frozen demonstrations?
+8. **Silent secondary substrates** — other SMB LPs in the repo for generalization proof. Do they run the same L11 flow, or are they frozen demonstrations?
    - Frozen demonstrations, visible in git history but no live council — **80/100, my pick** for submission scope.
    - Full live flow on all three sites — 40/100. Triples cost + complexity without adding signal.
 
