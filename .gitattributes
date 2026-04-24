@@ -1,0 +1,10 @@
+# FEATURES.md is administrative state owned by the dispatcher.
+# Feature branches (Ralph worktrees) often mark rows `done` on their side,
+# which conflicts with main's concurrent row edits when multiple dispatches
+# run in parallel. Declaring merge=ours makes main's version always win on
+# merge, so branches stay mergeable without manual conflict resolution.
+# The dispatcher updates FEATURES.md directly on main post-merge.
+#
+# Required local config (one-time, per checkout):
+#   git config merge.ours.driver true
+context/FEATURES.md merge=ours

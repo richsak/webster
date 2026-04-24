@@ -20,3 +20,9 @@ tmp/
 
 # Ralph PRD artifacts — regenerated per dispatch
 .forge/ralph/
+
+# Pi subagent transient outputs (scout context.md, planner plan.md at repo root)
+/context.md
+/plan.md
+/research.md
+
