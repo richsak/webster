@@ -623,7 +623,26 @@ export function runCriticRerunGate(
     };
   }
 
-  const findings = parseCriticFindings(JSON.parse(stdout.slice(jsonStart)));
+  let findings: CriticFinding[];
+  try {
+    findings = parseCriticFindings(JSON.parse(stdout.slice(jsonStart)));
+  } catch {
+    return {
+      passed: false,
+      configured: true,
+      criticalCount: 1,
+      highCount: 0,
+      findings: [
+        {
+          critic: "critic-rerun-command",
+          severity: "CRITICAL",
+          issue: "Critic rerun command emitted invalid JSON findings.",
+        },
+      ],
+      output,
+    };
+  }
+
   const criticalCount = findings.filter((finding) => finding.severity === "CRITICAL").length;
   const highCount = findings.filter((finding) => finding.severity === "HIGH").length;
 

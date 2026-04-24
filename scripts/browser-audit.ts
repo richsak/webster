@@ -47,20 +47,20 @@ async function main(): Promise<void> {
     playwright = (await new Function("specifier", "return import(specifier)")("playwright")) as {
       chromium: { launch(options: { headless: boolean }): Promise<BrowserLike> };
     };
-  } catch {
+  } catch (error) {
+    const playwrightError = error instanceof Error ? error.stack || error.message : String(error);
+    const unavailableReason = "Playwright import failed; Screenshot capture unavailable.";
     const summary = {
       url: args.url,
-      screenshot_capture_unavailable: "Playwright not installed in this container.",
+      screenshot_capture_unavailable: unavailableReason,
+      playwright_error: playwrightError,
       breakpoints: BREAKPOINTS.map((breakpoint) => ({ ...breakpoint, screenshot: null })),
       cta_count: 0,
       console_errors: [],
       page_errors: [],
     };
     writeFileSync(join(args.outDir, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`);
-    writeFileSync(
-      join(args.outDir, "a11y-text.txt"),
-      "Screenshot capture unavailable: Playwright not installed in this container.\n",
-    );
+    writeFileSync(join(args.outDir, "a11y-text.txt"), `${unavailableReason}\n${playwrightError}\n`);
     return;
   }
 

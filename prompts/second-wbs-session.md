@@ -87,7 +87,16 @@ mkdir -p tmp/logs tmp/sessions
 
 ```bash
 WEEK_DATE=$(date -u +%Y-%m-%d)
-PREV_WEEK_DATE=$(date -u -v-7d +%Y-%m-%d)
+relative_utc_date() {
+  local offset="$1"
+  local format="${2:-+%Y-%m-%d}"
+  if date -u -d "$offset" "$format" >/dev/null 2>&1; then
+    date -u -d "$offset" "$format"
+  else
+    date -u -v"$offset" "$format"
+  fi
+}
+PREV_WEEK_DATE=$(relative_utc_date "-7d")
 BRANCH="council/$WEEK_DATE"
 LP_TARGET="https://certified.richerhealth.ca"
 VAULT_ID="vlt_011CaLe2pEofWQptxQyV4UMd"   # webster vault, holds GitHub PAT
@@ -119,14 +128,14 @@ Monitor needs prior-week baselines to compute WoW deltas. If history is missing,
 ```bash
 SEED_NEEDED=false
 for i in $(seq 1 10); do
-  DATE=$(date -u -v-${i}w +%Y-%m-%d)
+  DATE=$(relative_utc_date "-${i}w")
   [[ -f "history/$DATE/analytics.json" ]] || { SEED_NEEDED=true; break; }
 done
 
 if $SEED_NEEDED; then
   echo "Seeding 10 weeks of mock analytics..."
   for i in $(seq 1 10); do
-    DATE=$(date -u -v-${i}w +%Y-%m-%d)
+    DATE=$(relative_utc_date "-${i}w")
     mkdir -p "history/$DATE"
 
     # Plausible small-wellness-biz shape with slight downtrend in recent 2 weeks

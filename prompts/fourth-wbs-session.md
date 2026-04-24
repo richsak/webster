@@ -18,8 +18,8 @@ Two goals, sequenced so Phase 1 (deploy) runs first — Richie can eyeball the o
 
 ```bash
 # 1. Working tree clean — we'll be creating files under site/
-if ! git diff --quiet || ! git diff --cached --quiet; then
-  echo "ABORT: working tree has uncommitted changes."
+if [[ -n $(git status --porcelain) ]]; then
+  echo "ABORT: working tree has uncommitted or untracked files."
   git status --short
   exit 1
 fi
@@ -36,7 +36,14 @@ done
   exit 1
 }
 
-# 4. site/ should NOT already exist (this session creates it); bail if it does
+# 4. Proposal source for manual edits exists
+[[ -f history/2026-04-23/proposal.md ]] || {
+  echo "ABORT: history/2026-04-23/proposal.md missing."
+  echo "Run prompts/third-wbs-session.md first or restore the proposal before applying edits."
+  exit 1
+}
+
+# 5. site/ should NOT already exist (this session creates it); bail if it does
 if [[ -d site/before || -d site/after ]]; then
   echo "NOTE: site/before or site/after already exists."
   echo "If this is a re-run, delete them first:  rm -rf site/"
@@ -112,7 +119,7 @@ Apply order (surgical, one at a time, verify after each):
 
 5. **Issue 5 — Head tag foundation.** In `<head>` of `site/after/index.html`: rewrite `<title>`, add meta description, canonical, OG tags, Twitter tags, JSON-LD block. Full HTML is in proposal.md Issue 5.
 
-   **Dependency**: `og-card.jpg` doesn't exist yet. For this session's preview, set `og:image` / `twitter:image` to a placeholder comment `<!-- og-card.jpg TBD -->` INSTEAD of including the broken URL. Do NOT ship broken image URLs in the meta.
+   **Dependency**: `og-card.jpg` doesn't exist yet. Omit `og:image` and `twitter:image` meta tags until a valid asset exists. Do NOT ship broken image URLs in the meta.
 
 After each issue, run a smoke check:
 

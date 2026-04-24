@@ -313,16 +313,20 @@ export async function generateVisualAsset(
 
     const body = await response.text();
     if (response.ok) {
-      const base64 = extractImageBase64(JSON.parse(body));
-      return base64
-        ? {
-            status: "generated",
-            type: input.type,
-            mime_type: "image/png",
-            base64_data: base64,
-            estimated_cost_usd: ESTIMATED_IMAGE_COST_USD,
-          }
-        : buildAssetStub(input.type, "missing-image-data");
+      try {
+        const base64 = extractImageBase64(JSON.parse(body));
+        return base64
+          ? {
+              status: "generated",
+              type: input.type,
+              mime_type: "image/png",
+              base64_data: base64,
+              estimated_cost_usd: ESTIMATED_IMAGE_COST_USD,
+            }
+          : buildAssetStub(input.type, "missing-image-data");
+      } catch {
+        return buildAssetStub(input.type, "invalid-json");
+      }
     }
 
     lastReason = structuredErrorReason(response.status, body);

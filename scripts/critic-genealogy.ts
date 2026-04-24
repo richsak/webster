@@ -548,7 +548,7 @@ function buildGapPrompt(
     .join("\n\n---\n\n");
   return `You are the Webster orchestrator performing CRITIC GENEALOGY — runtime detection of coverage gaps in the council.
 
-## Existing critics (5)
+## Existing critics (${critics.length})
 
 ${criticsBlock}
 
