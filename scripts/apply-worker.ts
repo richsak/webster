@@ -74,6 +74,18 @@ export interface PrEmissionPlan {
   skipped_experiment_ids: string[];
 }
 
+export interface PreviewDeployment {
+  preview_url?: string;
+  analytics_scrub: {
+    enabled: boolean;
+    marker: 'data-preview="1"';
+  };
+  noindex: {
+    required: boolean;
+    verified: boolean;
+  };
+}
+
 export interface ApplyLogJSON {
   week: string;
   run_timestamp: string;
@@ -86,6 +98,7 @@ export interface ApplyLogJSON {
     critic_rerun_passed: boolean;
   };
   pr_emission?: PrEmissionPlan;
+  preview_deployment?: PreviewDeployment;
 }
 
 export interface SkipRow {
@@ -689,6 +702,34 @@ function buildClusterBody(experiments: ApplyExperiment[]): string {
       return `- ${experiment.exp_id} (${experiment.severity}, ${status}): ${experiment.title}`;
     })
     .join("\n");
+}
+
+function isPreviewUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && parsed.hostname.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+export function buildPreviewDeployment(
+  previewUrl = process.env.WEBSTER_CF_PAGES_PREVIEW_URL,
+): PreviewDeployment {
+  const hasPreviewUrl = typeof previewUrl === "string" && previewUrl.trim().length > 0;
+  const verified = hasPreviewUrl ? isPreviewUrl(previewUrl.trim()) : false;
+
+  return {
+    ...(hasPreviewUrl ? { preview_url: previewUrl.trim() } : {}),
+    analytics_scrub: {
+      enabled: hasPreviewUrl,
+      marker: 'data-preview="1"',
+    },
+    noindex: {
+      required: hasPreviewUrl,
+      verified,
+    },
+  };
 }
 
 export function buildPrEmissionPlan(experiments: ApplyExperiment[]): PrEmissionPlan {

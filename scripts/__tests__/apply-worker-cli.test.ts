@@ -33,6 +33,11 @@ interface ApplyLogFixture {
     }[];
     skipped_experiment_ids: string[];
   };
+  preview_deployment?: {
+    preview_url?: string;
+    analytics_scrub: { enabled: boolean; marker: string };
+    noindex: { required: boolean; verified: boolean };
+  };
 }
 
 function decode(output: Uint8Array<ArrayBufferLike>): string {
@@ -203,6 +208,10 @@ describe("apply-worker CLI integration", () => {
         labels: ["webster-apply"],
         draft: false,
       });
+      expect(log.preview_deployment).toMatchObject({
+        analytics_scrub: { enabled: false, marker: 'data-preview="1"' },
+        noindex: { required: false, verified: false },
+      });
     } finally {
       removeFixtureRepo(repo);
     }
@@ -264,6 +273,29 @@ describe("apply-worker CLI integration", () => {
       expect(readFileSync(join(repo.weekDir, "skips.jsonl"), "utf8")).toContain(
         "booking CTA has non-resolving href",
       );
+    } finally {
+      removeFixtureRepo(repo);
+    }
+  });
+
+  test("records CF Pages preview URL and noindex verification metadata", () => {
+    const repo = createFixtureRepo(
+      "preview-url",
+      "<h1>Clinic directors get one clear protocol</h1>",
+    );
+
+    try {
+      const cli = runCli(repo, {
+        WEBSTER_CF_PAGES_PREVIEW_URL: "https://webster-abc.pages.dev",
+      });
+
+      expect(cli.exitCode).toBe(0);
+      const log = readApplyLog(repo);
+      expect(log.preview_deployment).toMatchObject({
+        preview_url: "https://webster-abc.pages.dev",
+        analytics_scrub: { enabled: true, marker: 'data-preview="1"' },
+        noindex: { required: true, verified: true },
+      });
     } finally {
       removeFixtureRepo(repo);
     }

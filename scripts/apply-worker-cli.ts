@@ -7,6 +7,7 @@ import {
   buildCommitMessage,
   buildExpectedExperimentId,
   buildPrEmissionPlan,
+  buildPreviewDeployment,
   commitExperiment,
   emitSkip,
   parseDecision,
@@ -264,6 +265,7 @@ async function main(): Promise<number> {
     experiments,
     validation_summary: validationSummary,
     pr_emission: buildPrEmissionPlan(experiments),
+    preview_deployment: buildPreviewDeployment(),
   };
   writeApplyLog(args.weekDir, log);
   console.log(`wrote ${join(args.weekDir, "apply-log.json")}`);
