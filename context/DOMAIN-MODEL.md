@@ -32,7 +32,7 @@ Webster becomes an **autonomous experiment agent**, not a blind weekly redesigne
 
 An experiment traverses these states during a week:
 
-```
+```text
 proposed   →  applied  →  running   →  measured   →  verdicted   →  final
   ↑             ↑            ↑            ↑              ↑             ↑
   │             │            │            │              │             │
@@ -86,7 +86,7 @@ All calls carry: `x-api-key`, `anthropic-version: 2023-06-01`, `anthropic-beta: 
 
 A week's council run + measurement window. `N` is the week being planned.
 
-```
+```text
 DAY 0 — MONDAY (council run day)
 
 00:00  Autoresearch verdict engine (L9 #44) runs
@@ -175,7 +175,7 @@ DAY 7 — NEXT MONDAY
 
 ## Data Flow (week-over-week)
 
-```
+```text
 ┌─ week N-1 ─────────────────────────────────────────────┐
 │  proposal.md → apply-log.json → visual-review.md → PR  │
 │                                                         │
@@ -360,6 +360,7 @@ Over 3 years: governor saves roughly 10M tokens.
 
 1. Skipped experiment is **terminal at the current week** — no commit on PR branch, no `baselines.jsonl` promoted row, no rollback needed (nothing shipped).
 2. Orchestrator emits a `memory.jsonl` row:
+
    ```json
    {
      "ts": "...",
@@ -372,6 +373,7 @@ Over 3 years: governor saves roughly 10M tokens.
      "concern_ref": "<the underlying concern the experiment was addressing>"
    }
    ```
+
 3. `baselines.jsonl` gets entry: `{exp_id, status: "skipped-<reason>", week, concern_ref}`.
 4. Week N+1 planner reads skip rows + base concern. Autonomously decides:
    - **Re-propose a variant** (different kind or framing addressing the skip reason)
@@ -385,7 +387,7 @@ Over 3 years: governor saves roughly 10M tokens.
 
 ## Dependency order (what builds on what)
 
-```
+```text
 L2 (critics + redesigner + monitor — shipped)
  └─ L3 (genealogy — shipped)
  └─ L1 (orchestrator — shipped)
@@ -441,8 +443,7 @@ Decisions needed before L11 (and some L9) can be implemented:
 4. **Promotion threshold** — 🔒 **LOCKED (Richie, 2026-04-23) as Option E (92/100)**: reward-and-gates decision matrix with parallel-experiment support. See "Reward, gates, and promotion logic" section below for full spec. Dominates earlier options (1-week p<0.05, 2-week p<0.05, 4-week CVR) on: separation of reward from validation gates, gate-win lane (promote when reward holds + gates improve), reward+gate-fail archive lane (learning insight even without promotion), parallel independent-variable experiments supported in submission.
 
 5. **Planner overriding critics** — 🔒 **LOCKED (Richie, 2026-04-23) as Option 5C (88/100)**: planner can request a NEW critic via L3 genealogy. Plan emits `genealogy_request: { concern, rationale }`; orchestrator authors the spec via existing `scripts/critic-genealogy.ts`. Cannot silence or weight existing critics. Preserves invariant #6. Directly used in Q9 demo arc W4 (bounce-guard-critic spawn). Prior rejected options: `suppressed_findings[]` (60, silences validation), `direction_hint` only (80, no blind-spot mechanism).
-
-5.1. **Genealogy governance** — 🔒 **LOCKED (Richie, 2026-04-23) as Option 5.1C (90/100)**: four-layer governor bounding 5C's spawn mechanism. See "Genealogy governance" section below for full spec. Prevents token-waste drift over 52-week operation without rigid per-period caps. Token math: ungoverned spawning adds ~50% annual run cost over 3 years; governor C steady-state adds ~25%.
+   - **Genealogy governance** — 🔒 **LOCKED (Richie, 2026-04-23) as Option 5.1C (90/100)**: four-layer governor bounding 5C's spawn mechanism. See "Genealogy governance" section below for full spec. Prevents token-waste drift over 52-week operation without rigid per-period caps. Token math: ungoverned spawning adds ~50% annual run cost over 3 years; governor C steady-state adds ~25%.
 
 6. **Partial experiments (skip contract)** — 🔒 **LOCKED (Richie, 2026-04-23) as Option 6D (92/100)**: skip is terminal at the current week + feeds next-week planning as structured data. No mechanical roll-forward, no in-session retry loops. See "Skip contract" section below for full spec. Dominates prior options (roll-forward 75 creates infinite loops on systemic vetoes; retry-in-session 60 spirals; logging-only 85 doesn't answer "what next for the skipped experiment").
 
@@ -452,7 +453,7 @@ Decisions needed before L11 (and some L9) can be implemented:
 
 9. **Demo arc (4-week mock)** — 🔒 **LOCKED (Richie, 2026-04-23)**: 9 experiments across 4 weeks, seeded via `scripts/seed-demo-arc.ts` (extends L5 seeder). See "Demo arc (4-week mock)" section above for the full table. Covers all 8 invariants and 6/7 Q4 outcomes. Includes a critic-genealogy spawn in W4.
 
-_(deprecated Q4 options, retained for audit trail: 1-week p<0.05 (70), 2-week p<0.05 (80, superseded by 4E), 4-week CVR (60).)_
+**Deprecated Q4 options (retained for audit trail):** 1-week p<0.05 (70), 2-week p<0.05 (80, superseded by 4E), 4-week CVR (60).
 
 Answer Q5, Q6, Q7 → I implement.
 

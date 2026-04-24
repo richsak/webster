@@ -57,7 +57,7 @@ Produce a `history/demo-arc/` tree that faithfully represents the locked Q9 demo
 
 CLI script, single invocation:
 
-```
+```bash
 bun run scripts/seed-demo-arc.ts
 ```
 
@@ -192,7 +192,7 @@ W4 also includes genealogy spawn: `bounce-guard-critic` triggered by the W3 gate
 
 ### Dependency Graph
 
-```
+```text
 US-001 (types + scaffold)
     ↓
 US-002 (W1+W2 writers)
@@ -216,4 +216,4 @@ Every story must pass:
 
 ---
 
-_Generated: 2026-04-23T00:00:00Z_
+Generated: 2026-04-23T00:00:00Z.

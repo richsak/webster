@@ -102,7 +102,7 @@ See `AGENTS.md` for stream → operator mapping.
 
 The "missing last 20%" of Webster's full loop — turning the council's `proposal.md` brief into a reviewed code diff on the live LP. Originally scoped post-submission; moved to pre-submission in session 4 Phase 7 when autoresearch became a council input (see Layer 11 + ADR-0001 + ADR-0002).
 
-#38 shipped session 4 Phase 1; #39 / #40 decomposed by session 4 Phase 2 grill-me (see `context/v2-design.md`); Q8 per-experiment commit discipline added session 4 Phase 7 (see ADR-0002).
+Note: #38 shipped session 4 Phase 1; #39 / #40 decomposed by session 4 Phase 2 grill-me (see `context/v2-design.md`); Q8 per-experiment commit discipline added session 4 Phase 7 (see ADR-0002).
 
 | #   | Status | Feature                                                                                                                                                                                                                                                                                                                                                                               | Hours |
 | --- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |

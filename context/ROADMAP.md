@@ -70,10 +70,10 @@ This is the shift from **autonomous weekly redesigner** → **autonomous experim
 
 **Scope-expansion layers that ALSO ship pre-submission** (Claude+worker parallelizable):
 
-4. **Layer 8** — apply worker text-only (~18h feature work)
-5. **Layer 10** — designer scope expansion (~7h feature work)
-6. **Layer 9** — visual review + autoresearch measurement (~18h feature work)
-7. **Layer 11** — planner agent + experiment-aware council (~12h feature work, NEW)
+- **Layer 8** — apply worker text-only (~18h feature work)
+- **Layer 10** — designer scope expansion (~7h feature work)
+- **Layer 9** — visual review + autoresearch measurement (~18h feature work)
+- **Layer 11** — planner agent + experiment-aware council (~12h feature work, NEW)
 
 Ordering: 1–3 anytime. 4–7 in dependency order (L8 → L10 → L9 → L11). Grill-me on DOMAIN-MODEL.md open questions unblocks L11 implementation.
 

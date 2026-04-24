@@ -1,0 +1,21 @@
+{
+  "week": "demo-W1",
+  "experiments": [
+    {
+      "exp_id": "exp-01-hero-h1-rewrite",
+      "kind": "text",
+      "reward_delta_pct": 15,
+      "p_value": 0.003,
+      "gates": {
+        "brand_voice": "pass",
+        "bounce_rate": "pass",
+        "scroll_depth": "pass",
+        "time_on_page": "pass",
+        "token_efficiency": "pass",
+        "heatmap_sanity": "pass"
+      },
+      "classification": "improved",
+      "outcome": "promote-fast-track"
+    }
+  ]
+}

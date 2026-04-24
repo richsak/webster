@@ -1,0 +1,4 @@
+{"exp_id":"exp-01-hero-h1-rewrite","week":"demo-W1","status":"promoted","baseline_sha":"demo-baseline-exp-01"}
+{"exp_id":"exp-02-hero-copy-v2","week":"demo-W2","status":"promoted","baseline_sha":"demo-baseline-exp-02"}
+{"exp_id":"exp-03-cta-button-component","week":"demo-W2","status":"promoted","baseline_sha":"demo-baseline-exp-03"}
+{"exp_id":"exp-04-trust-badge-image","week":"demo-W2","status":"promoted","baseline_sha":"demo-baseline-exp-04"}
