@@ -1,0 +1,61 @@
+{
+  "project": "Webster",
+  "branchName": "feat/orch-memory-planner-v1",
+  "prdFile": "prd.md",
+  "description": "Add the orchestrator step that marshals memory + verdict + monitor context, invokes webster-planner via the Managed Agents flow, parses the JSON response, writes history/<week>/plan.md, and appends a verdict-ready event to history/memory.jsonl.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Memory marshaling helper",
+      "description": "As a Webster operator, I want a pure TypeScript helper that reads memory.jsonl tail plus recent verdicts plus the monitor anomaly report and returns a single concatenated user.message text so that the planner always receives the same shape of context.",
+      "acceptanceCriteria": [
+        "Add scripts/planner-context.ts exporting marshalPlannerContext(opts: { memoryPath: string; verdictDir: string; monitorPath: string; tailN?: number }): string.",
+        "The function uses the feature #51 tailN helper from src/memory (or scripts/memory) to read the last N=50 events from memoryPath; it does not re-implement tail logic.",
+        "The function reads the two most recent history/<week>/verdict.json files under verdictDir sorted by week slug descending; missing verdict files are skipped without throwing.",
+        "The function reads the monitor anomaly report text file at monitorPath; a missing monitor file is skipped without throwing.",
+        "The returned string begins with a MEMORY_TAIL section, then a RECENT_VERDICTS section, then a MONITOR_ANOMALIES section, each delimited by a stable header the test file can match.",
+        "When all three inputs are empty or missing, the function returns a string that explicitly labels the cold-start state rather than an empty string.",
+        "Add a Bun test under scripts/__tests__/planner-context.test.ts with fixtures under tmp paths verifying: tailN wiring, two-verdict ordering, missing-file skips, and cold-start labeling.",
+        "bun run type-check, bun run lint --max-warnings 0, bun test, bun run format:check pass."
+      ],
+      "technicalNotes": "Follow the style in scripts/critic-genealogy.ts and scripts/memory.ts (or src/memory). Use readFileSync + path.join; do not use async file APIs unless the existing modules already do. Keep the function free of network I/O. Reuse the feature #51 export rather than re-reading JSONL lines directly.",
+      "dependsOn": [],
+      "priority": 1
+    },
+    {
+      "id": "US-002",
+      "title": "Planner invocation + plan writer",
+      "description": "As a Webster operator, I want a helper that invokes the webster-planner Managed Agent using the marshaled context, parses the structured response, writes history/<week>/plan.md, and appends a verdict-ready row to history/memory.jsonl so that downstream critics can consume the plan.",
+      "acceptanceCriteria": [
+        "Add scripts/planner-invoke.ts exporting invokePlanner(opts: { contextText: string; week: string; historyDir: string; apiKey: string }): Promise<{ planPath: string; plan: PlanRecord }>.",
+        "The function looks up or registers the webster-planner agent via POST /v1/agents, mirroring the find-or-register pattern in scripts/critic-genealogy.ts:440-556.",
+        "The function creates a session via POST /v1/sessions, sends contextText as the user.message event, and polls until the session is idle.",
+        "The function extracts the final assistant text and parses it as JSON with fields classification, next_action, direction_hint, optional new_critic_request, and rationale; next_action must be one of promote_and_experiment, hold_baseline, revert_and_retry, explore_broadly.",
+        "The function writes history/<week>/plan.md as human-readable markdown that embeds the parsed JSON in a fenced code block and prints the parsed fields as a bulleted summary above the fence.",
+        "The function appends one event row to history/memory.jsonl with event = 'verdict-ready' using the feature #51 appendEvent helper and includes refs.plan = relative path to the written plan.md.",
+        "Invalid JSON, missing required fields, or unknown next_action values raise an Error with a descriptive message and do NOT write plan.md or append to memory.jsonl.",
+        "Add a Bun test under scripts/__tests__/planner-invoke.test.ts that mocks fetch (global.fetch or bun:test mock) to exercise: happy path with a valid JSON response, malformed response rejection, and the memory.jsonl append side effect.",
+        "bun run type-check, bun run lint --max-warnings 0, bun test, bun run format:check pass."
+      ],
+      "technicalNotes": "Reuse helper names / patterns from scripts/critic-genealogy.ts (registerAgent, createSession, sendUserMessage, pollUntilIdle) rather than duplicating low-level fetch code. Keep the HTTP base URL configurable via env (ANTHROPIC_API_BASE defaulting to https://api.anthropic.com). Import appendEvent from the same module feature #51 added. Do NOT edit agents/webster-planner.json (owned by feature #50) and do NOT edit prompts/second-wbs-session.md in this story (US-003 owns that).",
+      "dependsOn": ["US-001"],
+      "priority": 2
+    },
+    {
+      "id": "US-003",
+      "title": "Orchestrator step in prompts/second-wbs-session.md",
+      "description": "As a Webster operator, I want a new orchestration step in prompts/second-wbs-session.md that runs BEFORE critic fan-out and calls the US-002 helper with US-001 inputs so that the planner's plan.md is ready for critics to read.",
+      "acceptanceCriteria": [
+        "Edit prompts/second-wbs-session.md to add a new numbered step titled 'Run planner' placed BEFORE the critic fan-out step.",
+        "The step shows the bash/bun invocation that marshals context via scripts/planner-context.ts and invokes the planner via scripts/planner-invoke.ts, with the week argument set to the current ISO week folder name under history/.",
+        "The step specifies that on planner error the run halts with a non-zero exit status and a pointer to the error message.",
+        "The step references history/<week>/plan.md as the output artifact consumed by later steps.",
+        "Update README.md or an adjacent doc section if the prior council flow explicitly enumerated the steps, so the step count remains accurate.",
+        "bun run validate passes."
+      ],
+      "technicalNotes": "Edit prompts/second-wbs-session.md only — do not change orchestrator-owned I/O in the helpers. The step should read like the existing numbered steps: plain bash with comments and exit-on-error semantics. Do not implement runtime invocation of critics from this file; that remains in the later fan-out step.",
+      "dependsOn": ["US-001", "US-002"],
+      "priority": 3
+    }
+  ]
+}
