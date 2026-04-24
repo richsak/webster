@@ -31,3 +31,28 @@
 - The local package has no `cli` script, so Ralph workflow event emits fail harmlessly with `Script not found "cli"` under the required `|| true` guard.
 
 ---
+## 2026-04-24T08:29:55.000Z — US-002: Layer 3 13-week cap with operator soft override
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/critic-genealogy.ts` — added `--override-quarterly-cap`, rolling 13-week genealogy spawn counting, malformed in-window spec validation, and pre-registration cap gate.
+- `scripts/__tests__/critic-genealogy.test.ts` — added no-network unit coverage for count 0, count 2 allow, count 3 block, count 3 override allow, exactly-13-week boundary inclusion, and malformed in-window genealogy spec failure.
+- `.forge/ralph/genealogy-gov-v1/prd.json` — marked US-002 complete.
+
+**Acceptance criteria verified**:
+- [x] Add a CLI soft-override flag, named `--override-quarterly-cap` or equivalent, to `parseArgs()` and `CLIArgs` in `scripts/critic-genealogy.ts`.
+- [x] Count spawned critic specs from `history/<YYYY-MM-DD>/genealogy/spec.json` in the rolling 13-week window ending at `args.weekDate`.
+- [x] Block registration when the count is already 3 or more and the override flag is false.
+- [x] Allow registration when the count is 3 or more only if the override flag is true, and print an explicit operator override message.
+- [x] Ignore malformed or missing non-genealogy history directories only when they are irrelevant; malformed in-window genealogy spec data fails loudly with an actionable error.
+- [x] Unit tests cover count 0, count 2 allow, count 3 block, count 3 with override allow, and boundary dates at exactly 13 weeks.
+- [x] Type-check passes.
+- [x] Tests pass.
+- [x] `bun run validate` passes.
+
+**Learnings**:
+- The registration choke point now has two pure governance gates before API side effects: dedup first, then quarterly cap before `registerAgent()` and `createSession()`.
+- Treat the 13-week boundary as inclusive: a spawn exactly 91 days before `args.weekDate` counts toward the cap.
+- Non-date history directories can be ignored; in-window `genealogy/spec.json` files must parse as agent-like JSON so broken genealogy artifacts fail loudly.
+
+---

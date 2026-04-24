@@ -44,8 +44,8 @@
         "US-001"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "Use user-specified cap: max 3 new critics per 13 weeks, not the older 2-per-quarter text in context/DOMAIN-MODEL.md."
+      "passes": true,
+      "notes": "Implemented in iteration 2. Files: scripts/critic-genealogy.ts, scripts/__tests__/critic-genealogy.test.ts."
     },
     {
       "id": "US-003",
