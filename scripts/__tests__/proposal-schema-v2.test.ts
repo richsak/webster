@@ -75,6 +75,35 @@ describe("proposal schema v2", () => {
     expect(validateProposalConstraints(issue, "Dropped copy")).toEqual(["No more patient churn"]);
   });
 
+  test("validates numeric rendered measurements in within constraints", () => {
+    const issue = parseProposalV2({
+      issues: [
+        {
+          id: "hero",
+          title: "Hero",
+          kind: "component",
+          files_touched: ["Hero.astro"],
+          constraints: {
+            preserves: [],
+            within: { desktop_h1_lines: 3, hero_height: { max: 700 } },
+          },
+        },
+      ],
+    })[0];
+    if (!issue) {
+      throw new Error("expected parsed issue");
+    }
+    expect(
+      validateProposalConstraints(issue, {
+        text: "",
+        measurements: { desktop_h1_lines: 4, hero_height: 720 },
+      }),
+    ).toEqual([
+      "desktop_h1_lines: expected 3, received 4",
+      "hero_height: expected <= 700, received 720",
+    ]);
+  });
+
   test("rejects unknown kinds", () => {
     expect(() =>
       parseProposalV2({

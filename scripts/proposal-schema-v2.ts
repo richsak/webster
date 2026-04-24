@@ -106,10 +106,40 @@ export function routeProposalIssue(issue: ProposalV2Issue): RoutedProposalIssue 
   return { ...issue, route: routeByKind[issue.kind] };
 }
 
+export interface RenderedConstraintMetrics {
+  text: string;
+  measurements?: Record<string, number>;
+}
+
 export function validateProposalConstraints(
   issue: ProposalV2Issue,
-  renderedText: string,
+  rendered: string | RenderedConstraintMetrics,
 ): string[] {
+  const renderedText = typeof rendered === "string" ? rendered : rendered.text;
+  const measurements = typeof rendered === "string" ? {} : (rendered.measurements ?? {});
   const normalized = renderedText.toLowerCase();
-  return issue.constraints.preserves.filter((phrase) => !normalized.includes(phrase.toLowerCase()));
+  const missingPreserves = issue.constraints.preserves.filter(
+    (phrase) => !normalized.includes(phrase.toLowerCase()),
+  );
+  const withinFailures = Object.entries(issue.constraints.within).flatMap(([key, expected]) => {
+    const actual = measurements[key];
+    if (typeof expected === "number" && actual !== expected) {
+      return [`${key}: expected ${expected}, received ${actual ?? "missing"}`];
+    }
+    if (isRecord(expected)) {
+      const min = typeof expected.min === "number" ? expected.min : undefined;
+      const max = typeof expected.max === "number" ? expected.max : undefined;
+      if (actual === undefined) {
+        return [`${key}: expected measurement, received missing`];
+      }
+      if (min !== undefined && actual < min) {
+        return [`${key}: expected >= ${min}, received ${actual}`];
+      }
+      if (max !== undefined && actual > max) {
+        return [`${key}: expected <= ${max}, received ${actual}`];
+      }
+    }
+    return [];
+  });
+  return [...missingPreserves, ...withinFailures];
 }
