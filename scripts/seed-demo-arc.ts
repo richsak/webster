@@ -153,6 +153,45 @@ const WEEK_MEMORY_BASE_TIMES: Record<DemoWeek, string> = {
   [DEMO_W4]: "2026-04-22T09:00:00.000Z",
 };
 
+const BOUNCE_GUARD_CRITIC_SPEC = {
+  name: "bounce-guard-critic",
+  scope:
+    "Landing-page experiments that lift reward while risking first-session bounce-rate regression.",
+  description:
+    "Flags visual, CSS, and copy changes that may increase immediate exits even when aggregate reward appears positive.",
+  rationale:
+    "Week 3 produced a gate-failing image win and a harmful CSS rollback, so Webster needs a dedicated critic for bounce-risk patterns before conservative W4 tuning ships.",
+  focus_owned: [
+    "bounce-rate guardrail risk",
+    "above-the-fold visual aggression",
+    "reward-positive but gate-failing experiment patterns",
+  ],
+  focus_not_owned: [
+    "general conversion copy",
+    "brand tone",
+    "technical SEO",
+    "clinical compliance",
+  ],
+  severity_rubric:
+    "P0 when a proposed change repeats a known bounce-rate gate failure; P1 when visual urgency may increase exits; P2 when copy or spacing weakly suggests bounce sensitivity.",
+} as const satisfies NewCriticSpec;
+
+const BOUNCE_GUARD_AGENT_JSON = {
+  name: "bounce-guard-critic",
+  description:
+    "Webster critic spawned from W4 genealogy to review bounce-risk regressions before promotion.",
+  model: "claude-sonnet-4-6-20260415",
+  system:
+    "You are Webster's bounce-guard critic. Review proposed landing-page experiments for patterns that can increase bounce rate even when reward metrics improve. Own bounce-rate guardrails only; defer brand, SEO, compliance, and broad conversion concerns to the standing council. Return concise findings with severity, evidence, and a promote/hold/block recommendation.",
+  tools: [{ type: "agent_toolset_20260401" }],
+  metadata: {
+    project: "webster",
+    spawned_from: "demo-W4",
+    trigger: "W3 bounce-rate gate failure on exp-05-mid-section-image-swap",
+    source_spec: "history/demo-arc/demo-W4/genealogy/new-critic-spec.json",
+  },
+} as const satisfies AgentJSON;
+
 const EXPERIMENT_SPECS = [
   {
     week: DEMO_W1,
@@ -427,13 +466,53 @@ function writeVerdict(week: DemoWeek, experiments: ExperimentSpec[]): void {
   writeFileSync(join(DEMO_ARC_DIR, week, "verdict.json"), `${JSON.stringify(verdict, null, 2)}\n`);
 }
 
+function getBaselineStatus(experiment: ExperimentSpec): BaselineRow["status"] | null {
+  switch (experiment.outcome) {
+    case "archive-gate-fail":
+      return "archived-gate-fail";
+    case "auto-rollback":
+      return "rolled-back";
+    case "hold":
+      return null;
+    case "promote-fast-track":
+    case "promote-fallback":
+    case "promote-gate-win":
+      return "promoted";
+  }
+}
+
 function buildBaselineRows(experiments: ExperimentSpec[]): BaselineRow[] {
-  return experiments.map((experiment) => ({
-    exp_id: experiment.exp_id,
-    week: experiment.week,
-    status: "promoted",
-    baseline_sha: experiment.baseline_sha,
-  }));
+  return experiments.flatMap((experiment) => {
+    const status = getBaselineStatus(experiment);
+
+    if (status === null) {
+      return [];
+    }
+
+    return [
+      {
+        exp_id: experiment.exp_id,
+        week: experiment.week,
+        status,
+        baseline_sha: experiment.baseline_sha,
+      },
+    ];
+  });
+}
+
+function getFinalMemoryEvent(experiment: ExperimentSpec): MemoryRow["event"] {
+  switch (experiment.outcome) {
+    case "archive-gate-fail":
+      return "regression";
+    case "auto-rollback":
+      return "rollback";
+    case "hold":
+      return "skip";
+    case "promote-fast-track":
+    case "promote-fallback":
+    case "promote-gate-win":
+      return "promote";
+  }
 }
 
 function buildWeekMemoryRows(week: DemoWeek, experiments: ExperimentSpec[]): MemoryRow[] {
@@ -441,7 +520,12 @@ function buildWeekMemoryRows(week: DemoWeek, experiments: ExperimentSpec[]): Mem
 
   return experiments.flatMap((experiment, index) => {
     const verdictReadyTimestamp = new Date(baseTimestamp + index * 2 * 60_000).toISOString();
-    const promoteTimestamp = new Date(baseTimestamp + (index * 2 + 1) * 60_000).toISOString();
+    const finalTimestamp = new Date(baseTimestamp + (index * 2 + 1) * 60_000).toISOString();
+    const baselineStatus = getBaselineStatus(experiment);
+    const finalRefs =
+      baselineStatus === null
+        ? { exp_id: experiment.exp_id }
+        : { exp_id: experiment.exp_id, baseline_sha: experiment.baseline_sha };
 
     return [
       {
@@ -453,15 +537,43 @@ function buildWeekMemoryRows(week: DemoWeek, experiments: ExperimentSpec[]): Mem
         insight: experiment.verdict_ready_insight,
       },
       {
-        ts: promoteTimestamp,
+        ts: finalTimestamp,
         week,
         actor: "verdict",
-        event: "promote",
-        refs: { exp_id: experiment.exp_id, baseline_sha: experiment.baseline_sha },
+        event: getFinalMemoryEvent(experiment),
+        refs: finalRefs,
         insight: experiment.promote_insight,
       },
     ];
   });
+}
+
+function buildW4GenealogyMemoryRow(): MemoryRow {
+  return {
+    ts: new Date(Date.parse(WEEK_MEMORY_BASE_TIMES[DEMO_W4]) - 1 * 60_000).toISOString(),
+    week: DEMO_W4,
+    actor: "planner",
+    event: "gap-detected",
+    refs: {
+      exp_id: "exp-05-mid-section-image-swap",
+      finding_id: "bounce-guard-critic",
+    },
+    insight:
+      "W3 reward-positive asset test failed the bounce_rate gate, so W4 spawned bounce-guard-critic before approving conservative safety-copy and CTA-size experiments.",
+  };
+}
+
+function writeW4GenealogyArtifacts(): void {
+  const genealogyDir = join(DEMO_ARC_DIR, DEMO_W4, "genealogy");
+
+  writeFileSync(
+    join(genealogyDir, "new-critic-spec.json"),
+    `${JSON.stringify(BOUNCE_GUARD_CRITIC_SPEC, null, 2)}\n`,
+  );
+  writeFileSync(
+    join(genealogyDir, "agent-registration.json"),
+    `${JSON.stringify(BOUNCE_GUARD_AGENT_JSON, null, 2)}\n`,
+  );
 }
 
 function writeW1(): void {
@@ -482,11 +594,32 @@ function writeW2(): void {
   appendMemoryRows(buildWeekMemoryRows(DEMO_W2, experiments));
 }
 
+function writeW3(): void {
+  const experiments = getExperimentsForWeek(DEMO_W3);
+  writeProposal(DEMO_W3, experiments);
+  writeDecision(DEMO_W3, experiments);
+  writeVerdict(DEMO_W3, experiments);
+  appendBaselineRows(buildBaselineRows(experiments));
+  appendMemoryRows(buildWeekMemoryRows(DEMO_W3, experiments));
+}
+
+function writeW4(): void {
+  const experiments = getExperimentsForWeek(DEMO_W4);
+  writeProposal(DEMO_W4, experiments);
+  writeDecision(DEMO_W4, experiments);
+  writeVerdict(DEMO_W4, experiments);
+  writeW4GenealogyArtifacts();
+  appendBaselineRows(buildBaselineRows(experiments));
+  appendMemoryRows([buildW4GenealogyMemoryRow(), ...buildWeekMemoryRows(DEMO_W4, experiments)]);
+}
+
 function main(): void {
   initDemoArcDir();
   writeW1();
   writeW2();
-  console.log("Demo arc seeded through demo-W2.");
+  writeW3();
+  writeW4();
+  console.log("Demo arc seeded through demo-W4.");
 }
 
 if (import.meta.main) {
@@ -499,6 +632,8 @@ export {
   DEMO_W2,
   DEMO_W3,
   DEMO_W4,
+  BOUNCE_GUARD_AGENT_JSON,
+  BOUNCE_GUARD_CRITIC_SPEC,
   EXPERIMENT_SPECS,
   ROOT,
   appendBaselineRows,
@@ -508,6 +643,8 @@ export {
   writeDecision,
   writeProposal,
   writeVerdict,
+  writeW3,
+  writeW4,
   type AgentJSON,
   type BaselineRow,
   type DecisionJSON,

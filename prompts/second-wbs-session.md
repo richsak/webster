@@ -8,13 +8,14 @@ Runs the full Webster council ONCE end-to-end:
 
 1. Seeds 10 weeks of mock analytics history (if missing) so the monitor has baselines.
 2. Prepares `council/$WEEK_DATE` as a shared working branch.
-3. Fans out 6 parallel Managed Agent sessions — monitor + 5 critics — all committing to that branch via GitHub MCP.
-4. Verifies findings, then runs Critic Genealogy — if Opus 4.7 detects a scope no existing critic owns, it spawns a new critic at runtime, registers it, and invokes it on the same branch (fail-open).
-5. Runs the redesigner, which reads all findings (including any spawned-critic output) and commits `history/$WEEK_DATE/proposal.md` + `decision.json` to the branch.
-6. Opens a draft PR and writes a completion checkpoint.
+3. Runs the planner, which marshals memory + recent verdicts + monitor anomalies, invokes `webster-planner`, writes `history/$WEEK_DATE/plan.md`, and appends a `verdict-ready` row to `history/memory.jsonl`.
+4. Fans out 6 parallel Managed Agent sessions — monitor + 5 critics — all committing to that branch via GitHub MCP.
+5. Verifies findings, then runs Critic Genealogy — if Opus 4.7 detects a scope no existing critic owns, it spawns a new critic at runtime, registers it, and invokes it on the same branch (fail-open).
+6. Runs the redesigner, which reads all findings (including any spawned-critic output) and commits `history/$WEEK_DATE/proposal.md` + `decision.json` to the branch.
+7. Opens a draft PR and writes a completion checkpoint.
 
-**Expected runtime:** 30–45 min wall-clock (parallel critics ~15 min + genealogy 0–10 min + redesigner ~10 min + I/O).
-**Expected API cost:** ~$0.13–0.20 (6 parent sessions + ~$0.03 genealogy probe + optional 1 spawned-critic session + redesigner).
+**Expected runtime:** 30–50 min wall-clock (planner ~5 min + parallel critics ~15 min + genealogy 0–10 min + redesigner ~10 min + I/O).
+**Expected API cost:** ~$0.16–0.25 (planner + 6 parent sessions + ~$0.03 genealogy probe + optional 1 spawned-critic session + redesigner).
 
 ## Pre-flight (MANDATORY — do not skip)
 
@@ -175,7 +176,80 @@ else
 fi
 ```
 
-## Step 3 — Fan-out: 6 parallel Managed Agent sessions (15–20 min)
+## Step 3 — Run planner (3–5 min)
+
+Marshals `history/memory.jsonl`, the two newest `history/<week>/verdict.json` files, and the monitor anomaly report into one planner context. Then invokes `webster-planner`, writes `history/$WEEK_DATE/plan.md`, and appends the planner event row to `history/memory.jsonl`.
+
+This step is fail-closed. If context marshaling or planner invocation errors, the run halts with a non-zero exit status and the exact error is printed from `tmp/logs/planner.log`. Do not fan out critics without `history/$WEEK_DATE/plan.md`.
+
+```bash
+echo "=== Step 3: planner ==="
+PLANNER_LOG="tmp/logs/planner.log"
+PLANNER_CONTEXT_FILE="tmp/planner-context-$WEEK_DATE.txt"
+PLAN_PATH="history/$WEEK_DATE/plan.md"
+: > "$PLANNER_LOG"
+
+if ! bun --eval '
+import { marshalPlannerContext } from "./scripts/planner-context.ts";
+
+const [memoryPath, verdictDir, monitorPath, outputPath] = process.argv.slice(1);
+const contextText = marshalPlannerContext({ memoryPath, verdictDir, monitorPath });
+await Bun.write(outputPath, contextText);
+' \
+  "history/memory.jsonl" \
+  "history" \
+  "context/monitor/alerts.md" \
+  "$PLANNER_CONTEXT_FILE" \
+  >>"$PLANNER_LOG" 2>&1; then
+  echo "ABORT: planner context marshaling failed."
+  echo "See error details in $PLANNER_LOG:"
+  tail -80 "$PLANNER_LOG"
+  exit 1
+fi
+
+set +e
+bun --eval '
+import { readFileSync } from "node:fs";
+import { invokePlanner } from "./scripts/planner-invoke.ts";
+
+const [contextPath, week, historyDir, apiKey] = process.argv.slice(1);
+const { planPath } = await invokePlanner({
+  contextText: readFileSync(contextPath, "utf8"),
+  week,
+  historyDir,
+  apiKey,
+});
+console.log(`planner wrote ${planPath}`);
+' \
+  "$PLANNER_CONTEXT_FILE" \
+  "$WEEK_DATE" \
+  "history" \
+  "$ANTHROPIC_API_KEY" \
+  >>"$PLANNER_LOG" 2>&1
+PLANNER_CODE=$?
+set -e
+
+if (( PLANNER_CODE != 0 )); then
+  echo "ABORT: planner failed before critic fan-out (exit $PLANNER_CODE)."
+  echo "See error details in $PLANNER_LOG:"
+  tail -80 "$PLANNER_LOG"
+  exit "$PLANNER_CODE"
+fi
+
+if [[ ! -s "$PLAN_PATH" ]]; then
+  echo "ABORT: planner completed but $PLAN_PATH is missing or empty."
+  echo "See $PLANNER_LOG for details."
+  exit 1
+fi
+
+git add "$PLAN_PATH" history/memory.jsonl
+git commit -m "chore(planner): add plan for week $WEEK_DATE"
+git push origin "$BRANCH"
+
+echo "✓ Planner output ready for critics: $PLAN_PATH"
+```
+
+## Step 4 — Fan-out: 6 parallel Managed Agent sessions (15–20 min)
 
 Helper function for one session end-to-end. Wraps: create session with vault, send user.message, poll until status idle/completed.
 
@@ -239,11 +313,13 @@ Launch all 6 in parallel:
 # Messages — keep them tight; agents have full instructions in their system prompt.
 MSG_CRITIC="BRANCH=$BRANCH
 WEEK_DATE=$WEEK_DATE
-LP_TARGET=$LP_TARGET"
+LP_TARGET=$LP_TARGET
+PLAN_PATH=$PLAN_PATH"
 
 MSG_MONITOR="BRANCH=$BRANCH
 WEEK_DATE=$WEEK_DATE
-PREV_WEEK_DATE=$PREV_WEEK_DATE"
+PREV_WEEK_DATE=$PREV_WEEK_DATE
+PLAN_PATH=$PLAN_PATH"
 
 run_agent_session monitor          "$MONITOR_ID"         "$MSG_MONITOR"  & PIDS+=($!)
 run_agent_session brand-voice      "$BRAND_VOICE_ID"     "$MSG_CRITIC"   & PIDS+=($!)
@@ -271,7 +347,7 @@ for L in "${LABELS[@]}"; do
 done
 ```
 
-## Step 4 — Verify findings (2 min)
+## Step 5 — Verify findings (2 min)
 
 Fetch the branch, confirm each agent actually wrote a non-stub findings file.
 
@@ -307,7 +383,7 @@ fi
 # Abort redesigner if too few critics contributed
 if (( ${#SUCCEEDED[@]} < 3 )); then
   echo "ABORT: only ${#SUCCEEDED[@]} findings files have content. Need ≥3 for redesigner."
-  echo "Check tmp/logs/ for what went wrong; fix and re-run from Step 3."
+  echo "Check tmp/logs/ for what went wrong; fix and re-run from Step 4."
   exit 1
 fi
 
@@ -315,14 +391,14 @@ fi
 bun scripts/validate-findings.ts
 ```
 
-## Step 4.5 — Critic Genealogy (0–10 min; fail-open)
+## Step 5.5 — Critic Genealogy (0–10 min; fail-open)
 
-Runs `scripts/critic-genealogy.ts` against the committed findings on `$BRANCH`. Opus 4.7 reviews the five critic outputs and decides whether any recurring pattern is unowned by the existing council. If yes, it clones the `brand-voice-critic.json` template, swaps in the new scope, registers the spec via `POST /v1/agents`, creates a session with the vault, invokes the new critic on `$BRANCH`, and commits its findings + spec + session log to `history/$WEEK_DATE/genealogy/`. The redesigner in Step 5 then reads all findings on `$BRANCH` (including the spawned critic's) without further wiring.
+Runs `scripts/critic-genealogy.ts` against the committed findings on `$BRANCH`. Opus 4.7 reviews the five critic outputs and decides whether any recurring pattern is unowned by the existing council. If yes, it clones the `brand-voice-critic.json` template, swaps in the new scope, registers the spec via `POST /v1/agents`, creates a session with the vault, invokes the new critic on `$BRANCH`, and commits its findings + spec + session log to `history/$WEEK_DATE/genealogy/`. The redesigner in Step 6 then reads all findings on `$BRANCH` (including the spawned critic's) without further wiring.
 
 **Fail-open**: if genealogy errors for any reason (API hiccup, gap-detection failure, registration 5xx), this step logs and continues. The redesigner still runs against the 5 original critic findings.
 
 ```bash
-echo "=== Step 4.5: critic genealogy ==="
+echo "=== Step 5.5: critic genealogy ==="
 GENEALOGY_LOG="tmp/logs/genealogy.log"
 : > "$GENEALOGY_LOG"
 
@@ -359,13 +435,14 @@ git fetch origin "$BRANCH"
 git reset --hard "origin/$BRANCH"
 ```
 
-## Step 5 — Redesigner session (5–10 min)
+## Step 6 — Redesigner session (5–10 min)
 
 Single synthesis call. Reads all findings on `$BRANCH`, commits `history/$WEEK_DATE/proposal.md` + `decision.json` to the same branch.
 
 ```bash
 MSG_REDESIGNER="BRANCH=$BRANCH
-WEEK_DATE=$WEEK_DATE"
+WEEK_DATE=$WEEK_DATE
+PLAN_PATH=$PLAN_PATH"
 
 run_agent_session redesigner "$REDESIGNER_ID" "$MSG_REDESIGNER"
 REDESIGNER_RESULT=$?
@@ -391,7 +468,7 @@ else
 fi
 ```
 
-## Step 6 — Open draft PR (1 min)
+## Step 7 — Open draft PR (1 min)
 
 ````bash
 if gh pr view "$BRANCH" --json number 2>/dev/null | jq -e '.number' >/dev/null; then
@@ -401,7 +478,7 @@ else
   PR_BODY=$(cat <<EOF
 ## Council run — week $WEEK_DATE
 
-Automated fan-out: monitor + 5 critics + redesigner. Findings committed to this branch, synthesized into a weekly redesign proposal.
+Automated planner + fan-out: planner wrote this week's direction, then monitor + 5 critics + redesigner ran. Findings committed to this branch, synthesized into a weekly redesign proposal.
 
 ## Findings
 
@@ -410,6 +487,10 @@ $(printf -- '- %s\n' "${SUCCEEDED[@]}")
 ## Critic Genealogy
 
 ${GENEALOGY_STATUS:-not run}
+
+## Planner output
+
+- \`$PLAN_PATH\`
 
 ## Redesigner output
 
@@ -435,7 +516,7 @@ fi
 echo "PR: $PR_URL"
 ````
 
-## Step 7 — Checkpoint + exit
+## Step 8 — Checkpoint + exit
 
 ```bash
 CKPT=".claude/checkpoints/$(date -u +%Y-%m-%dT%H%M%SZ)-session-2-complete.md"
@@ -448,10 +529,11 @@ trigger: session-2-complete
 
 ## What happened
 
-Full council fan-out for week $WEEK_DATE. Ran monitor + 5 critics in parallel, then redesigner. All artifacts committed to \`$BRANCH\`. Draft PR opened.
+Full council run for week $WEEK_DATE. Ran planner first, then monitor + 5 critics in parallel, then redesigner. All artifacts committed to \`$BRANCH\`. Draft PR opened.
 
 ## Results
 
+- Planner output: $PLAN_PATH
 - Findings with content: ${#SUCCEEDED[@]}/${#FILES[@]}
 - Critic Genealogy: ${GENEALOGY_STATUS:-not run}
 - Redesigner completed: $([[ $REDESIGNER_RESULT -eq 0 ]] && echo yes || echo "no (exit $REDESIGNER_RESULT)")
@@ -461,6 +543,7 @@ Full council fan-out for week $WEEK_DATE. Ran monitor + 5 critics in parallel, t
 ## Live state
 
 - Branch: $BRANCH
+- plan.md: $([[ -f "$PLAN_PATH" ]] && echo committed || echo MISSING)
 - proposal.md: $([[ -f "$PROPOSAL" ]] && echo committed || echo MISSING)
 - decision.json: $([[ -f "$DECISION" ]] && echo committed || echo MISSING)
 
@@ -487,9 +570,10 @@ exit 0
 ## If a step fails
 
 - **Pre-flight abort**: fix the named prerequisite, re-run the whole prompt. The prompt is idempotent.
-- **One critic times out (Step 3)**: re-run only that critic with `run_agent_session <label> <id> <msg>` after the fan-out completes. Then re-run Step 4 onward.
-- **Genealogy errors (Step 4.5)**: non-blocking by design. `GENEALOGY_STATUS` captures the failure mode; the pipeline proceeds to the redesigner. To retry standalone after the session: `bun scripts/critic-genealogy.ts --branch "$BRANCH" --week "$WEEK_DATE" --lp-target "$LP_TARGET"`.
-- **Redesigner fails (Step 5)**: findings are already on `$BRANCH`. Re-run just Step 5. PR can still be opened in Step 6 with the findings alone (redesigner output becomes MISSING in the body).
+- **Planner fails (Step 3)**: the run halts before critic fan-out. Read `tmp/logs/planner.log`, fix the named context/API/JSON problem, and re-run from Step 3. Do not continue without `history/$WEEK_DATE/plan.md`.
+- **One critic times out (Step 4)**: re-run only that critic with `run_agent_session <label> <id> <msg>` after the fan-out completes. Then re-run Step 5 onward.
+- **Genealogy errors (Step 5.5)**: non-blocking by design. `GENEALOGY_STATUS` captures the failure mode; the pipeline proceeds to the redesigner. To retry standalone after the session: `bun scripts/critic-genealogy.ts --branch "$BRANCH" --week "$WEEK_DATE" --lp-target "$LP_TARGET"`.
+- **Redesigner fails (Step 6)**: findings are already on `$BRANCH`. Re-run just Step 6. PR can still be opened in Step 7 with the findings alone (redesigner output becomes MISSING in the body).
 - **Context budget tight** (autocompact at 20%): this prompt is designed to run in one pass; checkpoint-before-compact is your safety net. The dispatcher will autocheckpoint, then this prompt can be re-run.
 - **Anthropic API 5xx on session create**: retry the single curl. Do not re-run steps 1-2.
 

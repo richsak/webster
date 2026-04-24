@@ -1,0 +1,34 @@
+{
+  "week": "demo-W3",
+  "selected_issues": [
+    {
+      "exp_id": "exp-05-mid-section-image-swap",
+      "kind": "asset",
+      "target_files": [
+        "site/public/assets/mid-section/demo-image-v2.png"
+      ],
+      "proposed_change": "Replace the mid-page support image with a bolder credibility visual that pushes attention deeper into the offer narrative.",
+      "expected_outcome_lane": "archive-gate-fail"
+    },
+    {
+      "exp_id": "exp-06-cta-color-shift",
+      "kind": "css",
+      "target_files": [
+        "site/src/styles/tokens.css"
+      ],
+      "proposed_change": "Push the CTA color system toward a higher-contrast accent palette to test whether visual urgency alone can lift clicks.",
+      "expected_outcome_lane": "auto-rollback"
+    },
+    {
+      "exp_id": "exp-07-subhead-rewrite",
+      "kind": "text",
+      "target_files": [
+        "site/src/components/Hero.astro"
+      ],
+      "proposed_change": "Tighten the supporting subhead to make the hero promise feel more specific without changing the promoted headline structure.",
+      "expected_outcome_lane": "hold"
+    }
+  ],
+  "reasoning": "Week 2's gains opened room to intentionally push harder on visual and styling changes, even if that increased the risk of overshooting the bounce-rate guardrail.",
+  "monitor_signal": "Monitor confidence rose after two promoted weeks, so the planner widened scope into higher-variance asset and CSS experiments."
+}
