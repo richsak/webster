@@ -6,9 +6,12 @@
 # to a Pi worker profile.
 #
 # Model routing:
-# - gpt-5.5 high reasoning → complex work (planning, implementation, PRD generation)
+# - gpt-5.4 high reasoning → complex work (planning, implementation, PRD generation)
 # - gpt-5.4-mini medium    → light work (classification, review, fix, reports)
-# - gpt-5.4 high           → pi-ralph-implement (already shipping, leave alone)
+#
+# Note: gpt-5.5 was initially tried for heavy profiles but Pi's openai-codex
+# provider rejected it ("could not resolve model"). Falling back to gpt-5.4 high
+# which is the maximum Pi's openai-codex resolves in the current runtime.
 #
 # toolPackages / skillPackages intentionally stripped: they resolve from the repo
 # root (Webster), and Forge's packages live in Forge's repo. Raw Pi workers with
@@ -41,7 +44,7 @@ workerProfiles:
   pi-implement-heavy:
     provider: pi
     piProvider: openai-codex
-    model: gpt-5.5
+    model: gpt-5.4
     modelReasoningEffort: high
     contextMode: fresh
     description: Heavy Pi worker for multi-step feature implementation from a plan. GPT-5.5 high reasoning.
@@ -53,7 +56,7 @@ workerProfiles:
   pi-planning-operator:
     provider: pi
     piProvider: openai-codex
-    model: gpt-5.5
+    model: gpt-5.4
     modelReasoningEffort: high
     category: planning
     contextMode: shared
@@ -65,7 +68,7 @@ workerProfiles:
   pi-prd-generator:
     provider: pi
     piProvider: openai-codex
-    model: gpt-5.5
+    model: gpt-5.4
     modelReasoningEffort: high
     contextMode: fresh
     description: Pi worker for generating prd.md + prd.json from an idea (Ralph-style). GPT-5.5 high reasoning.
