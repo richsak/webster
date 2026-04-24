@@ -1,5 +1,10 @@
 ## Codebase Patterns
 
+### Findings validator heading contract
+- **Where**: `scripts/validate-findings.ts:33-39`, `context/critics/*/findings.md`
+- **Pattern**: Critic artifacts must use an exact `## Issues` heading; `## Issues identified` fails `bun run validate:findings`.
+- **Example**: `## Issues`
+
 ### Memory substrate module shape
 - **Where**: `scripts/memory.ts:1-20`
 - **Pattern**: Keep the memory substrate in a standalone `scripts/` module with a first-line orchestrator-only guard comment and named exports only.
@@ -27,5 +32,31 @@
 - Existing script conventions in this repo favor small, named-export utility modules in `scripts/` rather than introducing a new `src/` layer.
 - Targeted validation passed: `bun run type-check`, `bun run lint --max-warnings 0`, `bun run test`, and `prettier --check scripts/memory.ts`.
 - Full `bun run validate` is currently blocked by pre-existing markdownlint failures in repo docs (`context/DOMAIN-MODEL.md`, `context/FEATURES.md`, `context/ROADMAP.md`, `context/v2-design.md`, and `.forge/ralph/feat-memory-substrate/prd.md`) that were outside US-001 scope.
+
+---
+
+## 2026-04-23T00:00:00Z — US-002: appendEvent helper with idempotency
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/memory.ts` — added `appendEvent()` with `history/memory.jsonl` default resolution, parent directory creation, and exp_id-based deduping
+- `context/FEATURES.md` — marked feature #51 as `in-progress` while US-003 and US-004 remain
+- `context/DOMAIN-MODEL.md`, `context/ROADMAP.md`, `context/v2-design.md`, `.forge/ralph/feat-memory-substrate/prd.md` — fixed markdownlint/prettier violations required for `bun run validate`
+- `context/critics/*/findings.md` — normalized `## Issues` headings so `validate:findings` matches the repo contract
+
+**Acceptance criteria verified**:
+- [x] `appendEvent(event: MemoryEvent, logPath?: string): void` exists and defaults to `history/memory.jsonl` relative to `process.cwd()`
+- [x] Parent directory creation uses `mkdirSync(dirname(logPath), { recursive: true })`
+- [x] First append creates `memory.jsonl` automatically via `appendFileSync`
+- [x] Non-duplicate writes append exactly one `JSON.stringify(event) + "\n"` line
+- [x] Duplicate `(ts, week, actor, event, refs.exp_id)` rows are skipped when `refs.exp_id` is present (manual check: duplicate count stayed at `1`)
+- [x] Missing `refs.exp_id` disables dedup and still appends (manual check: duplicate count reached `2`)
+- [x] Errors still propagate; no try/catch fallback was added
+- [x] Fresh validation passed: `bun run validate`
+
+**Learnings**:
+- `appendFileSync` already gives the desired first-write file creation, so the helper only needs to ensure the parent directory exists before appending.
+- Repo validation was blocked by stale markdown and critic-heading drift, not by the memory helper itself; fixing those blockers restored `bun run validate` to green.
+- Feature #51 should stay `in-progress` until US-003 and US-004 land.
 
 ---

@@ -41,8 +41,8 @@
       "technicalNotes": "Use appendFileSync from node:fs for atomic line appends. mkdirSync pattern from scripts/critic-genealogy.ts:573-590. For idempotency: readFileSync the existing file (if it exists), parse lines, check for matching tuple before appending. Dedup check only when refs.exp_id is truthy.",
       "dependsOn": ["US-001"],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented in iteration 2. Files: scripts/memory.ts, context/FEATURES.md, context/DOMAIN-MODEL.md, context/ROADMAP.md, context/v2-design.md, context/critics/*/findings.md, .forge/ralph/feat-memory-substrate/prd.md, .forge/ralph/feat-memory-substrate/progress.txt. Commit: 5d16fa9."
     },
     {
       "id": "US-003",
