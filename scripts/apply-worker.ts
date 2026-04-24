@@ -1,5 +1,8 @@
 #!/usr/bin/env bun
 
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 
 export interface DecisionIssue {
@@ -424,4 +427,31 @@ export function commitExperiment(files: string[], message: string): string {
   }
 
   return shaMatch[1];
+}
+
+function resolveWeekFilePath(weekDir: string, fileName: string): string {
+  return resolve(process.cwd(), weekDir, fileName);
+}
+
+function appendJsonLine(filePath: string, row: unknown): void {
+  const existing = existsSync(filePath) ? readFileSync(filePath, "utf8") : "";
+  const prefix = existing.length === 0 || existing.endsWith("\n") ? existing : `${existing}\n`;
+  writeFileSync(filePath, `${prefix}${JSON.stringify(row)}\n`);
+}
+
+export function emitSkip(weekDir: string, row: SkipRow): void {
+  const resolvedWeekDir = resolve(process.cwd(), weekDir);
+  mkdirSync(resolvedWeekDir, { recursive: true });
+
+  appendJsonLine(resolveWeekFilePath(weekDir, "skips.jsonl"), row);
+  appendJsonLine(resolveWeekFilePath(weekDir, "memory.jsonl"), row);
+}
+
+export function writeApplyLog(weekDir: string, log: ApplyLogJSON): void {
+  const resolvedWeekDir = resolve(process.cwd(), weekDir);
+  mkdirSync(resolvedWeekDir, { recursive: true });
+  writeFileSync(
+    resolveWeekFilePath(weekDir, "apply-log.json"),
+    `${JSON.stringify(log, null, 2)}\n`,
+  );
 }
