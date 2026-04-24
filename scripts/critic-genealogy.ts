@@ -25,6 +25,7 @@ const LP_TARGET_DEFAULT = "https://certified.richerhealth.ca";
 const TEMPLATE_PATH = "agents/brand-voice-critic.json";
 const POLL_INTERVAL_MS = 30_000;
 const POLL_DEADLINE_MS = 20 * 60 * 1000;
+const DEDUP_SIMILARITY_THRESHOLD = 0.6;
 
 const ROOT = resolve(import.meta.dir, "..");
 
@@ -58,6 +59,16 @@ interface CriticSummary {
   scope: string;
   description: string;
 }
+
+interface DedupDecision {
+  allowed: boolean;
+  closestCritic: CriticSummary | null;
+  similarity: number;
+  candidateScope: string;
+}
+
+type EmbeddingVector = Map<string, number> | number[];
+type EmbeddingFn = (text: string) => EmbeddingVector;
 
 interface CLIArgs {
   branch: string | null;
@@ -186,6 +197,87 @@ function loadFindingsFromFixtures(dir: string): Map<string, string> {
     process.exit(1);
   }
   return map;
+}
+
+function textForDedup(scope: string, description: string): string {
+  return `${scope}\n${description}`.toLowerCase();
+}
+
+function embedText(text: string): EmbeddingVector {
+  const vector = new Map<string, number>();
+  const tokens = text.match(/[a-z0-9]+/g) ?? [];
+  for (const token of tokens) {
+    vector.set(token, (vector.get(token) ?? 0) + 1);
+  }
+  return vector;
+}
+
+function cosineSimilarity(a: EmbeddingVector, b: EmbeddingVector): number {
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) {
+      throw new Error(`embedding vectors have different lengths: ${a.length} vs ${b.length}`);
+    }
+    let dot = 0;
+    let aNorm = 0;
+    let bNorm = 0;
+    for (let i = 0; i < a.length; i++) {
+      const aValue = a[i] ?? 0;
+      const bValue = b[i] ?? 0;
+      dot += aValue * bValue;
+      aNorm += aValue * aValue;
+      bNorm += bValue * bValue;
+    }
+    return aNorm === 0 || bNorm === 0 ? 0 : dot / (Math.sqrt(aNorm) * Math.sqrt(bNorm));
+  }
+
+  if (Array.isArray(a) || Array.isArray(b)) {
+    throw new Error("embedding vector types must match");
+  }
+
+  let dot = 0;
+  let aNorm = 0;
+  let bNorm = 0;
+  for (const value of a.values()) {
+    aNorm += value * value;
+  }
+  for (const [key, value] of b.entries()) {
+    bNorm += value * value;
+    dot += (a.get(key) ?? 0) * value;
+  }
+  return aNorm === 0 || bNorm === 0 ? 0 : dot / (Math.sqrt(aNorm) * Math.sqrt(bNorm));
+}
+
+function evaluateCriticDedup(
+  candidate: NewCriticSpec,
+  activeCritics: CriticSummary[],
+  embed: EmbeddingFn = embedText,
+): DedupDecision {
+  const candidateEmbedding = embed(textForDedup(candidate.scope, candidate.description));
+  let closestCritic: CriticSummary | null = null;
+  let similarity = 0;
+
+  for (const critic of activeCritics) {
+    const criticEmbedding = embed(textForDedup(critic.scope, critic.description));
+    const score = cosineSimilarity(candidateEmbedding, criticEmbedding);
+    if (!closestCritic || score > similarity) {
+      closestCritic = critic;
+      similarity = score;
+    }
+  }
+
+  return {
+    allowed: similarity < DEDUP_SIMILARITY_THRESHOLD,
+    closestCritic,
+    similarity,
+    candidateScope: candidate.scope,
+  };
+}
+
+function printDedupRejection(decision: DedupDecision): void {
+  console.error("GOVERNANCE BLOCK: duplicate critic scope detected.");
+  console.error(`  closest existing critic: ${decision.closestCritic?.name ?? "none"}`);
+  console.error(`  similarity: ${decision.similarity.toFixed(3)}`);
+  console.error(`  candidate scope: ${decision.candidateScope}`);
 }
 
 function loadFindingsFromBranch(branch: string, critics: CriticSummary[]): Map<string, string> {
@@ -619,6 +711,15 @@ async function main(): Promise<number> {
   console.log(`gap found: ${newSpec.name} (scope: ${newSpec.scope})`);
   console.log(`rationale: ${newSpec.rationale}`);
 
+  const dedupDecision = evaluateCriticDedup(newSpec, critics);
+  if (!dedupDecision.allowed) {
+    printDedupRejection(dedupDecision);
+    return 0;
+  }
+  console.log(
+    `dedup check passed: closest=${dedupDecision.closestCritic?.name ?? "none"} similarity=${dedupDecision.similarity.toFixed(3)}`,
+  );
+
   const templateRaw = readFileSync(join(ROOT, TEMPLATE_PATH), "utf8");
   const template = JSON.parse(templateRaw) as AgentJSON;
   const spec = spliceNewSpec(template, newSpec);
@@ -698,11 +799,16 @@ export {
   CLIError,
   buildGapPrompt,
   buildSystemPrompt,
+  cosineSimilarity,
+  evaluateCriticDedup,
   loadExistingCritics,
   parseArgs,
   type AgentJSON,
   type CLIArgs,
   type CriticSummary,
+  type DedupDecision,
+  type EmbeddingFn,
+  type EmbeddingVector,
   type GapResponse,
   type NewCriticSpec,
 };

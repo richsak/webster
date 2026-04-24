@@ -7,6 +7,7 @@ import {
   CLIError,
   buildGapPrompt,
   buildSystemPrompt,
+  evaluateCriticDedup,
   loadExistingCritics,
   parseArgs,
   spliceNewSpec,
@@ -87,6 +88,48 @@ describe("loadExistingCritics", () => {
     for (const c of loadExistingCritics()) {
       expect(c.description.length).toBeGreaterThan(20);
     }
+  });
+});
+
+describe("evaluateCriticDedup", () => {
+  const candidate: NewCriticSpec = {
+    ...SAMPLE_SPEC,
+    scope: "accessibility",
+    description: "Accessibility audit for contrast and keyboard focus.",
+  };
+  const critics = [
+    {
+      name: "existing-critic",
+      scope: "existing",
+      description: "Existing critic description.",
+    },
+  ];
+
+  test("allows a candidate below the 0.60 similarity threshold", () => {
+    const decision = evaluateCriticDedup(candidate, critics, (text) =>
+      text.includes("accessibility") ? [1, 0] : [0.59, Math.sqrt(1 - 0.59 * 0.59)],
+    );
+    expect(decision.allowed).toBe(true);
+    expect(decision.closestCritic?.name).toBe("existing-critic");
+    expect(decision.similarity).toBeCloseTo(0.59, 5);
+  });
+
+  test("rejects a candidate exactly at the 0.60 similarity threshold", () => {
+    const decision = evaluateCriticDedup(candidate, critics, (text) =>
+      text.includes("accessibility") ? [1, 0] : [0.6, 0.8],
+    );
+    expect(decision.allowed).toBe(false);
+    expect(decision.closestCritic?.name).toBe("existing-critic");
+    expect(decision.similarity).toBeCloseTo(0.6, 5);
+  });
+
+  test("rejects a candidate above the 0.60 similarity threshold", () => {
+    const decision = evaluateCriticDedup(candidate, critics, (text) =>
+      text.includes("accessibility") ? [1, 0] : [0.75, Math.sqrt(1 - 0.75 * 0.75)],
+    );
+    expect(decision.allowed).toBe(false);
+    expect(decision.closestCritic?.name).toBe("existing-critic");
+    expect(decision.similarity).toBeCloseTo(0.75, 5);
   });
 });
 
