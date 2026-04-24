@@ -1,0 +1,64 @@
+{
+  "project": "Webster",
+  "branchName": "ralph/planner-agent-spec-v5",
+  "prdFile": "prd.md",
+  "description": "Add a schema-valid Opus 4.7 webster-planner Managed Agent spec and tests for its plan.md contract and registration-flow shape.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add schema-valid planner Managed Agent spec",
+      "description": "As a Webster implementation operator, I want agents/webster-planner.json to exist as an Opus 4.7 Managed Agent spec so that later orchestration can register and invoke the planner.",
+      "acceptanceCriteria": [
+        "Create agents/webster-planner.json with name \"webster-planner\", model \"claude-opus-4-7\", and required fields accepted by scripts/schemas/agent.schema.json.",
+        "The spec uses field \"system\" and does not include rejected fields such as \"system_prompt\" or \"callable_agents\".",
+        "The system prompt states that user.message supplies marshaled memory context: memory.jsonl tail, last two weeks verdict context, and monitor anomaly report.",
+        "The system prompt defines the plan.md JSON fields: classification, next_action, direction_hint, optional new_critic_request, and rationale.",
+        "The next_action enum in the system prompt includes exactly promote_and_experiment, hold_baseline, revert_and_retry, and explore_broadly.",
+        "The system prompt instructs cold-start/week-1/no-prior-verdict handling to use explore_broadly.",
+        "Feature #52 and #53 behavior is not implemented in this story.",
+        "bun run validate:agents passes"
+      ],
+      "technicalNotes": "Modify agents/webster-planner.json. Mirror the spec shape in agents/webster-redesigner.json and agents/webster-monitor.json: name, description, model, system, tools, optional mcp_servers, metadata. Follow scripts/schemas/agent.schema.json constraints: required name/description/model/system/tools, no additional properties, model enum includes claude-opus-4-7, metadata.role must be one of critic/monitor/redesigner/orchestrator. Use metadata { role: \"orchestrator\", scope: \"planning\" } because the schema does not currently allow role \"planner\". Scope guard: do not edit prompts/second-wbs-session.md, scripts/memory.ts, or council fan-out code for runtime invocation.",
+      "dependsOn": [],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Add planner output contract tests",
+      "description": "As a Webster implementation operator, I want tests for the planner's plan.md contract so that future orchestration can rely on stable fields and action values.",
+      "acceptanceCriteria": [
+        "Add a Bun test that reads agents/webster-planner.json and asserts its system prompt contains all required output fields: classification, next_action, direction_hint, new_critic_request, and rationale.",
+        "Add a Bun test that asserts the planner system prompt contains all four allowed next_action values: promote_and_experiment, hold_baseline, revert_and_retry, explore_broadly.",
+        "Add a Bun test that asserts the planner system prompt describes cold-start behavior for week 1/no prior verdict and ties it to explore_broadly.",
+        "Add a Bun test that asserts the planner system prompt names all three input context sources: memory.jsonl, verdict, and monitor anomaly report or alerts.",
+        "Tests fail if agents/webster-planner.json is missing or invalid JSON.",
+        "bun test passes"
+      ],
+      "technicalNotes": "Add tests under scripts/__tests__ using the existing Bun style in scripts/__tests__/validate-agents.test.ts and scripts/__tests__/critic-genealogy.test.ts: import { describe, expect, test } from \"bun:test\", read JSON with readFileSync, and resolve ROOT via import.meta.dir. Keep tests focused on the agent spec contract; do not create runtime planner invocation helpers because feature #52 owns invocation.",
+      "dependsOn": ["US-001"],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Add registration-flow guard tests and validate",
+      "description": "As a Webster implementation operator, I want tests that guard the Managed Agents registration shape so that the planner can be posted to /v1/agents and invoked through the existing session pattern later.",
+      "acceptanceCriteria": [
+        "Add or extend a test to validate agents/webster-planner.json against scripts/schemas/agent.schema.json with AJV 2020, matching scripts/__tests__/validate-agents.test.ts patterns.",
+        "Add a test that asserts the planner spec has registration-compatible top-level fields only and no research-preview callable_agents field.",
+        "Add a test or assertion that the planner spec includes tools with type agent_toolset_20260401, matching the Managed Agents beta pattern in existing agent specs.",
+        "Add a test assertion or technical note in the test name referencing the existing registration/session flow in scripts/critic-genealogy.ts: find/register agent, create session, send user.message, poll until idle.",
+        "Run bun run format:check, bun run type-check, bun run lint --max-warnings 0, bun run validate:agents, bun test, and bun run validate before declaring completion.",
+        "Do not implement scripts that call /v1/sessions or write history/<week>/plan.md; that remains feature #52."
+      ],
+      "technicalNotes": "Use the same AJV setup as scripts/__tests__/validate-agents.test.ts: Ajv2020 from ajv/dist/2020.js plus addFormats.default(ajv). Registration flow references should be grounded in scripts/critic-genealogy.ts:440-556, where registerAgent POSTs to /v1/agents, createSession POSTs to /v1/sessions, sendUserMessage POSTs to /sessions/{id}/events, and pollUntilIdle reads /sessions/{id}. This story should only test that the planner spec is compatible with that flow, not duplicate or export those helpers.",
+      "dependsOn": ["US-001", "US-002"],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
