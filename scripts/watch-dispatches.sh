@@ -15,7 +15,7 @@
 # Backgrounded via nohup by the dispatcher. Safe to run multiple watchers for
 # disjoint slug sets; the lockfile is keyed by slug-set hash.
 
-set -u
+set -eu
 set -o pipefail
 
 WEBSTER_ROOT="/Users/richiesakhon/Projects/webster"
@@ -27,7 +27,7 @@ POLL_SECONDS=30
 
 mkdir -p "$WATCHER_LOG_DIR"
 
-# Build dispatch table. Format: slug|feature|branch
+# Dispatch table format: slug|feature|branch, one per line.
 if [ "$#" -gt 0 ]; then
   DISPATCHES=""
   for slug in "$@"; do
@@ -40,7 +40,6 @@ apply-worker-cli-v5|#39a|feat/apply-worker-cli-v5
 seed-demo-arc-w3w4-v5|#57|feat/seed-demo-arc-w3w4-v5"
 fi
 
-# Hash the slug set for per-set lockfile / state file.
 SLUG_HASH=$(printf "%s" "$DISPATCHES" | shasum | cut -c1-8)
 LOCKFILE="$WATCHER_LOG_DIR/watcher-${SLUG_HASH}.lock"
 COMPLETED_FILE="$WATCHER_LOG_DIR/watcher-${SLUG_HASH}-completed.txt"
@@ -56,9 +55,8 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# Lockfile guard.
-if [ -f "$LOCKFILE" ]; then
-  existing_pid=$(cat "$LOCKFILE" 2>/dev/null || echo "")
+if [ -r "$LOCKFILE" ]; then
+  existing_pid=$(cat "$LOCKFILE")
   if [ -n "$existing_pid" ] && kill -0 "$existing_pid" 2>/dev/null; then
     echo "watcher already running for this slug set (pid=$existing_pid, lockfile=$LOCKFILE)" >&2
     exit 1
@@ -67,7 +65,6 @@ if [ -f "$LOCKFILE" ]; then
 fi
 echo "$$" > "$LOCKFILE"
 
-# Reset completion tracker.
 : > "$COMPLETED_FILE"
 : > "$WATCHER_LOG"
 
@@ -109,7 +106,6 @@ ping_dispatcher() {
   notify_osx "Webster dispatcher" "Finished pass for $feature ($branch)."
 }
 
-# Main loop.
 while true; do
   remaining=0
   while IFS='|' read -r slug feature branch; do
@@ -122,20 +118,21 @@ while true; do
 
     remaining=$((remaining + 1))
 
-    if [ -f "$logfile" ] && grep -q 'dag_workflow_finished' "$logfile"; then
-      if grep -q '"anyFailed":true' "$logfile"; then
-        status="failed"
-      elif grep -q '"anyCompleted":true' "$logfile"; then
-        status="success"
-      else
-        status="unknown"
-      fi
+    [ -f "$logfile" ] || continue
+    grep -q 'dag_workflow_finished' "$logfile" || continue
 
-      log "detected completion: $slug status=$status"
-      echo "$slug" >> "$COMPLETED_FILE"
-
-      ping_dispatcher "$slug" "$feature" "$branch" "$status"
+    if grep -q '"anyFailed":true' "$logfile"; then
+      status="failed"
+    elif grep -q '"anyCompleted":true' "$logfile"; then
+      status="success"
+    else
+      status="unknown"
     fi
+
+    log "detected completion: $slug status=$status"
+    echo "$slug" >> "$COMPLETED_FILE"
+
+    ping_dispatcher "$slug" "$feature" "$branch" "$status"
   done <<< "$DISPATCHES"
 
   if [ "$remaining" -eq 0 ]; then
