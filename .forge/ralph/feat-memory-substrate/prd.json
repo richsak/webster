@@ -84,8 +84,8 @@
       "technicalNotes": "Test framework: bun:test — import { describe, test, expect } from 'bun:test'. Pattern from scripts/__tests__/critic-genealogy.test.ts:44-76. Use Date.now() or crypto.randomUUID() for unique temp file paths. Clean up temp files in each test or accept they're ephemeral in /tmp.",
       "dependsOn": ["US-002", "US-003"],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented in iteration 4. Files: scripts/__tests__/memory.test.ts, context/FEATURES.md, .forge/ralph/feat-memory-substrate/prd.json, .forge/ralph/feat-memory-substrate/progress.txt. Commit: ca357d4."
     }
   ]
 }

@@ -1,5 +1,10 @@
 ## Codebase Patterns
 
+### Memory tests use temp JSONL files
+- **Where**: `scripts/__tests__/memory.test.ts:17-37`
+- **Pattern**: Build a unique log path under `tmpdir()` with `Date.now()` + `randomUUID()`, then clean it up in `finally` so append/tail/filter tests stay isolated.
+- **Example**: `return join(tmpdir(), `memory-test-${testName}-${Date.now()}-${randomUUID()}.jsonl`);`
+
 ### Shared JSONL reader for memory helpers
 - **Where**: `scripts/memory.ts:26-38`
 - **Pattern**: Parse `history/memory.jsonl` through one helper that skips blank lines, returns typed `MemoryEvent[]`, and throws `Malformed memory event at line N` for bad JSON so append/read helpers stay consistent.
@@ -86,5 +91,34 @@
 - Centralizing JSONL parsing in one helper keeps append deduping and read helpers aligned on malformed-line behavior.
 - A quick Bun probe against a temp file verified the reader edge cases: last-N ordering, empty criteria returning all rows, and bad JSON reporting the physical line number.
 - Feature #51 still stays `in-progress` until US-004 lands the dedicated tests.
+
+---
+
+## 2026-04-24T00:54:18Z — US-004: Unit tests: round-trip, idempotency, tailN, filter
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/__tests__/memory.test.ts` — added Bun coverage for schema round-trips, append idempotency, tail reads, and filter reads with isolated temp logs
+- `context/FEATURES.md` — marked feature #51 as `done` now that all four memory-substrate stories have shipped
+- `.forge/ralph/feat-memory-substrate/prd.json` — marked US-004 as passing with the implementation commit recorded
+- `.forge/ralph/feat-memory-substrate/progress.txt` — recorded the iteration outcome and reusable test pattern
+
+**Acceptance criteria verified**:
+- [x] `scripts/__tests__/memory.test.ts` uses `bun:test` imports
+- [x] Schema round-trip coverage exercises all 6 `EventType` values through `JSON.stringify` + `JSON.parse`
+- [x] Append/read-back coverage writes 3 events and verifies `tailN(3)` returns all 3
+- [x] Idempotency coverage appends the same `refs.exp_id` event twice and asserts the log has exactly 1 line
+- [x] No-dedup coverage appends the same event without `refs.exp_id` twice and asserts the log has exactly 2 lines
+- [x] Tail coverage writes 5 events and verifies `tailN(3)` returns the last 3 in order
+- [x] Filter coverage writes mixed actors and verifies `filter({ actor: "planner" })` returns only planner events
+- [x] Empty-criteria coverage verifies `filter({})` returns all events
+- [x] Each test uses a unique temp path built from `tmpdir()` + `Date.now()` + `randomUUID()`
+- [x] `bun test` passes with zero failures
+- [x] `bun run validate` passes
+
+**Learnings**:
+- The memory helper API is stable enough that one focused Bun test file can cover the full story without changing runtime code.
+- `noUncheckedIndexedAccess` makes array-literal expectations brittle; deriving the expected filtered rows from `events.filter(...)` keeps the assertions typed.
+- Feature #51 is now fully complete; #52 is the next planner-memory integration step.
 
 ---
