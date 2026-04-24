@@ -25,7 +25,7 @@ nodes:
   # ═══════════════════════════════════════════════════════════════
 
   - id: detect-input
-    model: haiku
+    profile: pi-light
     prompt: |
       # Detect Ralph Input
 
@@ -100,6 +100,7 @@ nodes:
   - id: generate-prd
     depends_on: [detect-input]
     when: "$detect-input.output.input_type != 'ready'"
+    profile: pi-prd-generator
     command: forge-ralph-generate
     idle_timeout: 300000
     context: fresh
@@ -660,6 +661,7 @@ nodes:
 
   - id: report
     depends_on: [implement]
+    profile: pi-light
     prompt: |
       # Completion Report
 

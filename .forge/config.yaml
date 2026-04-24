@@ -1,11 +1,27 @@
 # Webster-local Forge config.
-# Purpose: define Webster-specific Pi worker profile that overrides Ralph loop's Claude implementation
-# with a Pi/Codex (gpt-5.4 high reasoning) worker. Saves Claude subscription for the dispatcher session.
+#
+# Design principle: Pi workers only. No Claude-based nodes. Dispatcher session
+# runs on Claude subscription — spawning claude -p child processes inside workflows
+# causes silent-death (subscription conflict). Every workflow node must resolve
+# to a Pi worker profile.
+#
+# Model routing:
+# - gpt-5.5 high reasoning → complex work (planning, implementation, PRD generation)
+# - gpt-5.4-mini medium    → light work (classification, review, fix, reports)
+# - gpt-5.4 high           → pi-ralph-implement (already shipping, leave alone)
+#
+# toolPackages / skillPackages intentionally stripped: they resolve from the repo
+# root (Webster), and Forge's packages live in Forge's repo. Raw Pi workers with
+# strong prompts are sufficient for hackathon scope.
 
 worktree:
   baseBranch: main
 
 workerProfiles:
+  # ─────────────────────────────────────────────────────────────────
+  # SHIPPING: Ralph loop autonomous implementer. Validated by hello-world
+  # and prior successful dispatches. Do not change without a reason.
+  # ─────────────────────────────────────────────────────────────────
   pi-ralph-implement:
     provider: pi
     piProvider: openai-codex
@@ -17,3 +33,81 @@ workerProfiles:
       - Read PRD state from disk at the start of each iteration; do not carry memory across iterations.
       - Validate before committing; never commit broken code.
       - Mark story done in tracking file only after green validation.
+
+  # ─────────────────────────────────────────────────────────────────
+  # HEAVY: complex reasoning, fresh context per invocation.
+  # Used for: PRD generation, implement-tasks (plan-to-pr), planning.
+  # ─────────────────────────────────────────────────────────────────
+  pi-implement-heavy:
+    provider: pi
+    piProvider: openai-codex
+    model: gpt-5.5
+    modelReasoningEffort: high
+    contextMode: fresh
+    description: Heavy Pi worker for multi-step feature implementation from a plan. GPT-5.5 high reasoning.
+    handoffHints:
+      - Work off a concrete plan or PRD; never invent scope.
+      - Validate before committing; never commit broken code.
+      - One commit per logical unit of work.
+
+  pi-planning-operator:
+    provider: pi
+    piProvider: openai-codex
+    model: gpt-5.5
+    modelReasoningEffort: high
+    category: planning
+    contextMode: shared
+    description: Pi worker for converting raw ideas into scoped plans and PRDs. GPT-5.5 high reasoning.
+    handoffHints:
+      - Converge quickly from braindump to an actionable plan with concrete file paths.
+      - Identify dependencies, risks, and acceptance criteria explicitly.
+
+  pi-prd-generator:
+    provider: pi
+    piProvider: openai-codex
+    model: gpt-5.5
+    modelReasoningEffort: high
+    contextMode: fresh
+    description: Pi worker for generating prd.md + prd.json from an idea (Ralph-style). GPT-5.5 high reasoning.
+    handoffHints:
+      - Explore the codebase before writing stories; reference real files.
+      - Break work into stories sized for a single Ralph iteration each.
+      - Emit both prd.md (human) and prd.json (machine state).
+
+  # ─────────────────────────────────────────────────────────────────
+  # LIGHT: cheap, fast, fresh context. For classification, review, reports.
+  # ─────────────────────────────────────────────────────────────────
+  pi-review-operator:
+    provider: pi
+    piProvider: openai-codex
+    model: gpt-5.4-mini
+    modelReasoningEffort: medium
+    category: review
+    contextMode: fresh
+    description: Pi worker for review passes, rule enforcement, hygiene. GPT-5.4-mini medium reasoning.
+    handoffHints:
+      - Prioritize correctness, regressions, missing validation over style commentary.
+      - Leave clear fix-forward guidance when you find issues.
+
+  pi-fix-operator:
+    provider: pi
+    piProvider: openai-codex
+    model: gpt-5.4-mini
+    modelReasoningEffort: medium
+    category: fix
+    contextMode: shared
+    description: Pi worker for fixing review findings, CI failures, validation regressions. GPT-5.4-mini medium reasoning.
+    handoffHints:
+      - Start from concrete failing evidence, then patch the smallest viable surface.
+      - Re-run the most relevant validation after each fix and report exactly what changed.
+
+  pi-light:
+    provider: pi
+    piProvider: openai-codex
+    model: gpt-5.4-mini
+    modelReasoningEffort: medium
+    contextMode: fresh
+    description: Lightweight Pi worker for classification, detection, short-form reports, summaries. GPT-5.4-mini medium.
+    handoffHints:
+      - Be concise. One-shot output. No extra content.
+      - Produce structured output when requested (JSON, keyed lines).
