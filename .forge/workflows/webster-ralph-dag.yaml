@@ -25,70 +25,58 @@ nodes:
   # ═══════════════════════════════════════════════════════════════
 
   - id: detect-input
-    profile: pi-light
-    prompt: |
-      # Detect Ralph Input
+    bash: |
+      set -e
 
-      **User input**: $ARGUMENTS
+      ARG='$ARGUMENTS'
+      INPUT_TYPE="needs_generation"
+      PRD_DIR=""
 
-      Determine what the user provided and prepare the PRD directory. Follow these steps exactly:
+      derive_slug() {
+        printf '%s' "$1" \
+          | head -1 \
+          | tr '[:upper:]' '[:lower:]' \
+          | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' \
+          | cut -c1-50
+      }
 
-      ## Step 1: Detect worktree
+      # Case A: existing ralph dir with both files
+      if [ -d "$ARG" ] && [ -f "$ARG/prd.json" ] && [ -f "$ARG/prd.md" ]; then
+        INPUT_TYPE="ready"
+        PRD_DIR="$ARG"
 
-      Run `git worktree list --porcelain` to check if you're in a worktree.
-      If you see multiple entries, you ARE in a worktree. The first entry (the one without "branch" pointing to your current branch) is the **main repo root**. Save it — you'll need it to find files.
+      # Case B: existing .md file on disk
+      elif [ -f "$ARG" ] && echo "$ARG" | grep -qE '\.md$'; then
+        BASENAME=$(basename "$ARG" .md)
+        SLUG=$(derive_slug "$BASENAME")
+        [ -z "$SLUG" ] && SLUG="external-prd"
+        PRD_DIR=".forge/ralph/$SLUG"
+        mkdir -p "$PRD_DIR"
+        cp "$ARG" "$PRD_DIR/prd.md"
+        INPUT_TYPE="external_prd"
 
-      ## Step 2: Classify the input
+      # Case C: auto-discover existing ralph dir if arg doesn't point to one
+      else
+        EXISTING=$(find .forge/ralph -maxdepth 2 -name "prd.json" -type f 2>/dev/null | head -1)
+        if [ -n "$EXISTING" ]; then
+          CANDIDATE=$(dirname "$EXISTING")
+          if [ -f "$CANDIDATE/prd.md" ]; then
+            INPUT_TYPE="ready"
+            PRD_DIR="$CANDIDATE"
+          fi
+        fi
 
-      Look at the user input above. It's one of three things:
+        # Case C proper: free text, derive slug
+        if [ -z "$PRD_DIR" ]; then
+          SLUG=$(derive_slug "$ARG")
+          [ -z "$SLUG" ] && SLUG="ralph-$(date +%s)"
+          PRD_DIR=".forge/ralph/$SLUG"
+          INPUT_TYPE="needs_generation"
+        fi
+      fi
 
-      **Case A — Ralph directory path** (contains `.forge/ralph/`):
-      Extract the directory. Check if both `prd.json` and `prd.md` exist there (try locally first, then in the main repo root if in a worktree).
-
-      **Case B — File path** (ends in `.md`):
-      This is an external PRD file. Find it:
-      1. Try the path as-is (relative to cwd)
-      2. Try it as an absolute path
-      3. If in a worktree, try it relative to the **main repo root** from Step 1
-      Once found, read the file to confirm it's a PRD.
-
-      **Case C — Free text**:
-      Not a file path — it's a feature idea.
-
-      ## Step 3: Auto-discover existing ralph PRDs
-
-      If the input didn't point to a specific path, check if `.forge/ralph/` contains any `prd.json` files:
-      ```bash
-      find .forge/ralph -name "prd.json" -type f 2>/dev/null
-      ```
-
-      ## Step 4: Take action based on classification
-
-      **If Case A and both files exist** → output `ready` (no further action needed)
-
-      **If Case B (external PRD found)**:
-      1. Derive a kebab-case slug from the PRD filename or title (e.g., `workflow-lifecycle-overhaul`)
-      2. Create the ralph directory: `mkdir -p .forge/ralph/{slug}`
-      3. Copy the PRD content to `.forge/ralph/{slug}/prd.md`
-      4. Output `external_prd` with the new prd_dir
-
-      **If Case C or auto-discovered ralph dir has prd.md but no prd.json** → output `needs_generation`
-
-      ## Output
-
-      Your final output MUST be exactly one JSON object:
-      ```json
-      {"input_type": "ready|external_prd|needs_generation", "prd_dir": ".forge/ralph/{slug}"}
-      ```
-    output_format:
-      type: object
-      properties:
-        input_type:
-          type: string
-          enum: [ready, external_prd, needs_generation]
-        prd_dir:
-          type: string
-      required: [input_type, prd_dir]
+      # Emit JSON object on stdout so $detect-input.output.input_type resolves
+      printf '{"input_type":"%s","prd_dir":"%s"}\n' "$INPUT_TYPE" "$PRD_DIR"
 
   # ═══════════════════════════════════════════════════════════════
   # NODE 2: GENERATE PRD
