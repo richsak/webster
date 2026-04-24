@@ -28,7 +28,12 @@ nodes:
     bash: |
       set -e
 
-      ARG='$ARGUMENTS'
+      # Read $ARGUMENTS via heredoc so shell-special characters in the user
+      # message (quotes, $, `, etc.) cannot inject into the script.
+      ARG=$(cat <<'___FORGE_ARG_MARKER_XY7Z9___'
+      $ARGUMENTS
+      ___FORGE_ARG_MARKER_XY7Z9___
+      )
       INPUT_TYPE="needs_generation"
       PRD_DIR=""
 
