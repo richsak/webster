@@ -91,3 +91,25 @@ export function parseProposalV2(value: unknown): ProposalV2Issue[] {
   }
   return value.issues.map(parseProposalV2Issue);
 }
+
+export interface RoutedProposalIssue extends ProposalV2Issue {
+  route: "find-replace" | "css-token" | "component-structure" | "visual-asset";
+}
+
+export function routeProposalIssue(issue: ProposalV2Issue): RoutedProposalIssue {
+  const routeByKind = {
+    text: "find-replace",
+    css: "css-token",
+    component: "component-structure",
+    asset: "visual-asset",
+  } as const;
+  return { ...issue, route: routeByKind[issue.kind] };
+}
+
+export function validateProposalConstraints(
+  issue: ProposalV2Issue,
+  renderedText: string,
+): string[] {
+  const normalized = renderedText.toLowerCase();
+  return issue.constraints.preserves.filter((phrase) => !normalized.includes(phrase.toLowerCase()));
+}

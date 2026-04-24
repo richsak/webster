@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { PROPOSAL_KINDS, PROPOSAL_V2_SCHEMA, parseProposalV2 } from "../proposal-schema-v2";
+import {
+  PROPOSAL_KINDS,
+  PROPOSAL_V2_SCHEMA,
+  parseProposalV2,
+  routeProposalIssue,
+  validateProposalConstraints,
+} from "../proposal-schema-v2";
 
 describe("proposal schema v2", () => {
   test("locks kind-aware issue enum", () => {
@@ -35,6 +41,38 @@ describe("proposal schema v2", () => {
         },
       },
     ]);
+  });
+
+  test("routes each kind to the apply worker tool family", () => {
+    const base = {
+      id: "x",
+      title: "x",
+      files_touched: ["x"],
+      constraints: { preserves: [], within: {} },
+    };
+    expect(routeProposalIssue({ ...base, kind: "text" }).route).toBe("find-replace");
+    expect(routeProposalIssue({ ...base, kind: "css" }).route).toBe("css-token");
+    expect(routeProposalIssue({ ...base, kind: "component" }).route).toBe("component-structure");
+    expect(routeProposalIssue({ ...base, kind: "asset" }).route).toBe("visual-asset");
+  });
+
+  test("validates preserved constraints against rendered output", () => {
+    const issue = parseProposalV2({
+      issues: [
+        {
+          id: "hero",
+          title: "Hero",
+          kind: "component",
+          files_touched: ["Hero.astro"],
+          constraints: { preserves: ["No more patient churn"], within: {} },
+        },
+      ],
+    })[0];
+    if (!issue) {
+      throw new Error("expected parsed issue");
+    }
+    expect(validateProposalConstraints(issue, "No more patient churn appears")).toEqual([]);
+    expect(validateProposalConstraints(issue, "Dropped copy")).toEqual(["No more patient churn"]);
   });
 
   test("rejects unknown kinds", () => {
