@@ -28,8 +28,12 @@ nodes:
     bash: |
       set -e
 
-      # Read $ARGUMENTS via heredoc so shell-special characters in the user
-      # message (quotes, $, `, etc.) cannot inject into the script.
+      # Wrap the user message in a single-quoted heredoc so shell-special chars
+      # (quotes, dollar signs, backticks, etc.) in the argument cannot inject
+      # into the surrounding script. Forge templates the argument into the
+      # heredoc body only — never reference the template var name in any
+      # comment, because Forge substitutes it literally and a multi-line
+      # message can break out of single-line comments and turn into commands.
       ARG=$(cat <<'___FORGE_ARG_MARKER_XY7Z9___'
       $ARGUMENTS
       ___FORGE_ARG_MARKER_XY7Z9___
