@@ -1,0 +1,56 @@
+{
+  "project": "Webster",
+  "branchName": "ralph/apply-worker-cli-v5",
+  "prdFile": "prd.md",
+  "description": "Expose the existing apply-worker core as a weekly CLI and prove mutation, commit trailers, and validation blocking with integration tests.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add apply-worker CLI wrapper",
+      "description": "As a Webster operator, I want a Bun CLI that runs the existing apply-worker core against a weekly history directory so that selected proposal issues become validated experiment commits without manual orchestration.",
+      "acceptanceCriteria": [
+        "Add a script entrypoint following repo conventions, likely scripts/apply-worker/cli.ts, with a #!/usr/bin/env bun shebang and import.meta.main guard.",
+        "The CLI accepts a week directory argument and reads proposal.md plus decision.json from that directory.",
+        "The CLI uses existing exports from scripts/apply-worker.ts for parseDecision, parseProposal, applyMutation, runValidation, buildCommitMessage, commitExperiment, emitSkip, and writeApplyLog instead of duplicating US-001 through US-004 core logic.",
+        "For each selected issue, the CLI applies mutations, runs lint, type-check, and format-check before committing, and creates one Git commit only when all three validation checks pass.",
+        "Every successful experiment commit message includes the existing trailer format Experiment-Id: exp-NN-slug validated by buildCommitMessage.",
+        "String mismatches or validation failures are recorded as skipped experiments in apply-log.json and emit structured skip rows through emitSkip without creating a commit for that experiment.",
+        "Missing week directory, missing proposal.md, or missing decision.json produces a clear non-zero CLI error without mutating files.",
+        "Type-check passes",
+        "Lint passes with zero warnings",
+        "Format check passes",
+        "Tests pass"
+      ],
+      "technicalNotes": "Build on scripts/apply-worker.ts:287-317 for parseDecision/parseProposal, 319-357 for applyMutation, 359-369 for runValidation, 372-393 for buildCommitMessage, 395-429 for commitExperiment, and 442-457 for emitSkip/writeApplyLog. Mirror CLI entrypoint/error shape from scripts/critic-genealogy.ts:676-694 and package script style from package.json scripts. Fixture artifact shapes are visible in history/2026-04-23/decision.json and history/2026-04-23/proposal.md.",
+      "dependsOn": [],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Add apply-worker integration tests",
+      "description": "As a Webster maintainer, I want integration tests around the apply-worker CLI so that successful proposals mutate and commit correctly while broken proposals are blocked before commit.",
+      "acceptanceCriteria": [
+        "Add Bun tests under scripts/__tests__/ using the existing bun:test style from scripts/__tests__/memory.test.ts.",
+        "Create fixture proposal.md and decision.json inputs that match the existing weekly schema and proposal format shown in history/2026-04-23 artifacts.",
+        "A successful fixture run verifies the target file content changed from the Before block to the After block.",
+        "A successful fixture run verifies git history contains a commit message trailer exactly matching Experiment-Id: exp-01-<slug> for the applied issue.",
+        "A successful fixture run verifies apply-log.json records the applied experiment with status applied and a commit_sha.",
+        "A deliberately broken proposal or validation-breaking mutation does not create a Git commit for that experiment.",
+        "The blocked fixture verifies apply-log.json and/or skips.jsonl records the terminal skip reason, including validation failure when the output fails the lint/type/format floor.",
+        "Tests isolate Git state and filesystem mutations in temporary directories or fixture repositories and do not mutate Webster's real history or site files.",
+        "bun run validate passes before committing the story.",
+        "Type-check passes",
+        "Lint passes with zero warnings",
+        "Format check passes",
+        "Tests pass"
+      ],
+      "technicalNotes": "Use scripts/__tests__/memory.test.ts:1-18 as the temp-path and cleanup pattern. Exercise the CLI from US-001 rather than only unit-testing helper functions. Keep fixtures minimal but schema-faithful to history/2026-04-23/decision.json:1-25 and proposal markdown sections from history/2026-04-23/proposal.md:1-28. Inspect commit messages with git log in the isolated fixture repo. The broken-output case should prove runValidation from scripts/apply-worker.ts:359-369 prevents commitExperiment from scripts/apply-worker.ts:395-429.",
+      "dependsOn": ["US-001"],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
