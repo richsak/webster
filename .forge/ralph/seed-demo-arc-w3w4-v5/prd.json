@@ -1,0 +1,49 @@
+{
+  "project": "Webster",
+  "branchName": "ralph/seed-demo-arc-w3w4-v5",
+  "prdFile": "prd.md",
+  "description": "Complete feature #57 by extending the existing demo arc seeder from W1/W2 through W3/W4 with 6-of-7 lane coverage and one W4 genealogy spawn.",
+  "userStories": [
+    {
+      "id": "US-003",
+      "title": "Add W3 gate-fail and auto-rollback seeding",
+      "description": "As a Webster demo operator, I want W3 demo-arc artifacts for archive-gate-fail, auto-rollback, and hold outcomes so that the demo can show failure learning without touching live history.",
+      "acceptanceCriteria": [
+        "`bun scripts/seed-demo-arc.ts` writes `history/demo-arc/demo-W3/proposal.md`, `decision.json`, and `verdict.json`.",
+        "W3 verdict includes `exp-05-mid-section-image-swap` with outcome `archive-gate-fail` and a failing `bounce_rate` gate.",
+        "W3 verdict includes `exp-06-cta-color-shift` with outcome `auto-rollback`, classification `hurt`, and `reward_delta_pct` of `-11`.",
+        "W3 verdict includes `exp-07-subhead-rewrite` with outcome `hold` and classification `neutral`.",
+        "`history/demo-arc/baselines.jsonl` records W3 lane statuses as `archived-gate-fail`, `rolled-back`, and no promoted baseline for the held experiment.",
+        "`history/demo-arc/memory.jsonl` contains W3 rows whose final events reflect archive/rollback/hold behavior rather than labeling every W3 experiment as a promotion.",
+        "Running the seeder twice produces deterministic W3 output under `history/demo-arc/` and does not write outside that directory.",
+        "`bun run validate` passes."
+      ],
+      "technicalNotes": "Build on `scripts/seed-demo-arc.ts` only. Reuse existing W3 entries in `EXPERIMENT_SPECS` at `scripts/seed-demo-arc.ts:240-291`; mirror `writeW1`/`writeW2` at `scripts/seed-demo-arc.ts:459-476` with a `writeW3`. Update shared baseline/memory helpers at `scripts/seed-demo-arc.ts:437-457` if needed so lane-specific statuses/events are represented correctly. Preserve `initDemoArcDir()` isolation under `history/demo-arc/` from `scripts/seed-demo-arc.ts:340-351`. Follow the locked W3 narrative in `context/DOMAIN-MODEL.md:415-420` and feature #57 scope in `context/FEATURES.md:172`.",
+      "dependsOn": [],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Add W4 conservative wins and genealogy spawn",
+      "description": "As a Webster demo operator, I want W4 demo-arc artifacts plus one spawned critic artifact set so that the demo closes the loop from W3 failure to critic genealogy and safe recovery wins.",
+      "acceptanceCriteria": [
+        "`bun scripts/seed-demo-arc.ts` writes `history/demo-arc/demo-W4/proposal.md`, `decision.json`, and `verdict.json`.",
+        "W4 verdict includes `exp-08-hero-safety-copy` and `exp-09-cta-size-adjust` as passing conservative experiments.",
+        "Outcome coverage across W1-W4 includes exactly these six lanes at minimum: `promote-fast-track`, `promote-fallback`, `promote-gate-win`, `archive-gate-fail`, `auto-rollback`, and `hold`.",
+        "The seeder writes one W4 genealogy-spawned critic spec for a bounce-risk concern under `history/demo-arc/demo-W4/genealogy/`.",
+        "The genealogy artifacts include a `NewCriticSpec`-shaped JSON payload and an `AgentJSON`-shaped critic registration payload using the existing exported interfaces.",
+        "W4 memory rows include a `gap-detected` event or equivalent genealogy trigger referencing the W3 bounce/gate-fail pattern and the spawned critic.",
+        "The script completion message reflects seeding through demo-W4 instead of demo-W2.",
+        "Running the seeder twice produces deterministic W4/genealogy output under `history/demo-arc/` and does not write outside that directory.",
+        "`bun run validate` passes."
+      ],
+      "technicalNotes": "Depends on US-003's lane-correct baseline and memory helper behavior. Reuse existing W4 entries in `EXPERIMENT_SPECS` at `scripts/seed-demo-arc.ts:292-338`; mirror the existing week writer pattern at `scripts/seed-demo-arc.ts:459-476` with `writeW4`. Use the existing `AgentJSON` and `NewCriticSpec` interfaces from `scripts/seed-demo-arc.ts:68-87` for deterministic genealogy JSON files. `initDemoArcDir()` already creates `history/demo-arc/demo-W4/genealogy` at `scripts/seed-demo-arc.ts:348`; write artifacts there. Follow the W4 table row and Git-state expectations in `context/DOMAIN-MODEL.md:421-429`. Do not call real Managed Agent APIs or alter `agents/` live specs.",
+      "dependsOn": ["US-003"],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
