@@ -42,8 +42,8 @@
         "US-001"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented in iteration 2. Files: scripts/seed-secondary-substrates.ts, history/secondary-arc/*/{onboard,week-1,week-2}/{proposal.md,decision.json,verdict.json,apply-log.json}."
     },
     {
       "id": "US-003",
