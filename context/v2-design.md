@@ -81,7 +81,7 @@ worker begins calling it when available.
 
 **Enumerated type list for #40:**
 
-```
+```text
 {
   og_card,               // 1200×630 social-share image (week-1 need)
   hero_background,       // Full-bleed hero section backdrop

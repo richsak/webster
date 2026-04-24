@@ -1,0 +1,124 @@
+## Codebase Patterns
+
+### Memory tests use temp JSONL files
+- **Where**: `scripts/__tests__/memory.test.ts:17-37`
+- **Pattern**: Build a unique log path under `tmpdir()` with `Date.now()` + `randomUUID()`, then clean it up in `finally` so append/tail/filter tests stay isolated.
+- **Example**: `return join(tmpdir(), `memory-test-${testName}-${Date.now()}-${randomUUID()}.jsonl`);`
+
+### Shared JSONL reader for memory helpers
+- **Where**: `scripts/memory.ts:26-38`
+- **Pattern**: Parse `history/memory.jsonl` through one helper that skips blank lines, returns typed `MemoryEvent[]`, and throws `Malformed memory event at line N` for bad JSON so append/read helpers stay consistent.
+- **Example**: `throw new Error(`Malformed memory event at line ${index + 1} in ${logPath}`);`
+
+### Findings validator heading contract
+- **Where**: `scripts/validate-findings.ts:33-39`, `context/critics/*/findings.md`
+- **Pattern**: Critic artifacts must use an exact `## Issues` heading; `## Issues identified` fails `bun run validate:findings`.
+- **Example**: `## Issues`
+
+### Memory substrate module shape
+- **Where**: `scripts/memory.ts:1-20`
+- **Pattern**: Keep the memory substrate in a standalone `scripts/` module with a first-line orchestrator-only guard comment and named exports only.
+- **Example**: `export type MemoryFilter = Partial<Pick<MemoryEvent, "week" | "actor" | "event">>;`
+
+---
+
+## 2026-04-23T00:00:00Z — US-001: MemoryEvent type + EventType enum
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/memory.ts` — added the orchestrator-only memory schema module with `EventType`, `EventRefs`, `MemoryEvent`, and `MemoryFilter`
+
+**Acceptance criteria verified**:
+- [x] `scripts/memory.ts` exists with the required ADR-0001 header on line 1
+- [x] `EventType` is a string union of exactly 6 values: `promote | rollback | skip | regression | gap-detected | verdict-ready`
+- [x] `EventRefs` is typed as `Record<string, string>`
+- [x] `MemoryEvent` has fields `ts`, `week`, `actor`, `event`, `refs`, and `insight` with no optional fields
+- [x] `MemoryFilter` is `Partial<Pick<MemoryEvent, "week" | "actor" | "event">>`
+- [x] All types are exported as named exports
+- [x] No `any` was introduced
+- [x] `bun run type-check` passes
+
+**Learnings**:
+- Existing script conventions in this repo favor small, named-export utility modules in `scripts/` rather than introducing a new `src/` layer.
+- Targeted validation passed: `bun run type-check`, `bun run lint --max-warnings 0`, `bun run test`, and `prettier --check scripts/memory.ts`.
+- Full `bun run validate` is currently blocked by pre-existing markdownlint failures in repo docs (`context/DOMAIN-MODEL.md`, `context/FEATURES.md`, `context/ROADMAP.md`, `context/v2-design.md`, and `.forge/ralph/feat-memory-substrate/prd.md`) that were outside US-001 scope.
+
+---
+
+## 2026-04-23T00:00:00Z — US-002: appendEvent helper with idempotency
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/memory.ts` — added `appendEvent()` with `history/memory.jsonl` default resolution, parent directory creation, and exp_id-based deduping
+- `context/FEATURES.md` — marked feature #51 as `in-progress` while US-003 and US-004 remain
+- `context/DOMAIN-MODEL.md`, `context/ROADMAP.md`, `context/v2-design.md`, `.forge/ralph/feat-memory-substrate/prd.md` — fixed markdownlint/prettier violations required for `bun run validate`
+- `context/critics/*/findings.md` — normalized `## Issues` headings so `validate:findings` matches the repo contract
+
+**Acceptance criteria verified**:
+- [x] `appendEvent(event: MemoryEvent, logPath?: string): void` exists and defaults to `history/memory.jsonl` relative to `process.cwd()`
+- [x] Parent directory creation uses `mkdirSync(dirname(logPath), { recursive: true })`
+- [x] First append creates `memory.jsonl` automatically via `appendFileSync`
+- [x] Non-duplicate writes append exactly one `JSON.stringify(event) + "\n"` line
+- [x] Duplicate `(ts, week, actor, event, refs.exp_id)` rows are skipped when `refs.exp_id` is present (manual check: duplicate count stayed at `1`)
+- [x] Missing `refs.exp_id` disables dedup and still appends (manual check: duplicate count reached `2`)
+- [x] Errors still propagate; no try/catch fallback was added
+- [x] Fresh validation passed: `bun run validate`
+
+**Learnings**:
+- `appendFileSync` already gives the desired first-write file creation, so the helper only needs to ensure the parent directory exists before appending.
+- Repo validation was blocked by stale markdown and critic-heading drift, not by the memory helper itself; fixing those blockers restored `bun run validate` to green.
+- Feature #51 should stay `in-progress` until US-003 and US-004 land.
+
+---
+
+## 2026-04-23T00:00:00Z — US-003: tailN + filter reader helpers
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/memory.ts` — added shared log parsing plus `tailN()` and `filter()` reader helpers for curated memory slices
+
+**Acceptance criteria verified**:
+- [x] `tailN(n: number, logPath?: string): MemoryEvent[]` returns the last `n` events and returns `[]` when the log file is absent
+- [x] `filter(criteria: MemoryFilter, logPath?: string): MemoryEvent[]` matches all provided `week` / `actor` / `event` fields and returns `[]` when the log file is absent
+- [x] Malformed JSON rows throw `Malformed memory event at line N in <path>` while blank lines are skipped
+- [x] `tailN(0)` returns `[]`
+- [x] `tailN(n)` where `n > total events` returns all events
+- [x] `filter({})` returns all events
+- [x] Both helpers return typed `MemoryEvent[]` with no `any` / `unknown` return values
+- [x] `bun run type-check` passes
+
+**Learnings**:
+- Centralizing JSONL parsing in one helper keeps append deduping and read helpers aligned on malformed-line behavior.
+- A quick Bun probe against a temp file verified the reader edge cases: last-N ordering, empty criteria returning all rows, and bad JSON reporting the physical line number.
+- Feature #51 still stays `in-progress` until US-004 lands the dedicated tests.
+
+---
+
+## 2026-04-24T00:54:18Z — US-004: Unit tests: round-trip, idempotency, tailN, filter
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/__tests__/memory.test.ts` — added Bun coverage for schema round-trips, append idempotency, tail reads, and filter reads with isolated temp logs
+- `context/FEATURES.md` — marked feature #51 as `done` now that all four memory-substrate stories have shipped
+- `.forge/ralph/feat-memory-substrate/prd.json` — marked US-004 as passing with the implementation commit recorded
+- `.forge/ralph/feat-memory-substrate/progress.txt` — recorded the iteration outcome and reusable test pattern
+
+**Acceptance criteria verified**:
+- [x] `scripts/__tests__/memory.test.ts` uses `bun:test` imports
+- [x] Schema round-trip coverage exercises all 6 `EventType` values through `JSON.stringify` + `JSON.parse`
+- [x] Append/read-back coverage writes 3 events and verifies `tailN(3)` returns all 3
+- [x] Idempotency coverage appends the same `refs.exp_id` event twice and asserts the log has exactly 1 line
+- [x] No-dedup coverage appends the same event without `refs.exp_id` twice and asserts the log has exactly 2 lines
+- [x] Tail coverage writes 5 events and verifies `tailN(3)` returns the last 3 in order
+- [x] Filter coverage writes mixed actors and verifies `filter({ actor: "planner" })` returns only planner events
+- [x] Empty-criteria coverage verifies `filter({})` returns all events
+- [x] Each test uses a unique temp path built from `tmpdir()` + `Date.now()` + `randomUUID()`
+- [x] `bun test` passes with zero failures
+- [x] `bun run validate` passes
+
+**Learnings**:
+- The memory helper API is stable enough that one focused Bun test file can cover the full story without changing runtime code.
+- `noUncheckedIndexedAccess` makes array-literal expectations brittle; deriving the expected filtered rows from `events.filter(...)` keeps the assertions typed.
+- Feature #51 is now fully complete; #52 is the next planner-memory integration step.
+
+---

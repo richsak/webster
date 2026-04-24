@@ -12,11 +12,11 @@
 
 ## Current submission state (2026-04-23)
 
-- **Done**: 24 (incl. #38 site/ fork shipped session 4)
+- **Done**: 25 (incl. #38 site/ fork shipped session 4 and #51 memory substrate shipped)
 - **In-progress**: 1 (live run artifacts in `history/` — session 3 produced real artifacts; row update pending separate reconciliation)
 - **Blocked**: 5 (demo video — Richie voice)
 - **Cut**: 7 (out of submission scope; rationale inline)
-- **Todo**: 31 (1 submission form + 9 Layer 8 + 9 Layer 9 + 3 Layer 10 + 9 Layer 11; all pre-submission per session-4 Phase 7 scope update + Q1–Q9 locks)
+- **Todo**: 30 (1 submission form + 9 Layer 8 + 9 Layer 9 + 3 Layer 10 + 8 Layer 11; all pre-submission per session-4 Phase 7 scope update + Q1–Q9 locks)
 
 Hero feature (Critic Genealogy) shipped with live Opus 4.7 validation. All 7 Managed Agents registered. Council fan-out + redesigner + PR automation scripted in `prompts/second-wbs-session.md`. CI green, 29 tests pass. Two scope reassignments below (critic-flow skill renamed; orchestrator moved from TS to bash-in-markdown prompt) — both ship equivalent functionality.
 
@@ -102,7 +102,7 @@ See `AGENTS.md` for stream → operator mapping.
 
 The "missing last 20%" of Webster's full loop — turning the council's `proposal.md` brief into a reviewed code diff on the live LP. Originally scoped post-submission; moved to pre-submission in session 4 Phase 7 when autoresearch became a council input (see Layer 11 + ADR-0001 + ADR-0002).
 
-#38 shipped session 4 Phase 1; #39 / #40 decomposed by session 4 Phase 2 grill-me (see `context/v2-design.md`); Q8 per-experiment commit discipline added session 4 Phase 7 (see ADR-0002).
+Feature #38 shipped session 4 Phase 1; #39 / #40 decomposed by session 4 Phase 2 grill-me (see `context/v2-design.md`); Q8 per-experiment commit discipline added session 4 Phase 7 (see ADR-0002).
 
 | #   | Status      | Feature                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Hours |
 | --- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |

@@ -1,6 +1,6 @@
 # Findings — Week 2026-04-23
 
-## Issues identified
+## Issues
 
 - [CRITICAL] All CTA buttons route to `href="#"` — Acuity scheduling link is completely unwired. Every "BOOK YOUR FREE CALL" and "BOOK YOUR FREE STRATEGY CALL" anchor dead-ends at a null fragment instead of routing to `app.acuityscheduling.com/schedule.php?owner=16697295`. Booking is impossible from this page. — evidence: rendered HTML shows `[BOOK YOUR FREE CALL](#)` × 4 and `[BOOK YOUR FREE STRATEGY CALL](#)` × 1; zero occurrences of `acuityscheduling` in page source
 
