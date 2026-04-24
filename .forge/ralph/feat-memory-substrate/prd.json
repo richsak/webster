@@ -61,8 +61,8 @@
       "technicalNotes": "Read file with readFileSync, split on newline, filter empty lines, JSON.parse each. Tail: slice from end. Filter: check each criteria key for equality. Both accept optional logPath defaulting to 'history/memory.jsonl'. Pattern: readFileSync from scripts/critic-genealogy.ts:162.",
       "dependsOn": ["US-001"],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented in iteration 3. Files: scripts/memory.ts. Commit: b6ca55b."
     },
     {
       "id": "US-004",

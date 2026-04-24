@@ -1,5 +1,10 @@
 ## Codebase Patterns
 
+### Shared JSONL reader for memory helpers
+- **Where**: `scripts/memory.ts:26-38`
+- **Pattern**: Parse `history/memory.jsonl` through one helper that skips blank lines, returns typed `MemoryEvent[]`, and throws `Malformed memory event at line N` for bad JSON so append/read helpers stay consistent.
+- **Example**: `throw new Error(`Malformed memory event at line ${index + 1} in ${logPath}`);`
+
 ### Findings validator heading contract
 - **Where**: `scripts/validate-findings.ts:33-39`, `context/critics/*/findings.md`
 - **Pattern**: Critic artifacts must use an exact `## Issues` heading; `## Issues identified` fails `bun run validate:findings`.
@@ -58,5 +63,28 @@
 - `appendFileSync` already gives the desired first-write file creation, so the helper only needs to ensure the parent directory exists before appending.
 - Repo validation was blocked by stale markdown and critic-heading drift, not by the memory helper itself; fixing those blockers restored `bun run validate` to green.
 - Feature #51 should stay `in-progress` until US-003 and US-004 land.
+
+---
+
+## 2026-04-23T00:00:00Z — US-003: tailN + filter reader helpers
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/memory.ts` — added shared log parsing plus `tailN()` and `filter()` reader helpers for curated memory slices
+
+**Acceptance criteria verified**:
+- [x] `tailN(n: number, logPath?: string): MemoryEvent[]` returns the last `n` events and returns `[]` when the log file is absent
+- [x] `filter(criteria: MemoryFilter, logPath?: string): MemoryEvent[]` matches all provided `week` / `actor` / `event` fields and returns `[]` when the log file is absent
+- [x] Malformed JSON rows throw `Malformed memory event at line N in <path>` while blank lines are skipped
+- [x] `tailN(0)` returns `[]`
+- [x] `tailN(n)` where `n > total events` returns all events
+- [x] `filter({})` returns all events
+- [x] Both helpers return typed `MemoryEvent[]` with no `any` / `unknown` return values
+- [x] `bun run type-check` passes
+
+**Learnings**:
+- Centralizing JSONL parsing in one helper keeps append deduping and read helpers aligned on malformed-line behavior.
+- A quick Bun probe against a temp file verified the reader edge cases: last-N ordering, empty criteria returning all rows, and bad JSON reporting the physical line number.
+- Feature #51 still stays `in-progress` until US-004 lands the dedicated tests.
 
 ---
