@@ -1,0 +1,10 @@
+{
+  "substrate": "saas-alpha",
+  "run": "onboard",
+  "applied": true,
+  "touched_files": [
+    "site/secondary/saas-alpha/index.html"
+  ],
+  "skipped": [],
+  "notes": "Applied both onboarding experiments to the synthetic SaaS fixture."
+}

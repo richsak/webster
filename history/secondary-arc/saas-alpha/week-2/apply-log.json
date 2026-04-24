@@ -1,0 +1,15 @@
+{
+  "substrate": "saas-alpha",
+  "run": "week-2",
+  "applied": true,
+  "touched_files": [
+    "site/secondary/saas-alpha/index.html"
+  ],
+  "skipped": [
+    {
+      "exp_id": "saas-w2-security-badge",
+      "reason": "Trust treatment missed the p<0.01 promotion gate."
+    }
+  ],
+  "notes": "Applied the CSS density tune and skipped the security badge after the gate failure."
+}

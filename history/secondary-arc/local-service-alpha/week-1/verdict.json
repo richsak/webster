@@ -1,0 +1,22 @@
+{
+  "substrate": "local-service-alpha",
+  "run": "week-1",
+  "experiments": [
+    {
+      "exp_id": "local-w1-seasonal-packages",
+      "kind": "text",
+      "reward_delta_pct": 1.4,
+      "p_value": 0.19,
+      "classification": "neutral",
+      "outcome": "hold"
+    },
+    {
+      "exp_id": "local-w1-arrival-window",
+      "kind": "component",
+      "reward_delta_pct": 4.2,
+      "p_value": 0.015,
+      "classification": "neutral",
+      "outcome": "promote-fallback"
+    }
+  ]
+}

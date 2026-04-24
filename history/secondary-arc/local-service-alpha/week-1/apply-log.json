@@ -1,0 +1,10 @@
+{
+  "substrate": "local-service-alpha",
+  "run": "week-1",
+  "applied": true,
+  "touched_files": [
+    "site/secondary/local-service-alpha/index.html"
+  ],
+  "skipped": [],
+  "notes": "Applied both local-service treatments while marking package copy as a hold lane."
+}

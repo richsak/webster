@@ -1,0 +1,26 @@
+{
+  "substrate": "local-service-alpha",
+  "run": "onboard",
+  "selected_issues": [
+    {
+      "exp_id": "local-onboard-urgency-copy",
+      "kind": "text",
+      "target_files": [
+        "site/secondary/local-service-alpha/index.html"
+      ],
+      "proposed_change": "Frame the hero around weekend-readiness instead of generic exterior cleaning.",
+      "expected_outcome_lane": "promote-fast-track"
+    },
+    {
+      "exp_id": "local-onboard-quote-proof",
+      "kind": "component",
+      "target_files": [
+        "site/secondary/local-service-alpha/index.html"
+      ],
+      "proposed_change": "Surface license, arrival-text, and satisfaction-check proof before service details.",
+      "expected_outcome_lane": "promote-gate-win"
+    }
+  ],
+  "reasoning": "Onboard run tests urgency and trust basics for a homeowner purchase path with higher appointment anxiety.",
+  "monitor_signal": "Baseline local traffic showed strong service intent but drop-off before the quote CTA."
+}

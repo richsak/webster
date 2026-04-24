@@ -5,11 +5,23 @@ import { join, resolve } from "node:path";
 
 export const ROOT = resolve(import.meta.dir, "..");
 export const SECONDARY_SITE_DIR = join(ROOT, "site", "secondary");
+export const SECONDARY_HISTORY_DIR = join(ROOT, "history", "secondary-arc");
 export const SECONDARY_SUBSTRATES = ["saas-alpha", "local-service-alpha"] as const;
+export const SECONDARY_RUNS = ["onboard", "week-1", "week-2"] as const;
 
 export type SecondarySubstrate = (typeof SECONDARY_SUBSTRATES)[number];
+export type SecondaryRun = (typeof SECONDARY_RUNS)[number];
+export type ExperimentKind = "text" | "component" | "asset" | "css";
+export type OutcomeLane =
+  | "promote-fast-track"
+  | "promote-fallback"
+  | "promote-gate-win"
+  | "archive-gate-fail"
+  | "auto-rollback"
+  | "hold";
 
 type AudienceType = "B2B SaaS operators" | "local-service homeowners";
+type VerdictClassification = "improved" | "hurt" | "neutral";
 
 interface SecondarySubstrateFixture {
   substrate: SecondarySubstrate;
@@ -25,6 +37,61 @@ interface SecondarySubstrateFixture {
     body: string;
   }[];
   audience: AudienceType;
+}
+
+interface SecondaryIssue {
+  exp_id: string;
+  kind: ExperimentKind;
+  target_files: string[];
+  proposed_change: string;
+  rationale: string;
+  expected_outcome_lane: OutcomeLane;
+}
+
+export interface SecondaryDecisionJSON {
+  substrate: SecondarySubstrate;
+  run: SecondaryRun;
+  selected_issues: Omit<SecondaryIssue, "rationale">[];
+  reasoning: string;
+  monitor_signal: string;
+}
+
+export interface SecondaryVerdictJSON {
+  substrate: SecondarySubstrate;
+  run: SecondaryRun;
+  experiments: {
+    exp_id: string;
+    kind: ExperimentKind;
+    reward_delta_pct: number;
+    p_value: number;
+    classification: VerdictClassification;
+    outcome: OutcomeLane;
+  }[];
+}
+
+export interface SecondaryApplyLogJSON {
+  substrate: SecondarySubstrate;
+  run: SecondaryRun;
+  applied: boolean;
+  touched_files: string[];
+  skipped: { exp_id: string; reason: string }[];
+  notes: string;
+}
+
+interface SecondaryRunFixture {
+  substrate: SecondarySubstrate;
+  run: SecondaryRun;
+  experiments: (SecondaryIssue & {
+    reward_delta_pct: number;
+    p_value: number;
+    classification: VerdictClassification;
+    outcome: OutcomeLane;
+    applied: boolean;
+    skipReason?: string;
+  })[];
+  reasoning: string;
+  monitorSignal: string;
+  applyNotes: string;
 }
 
 export const SECONDARY_FIXTURES: readonly SecondarySubstrateFixture[] = [
@@ -79,6 +146,252 @@ export const SECONDARY_FIXTURES: readonly SecondarySubstrateFixture[] = [
       },
     ],
     audience: "local-service homeowners",
+  },
+] as const;
+
+export const SECONDARY_RUN_FIXTURES: readonly SecondaryRunFixture[] = [
+  {
+    substrate: "saas-alpha",
+    run: "onboard",
+    experiments: [
+      {
+        exp_id: "saas-onboard-hero-clarity",
+        kind: "text",
+        target_files: ["site/secondary/saas-alpha/index.html"],
+        proposed_change: "Clarify that the product replaces spreadsheet-heavy month-end workflows.",
+        rationale:
+          "Cold-start SaaS visitors need to understand the operational pain before evaluating features.",
+        expected_outcome_lane: "promote-fast-track",
+        reward_delta_pct: 8.4,
+        p_value: 0.006,
+        classification: "improved",
+        outcome: "promote-fast-track",
+        applied: true,
+      },
+      {
+        exp_id: "saas-onboard-proof-stack",
+        kind: "component",
+        target_files: ["site/secondary/saas-alpha/index.html"],
+        proposed_change: "Move setup, security, and CRM-sync proof points beside the hero CTA.",
+        rationale: "B2B buyers need risk-reduction proof before they commit to a workflow audit.",
+        expected_outcome_lane: "promote-gate-win",
+        reward_delta_pct: 5.9,
+        p_value: 0.009,
+        classification: "improved",
+        outcome: "promote-gate-win",
+        applied: true,
+      },
+    ],
+    reasoning:
+      "Onboard run explores broad message clarity and trust proof before narrowing into lifecycle-specific experiments.",
+    monitorSignal:
+      "Baseline SaaS traffic shows high CTA hesitation from spreadsheet-replacement queries.",
+    applyNotes: "Applied both onboarding experiments to the synthetic SaaS fixture.",
+  },
+  {
+    substrate: "saas-alpha",
+    run: "week-1",
+    experiments: [
+      {
+        exp_id: "saas-w1-audit-cta",
+        kind: "text",
+        target_files: ["site/secondary/saas-alpha/index.html"],
+        proposed_change:
+          "Change the primary CTA toward a low-friction workflow audit instead of a sales demo.",
+        rationale:
+          "Operators with month-end pain respond better to diagnostic language than vendor-demo language.",
+        expected_outcome_lane: "promote-fallback",
+        reward_delta_pct: 3.7,
+        p_value: 0.018,
+        classification: "neutral",
+        outcome: "promote-fallback",
+        applied: true,
+      },
+      {
+        exp_id: "saas-w1-export-card",
+        kind: "component",
+        target_files: ["site/secondary/saas-alpha/index.html"],
+        proposed_change:
+          "Add an executive-ready exports card that explains board-report narrative output.",
+        rationale:
+          "Finance leaders need to see downstream executive value, not only operational cleanup.",
+        expected_outcome_lane: "hold",
+        reward_delta_pct: 1.1,
+        p_value: 0.21,
+        classification: "neutral",
+        outcome: "hold",
+        applied: true,
+      },
+    ],
+    reasoning:
+      "Week 1 narrows into CTA intent and executive reporting proof after onboard clarity gains stabilized.",
+    monitorSignal:
+      "Audit CTA clicks rose, but exports-card engagement did not clear the promotion gate.",
+    applyNotes:
+      "Applied CTA copy and held the export-card treatment for another observation window.",
+  },
+  {
+    substrate: "saas-alpha",
+    run: "week-2",
+    experiments: [
+      {
+        exp_id: "saas-w2-security-badge",
+        kind: "asset",
+        target_files: ["site/secondary/saas-alpha/index.html"],
+        proposed_change: "Add a local inline security badge treatment near the proof stack.",
+        rationale:
+          "SOC 2-ready language needs a visual trust anchor without loading remote assets.",
+        expected_outcome_lane: "archive-gate-fail",
+        reward_delta_pct: 2.9,
+        p_value: 0.031,
+        classification: "neutral",
+        outcome: "archive-gate-fail",
+        applied: false,
+        skipReason: "Trust treatment missed the p<0.01 promotion gate.",
+      },
+      {
+        exp_id: "saas-w2-density-tune",
+        kind: "css",
+        target_files: ["site/secondary/saas-alpha/index.html"],
+        proposed_change:
+          "Reduce hero text density on narrow screens while preserving proof visibility.",
+        rationale:
+          "Mobile SaaS visitors showed scroll hesitation when the first screen felt text-heavy.",
+        expected_outcome_lane: "promote-gate-win",
+        reward_delta_pct: 6.2,
+        p_value: 0.007,
+        classification: "improved",
+        outcome: "promote-gate-win",
+        applied: true,
+      },
+    ],
+    reasoning:
+      "Week 2 compares a trust-asset idea against a mobile density tune and promotes only the statistically clean win.",
+    monitorSignal:
+      "Mobile scroll depth improved after density tuning; security badge lift stayed below gate confidence.",
+    applyNotes:
+      "Applied the CSS density tune and skipped the security badge after the gate failure.",
+  },
+  {
+    substrate: "local-service-alpha",
+    run: "onboard",
+    experiments: [
+      {
+        exp_id: "local-onboard-urgency-copy",
+        kind: "text",
+        target_files: ["site/secondary/local-service-alpha/index.html"],
+        proposed_change:
+          "Frame the hero around weekend-readiness instead of generic exterior cleaning.",
+        rationale:
+          "Homeowners searching locally often have a near-term hosting or curb-appeal trigger.",
+        expected_outcome_lane: "promote-fast-track",
+        reward_delta_pct: 9.1,
+        p_value: 0.004,
+        classification: "improved",
+        outcome: "promote-fast-track",
+        applied: true,
+      },
+      {
+        exp_id: "local-onboard-quote-proof",
+        kind: "component",
+        target_files: ["site/secondary/local-service-alpha/index.html"],
+        proposed_change:
+          "Surface license, arrival-text, and satisfaction-check proof before service details.",
+        rationale:
+          "Local-service buyers need safety and reliability proof before requesting a same-day quote.",
+        expected_outcome_lane: "promote-gate-win",
+        reward_delta_pct: 6.8,
+        p_value: 0.008,
+        classification: "improved",
+        outcome: "promote-gate-win",
+        applied: true,
+      },
+    ],
+    reasoning:
+      "Onboard run tests urgency and trust basics for a homeowner purchase path with higher appointment anxiety.",
+    monitorSignal:
+      "Baseline local traffic showed strong service intent but drop-off before the quote CTA.",
+    applyNotes: "Applied urgency copy and quote-trust proof to the local-service fixture.",
+  },
+  {
+    substrate: "local-service-alpha",
+    run: "week-1",
+    experiments: [
+      {
+        exp_id: "local-w1-seasonal-packages",
+        kind: "text",
+        target_files: ["site/secondary/local-service-alpha/index.html"],
+        proposed_change:
+          "Make seasonal packages the secondary CTA for homeowners comparing bundled work.",
+        rationale:
+          "Package-aware visitors may not be ready for a quote until they understand service scope.",
+        expected_outcome_lane: "hold",
+        reward_delta_pct: 1.4,
+        p_value: 0.19,
+        classification: "neutral",
+        outcome: "hold",
+        applied: true,
+      },
+      {
+        exp_id: "local-w1-arrival-window",
+        kind: "component",
+        target_files: ["site/secondary/local-service-alpha/index.html"],
+        proposed_change:
+          "Add morning-or-afternoon arrival-window language to reduce scheduling uncertainty.",
+        rationale: "Appointment predictability is a conversion blocker for busy homeowners.",
+        expected_outcome_lane: "promote-fallback",
+        reward_delta_pct: 4.2,
+        p_value: 0.015,
+        classification: "neutral",
+        outcome: "promote-fallback",
+        applied: true,
+      },
+    ],
+    reasoning:
+      "Week 1 compares scope-education copy with a scheduling-risk reducer after trust basics improved quote starts.",
+    monitorSignal:
+      "Scheduling language improved quote-form starts; seasonal package exploration remained inconclusive.",
+    applyNotes: "Applied both local-service treatments while marking package copy as a hold lane.",
+  },
+  {
+    substrate: "local-service-alpha",
+    run: "week-2",
+    experiments: [
+      {
+        exp_id: "local-w2-photo-proof",
+        kind: "asset",
+        target_files: ["site/secondary/local-service-alpha/index.html"],
+        proposed_change: "Add a local before-after proof placeholder using inline CSS shapes only.",
+        rationale:
+          "Photo-like proof can increase confidence, but fake imagery must remain clearly synthetic.",
+        expected_outcome_lane: "auto-rollback",
+        reward_delta_pct: -6.5,
+        p_value: 0.005,
+        classification: "hurt",
+        outcome: "auto-rollback",
+        applied: false,
+        skipReason: "Synthetic visual proof increased mistrust and triggered rollback.",
+      },
+      {
+        exp_id: "local-w2-crew-care",
+        kind: "text",
+        target_files: ["site/secondary/local-service-alpha/index.html"],
+        proposed_change:
+          "Emphasize landscaping protection and completion review in the careful-crews card.",
+        rationale: "Homeowners hesitate when they worry about property damage or rushed crews.",
+        expected_outcome_lane: "promote-gate-win",
+        reward_delta_pct: 7.3,
+        p_value: 0.006,
+        classification: "improved",
+        outcome: "promote-gate-win",
+        applied: true,
+      },
+    ],
+    reasoning:
+      "Week 2 rejects synthetic visual proof when it harms trust and promotes crew-care reassurance instead.",
+    monitorSignal:
+      "Rollback lane triggered for photo-proof placeholder; crew-care copy improved quote completion.",
+    applyNotes: "Rolled back photo-proof placeholder and applied crew-care reassurance copy.",
   },
 ] as const;
 
@@ -299,9 +612,107 @@ export function writeSecondarySites(): void {
   }
 }
 
+function renderProposal(runFixture: SecondaryRunFixture): string {
+  const experimentBlocks = runFixture.experiments
+    .map(
+      (experiment) => `### ${experiment.exp_id}
+
+- Kind: ${experiment.kind}
+- Target files: ${experiment.target_files.join(", ")}
+- Proposed change: ${experiment.proposed_change}
+- Rationale: ${experiment.rationale}
+- Expected outcome lane: ${experiment.expected_outcome_lane}`,
+    )
+    .join("\n\n");
+
+  return `# ${runFixture.substrate} ${runFixture.run} proposal
+
+${experimentBlocks}
+`;
+}
+
+function buildDecision(runFixture: SecondaryRunFixture): SecondaryDecisionJSON {
+  return {
+    substrate: runFixture.substrate,
+    run: runFixture.run,
+    selected_issues: runFixture.experiments.map((experiment) => ({
+      exp_id: experiment.exp_id,
+      kind: experiment.kind,
+      target_files: experiment.target_files,
+      proposed_change: experiment.proposed_change,
+      expected_outcome_lane: experiment.expected_outcome_lane,
+    })),
+    reasoning: runFixture.reasoning,
+    monitor_signal: runFixture.monitorSignal,
+  };
+}
+
+function buildVerdict(runFixture: SecondaryRunFixture): SecondaryVerdictJSON {
+  return {
+    substrate: runFixture.substrate,
+    run: runFixture.run,
+    experiments: runFixture.experiments.map((experiment) => ({
+      exp_id: experiment.exp_id,
+      kind: experiment.kind,
+      reward_delta_pct: experiment.reward_delta_pct,
+      p_value: experiment.p_value,
+      classification: experiment.classification,
+      outcome: experiment.outcome,
+    })),
+  };
+}
+
+function buildApplyLog(runFixture: SecondaryRunFixture): SecondaryApplyLogJSON {
+  const touchedFiles = [
+    ...new Set(
+      runFixture.experiments.flatMap((experiment) =>
+        experiment.applied ? experiment.target_files : [],
+      ),
+    ),
+  ];
+
+  return {
+    substrate: runFixture.substrate,
+    run: runFixture.run,
+    applied: runFixture.experiments.some((experiment) => experiment.applied),
+    touched_files: touchedFiles,
+    skipped: runFixture.experiments
+      .filter((experiment) => !experiment.applied)
+      .map((experiment) => ({
+        exp_id: experiment.exp_id,
+        reason: experiment.skipReason ?? "Experiment was not applied for this mock run.",
+      })),
+    notes: runFixture.applyNotes,
+  };
+}
+
+export function writeSecondaryHistory(): void {
+  rmSync(SECONDARY_HISTORY_DIR, { recursive: true, force: true });
+
+  for (const runFixture of SECONDARY_RUN_FIXTURES) {
+    const runDir = join(SECONDARY_HISTORY_DIR, runFixture.substrate, runFixture.run);
+
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(join(runDir, "proposal.md"), renderProposal(runFixture));
+    writeFileSync(
+      join(runDir, "decision.json"),
+      `${JSON.stringify(buildDecision(runFixture), null, 2)}\n`,
+    );
+    writeFileSync(
+      join(runDir, "verdict.json"),
+      `${JSON.stringify(buildVerdict(runFixture), null, 2)}\n`,
+    );
+    writeFileSync(
+      join(runDir, "apply-log.json"),
+      `${JSON.stringify(buildApplyLog(runFixture), null, 2)}\n`,
+    );
+  }
+}
+
 export function main(): void {
   writeSecondarySites();
-  console.log("Seeded secondary substrate landing pages.");
+  writeSecondaryHistory();
+  console.log("Seeded secondary substrate landing pages and mock run artifacts.");
 }
 
 if (import.meta.main) {
