@@ -127,9 +127,15 @@ export function loadBrandContext(
   palettePath = "context/palette.json",
 ): Record<string, unknown> {
   const business = existsSync(businessPath) ? readFileSync(businessPath, "utf8") : "";
-  const palette = existsSync(palettePath)
-    ? (JSON.parse(readFileSync(palettePath, "utf8")) as Record<string, unknown>)
-    : {};
+  let palette: Record<string, unknown> = {};
+  if (existsSync(palettePath)) {
+    try {
+      palette = JSON.parse(readFileSync(palettePath, "utf8")) as Record<string, unknown>;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to parse palette JSON at ${palettePath}: ${message}`);
+    }
+  }
 
   return {
     identity: parseBusinessTable(business),

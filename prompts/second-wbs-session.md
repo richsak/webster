@@ -380,6 +380,7 @@ PLAN_PATH=$PLAN_PATH
 Planner context (additive only; report anomalies even if they fall outside this direction):
 $PLAN_TEXT"
 
+PIDS=()
 run_agent_session monitor          "$MONITOR_ID"         "$MSG_MONITOR"  & PIDS+=($!)
 run_agent_session brand-voice      "$BRAND_VOICE_ID"     "$MSG_CRITIC"   & PIDS+=($!)
 run_agent_session fh-compliance    "$FH_COMPLIANCE_ID"   "$MSG_CRITIC"   & PIDS+=($!)
