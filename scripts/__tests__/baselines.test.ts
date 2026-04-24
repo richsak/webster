@@ -1,8 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { appendBaselineRow, parseBaselineRow, readBaselineRows } from "../baselines";
+import {
+  appendBaselineRow,
+  parseBaselineRow,
+  planBaselinePromotion,
+  readBaselineRows,
+  writeBaselinePromotionEvent,
+} from "../baselines";
 
 describe("per-experiment baselines", () => {
   const row = {
@@ -26,6 +32,43 @@ describe("per-experiment baselines", () => {
 
   test("rejects unknown status values", () => {
     expect(() => parseBaselineRow({ ...row, status: "maybe" })).toThrow("Invalid baseline status");
+  });
+
+  test("plans promotion after sustained promoted windows", () => {
+    expect(
+      planBaselinePromotion(
+        [
+          { ...row, version_sha: "old", status: "promoted" },
+          { ...row, version_sha: "new", status: "promoted" },
+        ],
+        "exp-01-hero",
+      ),
+    ).toEqual({
+      exp_id: "exp-01-hero",
+      promoted_sha: "new",
+      archived_sha: "old",
+      sustained_weeks: 2,
+      event: "promote",
+    });
+    expect(planBaselinePromotion([{ ...row, status: "promoted" }], "exp-01-hero")).toBeUndefined();
+  });
+
+  test("appends promotion events", () => {
+    const dir = mkdtempSync(join(tmpdir(), "baseline-events-"));
+    const path = join(dir, "history/memory.jsonl");
+    try {
+      writeBaselinePromotionEvent(path, {
+        exp_id: "exp-01-hero",
+        promoted_sha: "new",
+        archived_sha: "old",
+        sustained_weeks: 2,
+        event: "promote",
+      });
+      expect(readBaselineRows).toBeDefined();
+      expect(readFileSync(path, "utf8")).toContain('"actor":"baseline-promoter"');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   test("appends and reads jsonl rows", () => {

@@ -79,3 +79,43 @@ export function readBaselineRows(path: string): ExperimentBaselineRow[] {
     .filter((line) => line.trim().length > 0)
     .map((line) => parseBaselineRow(JSON.parse(line)));
 }
+
+export interface BaselinePromotion {
+  exp_id: string;
+  promoted_sha: string;
+  archived_sha?: string;
+  sustained_weeks: number;
+  event: "promote";
+}
+
+export function planBaselinePromotion(
+  rows: ExperimentBaselineRow[],
+  expId: string,
+  sustainedWeeks = 2,
+): BaselinePromotion | undefined {
+  const matching = rows.filter((row) => row.exp_id === expId);
+  const recentPromoted = matching.filter((row) => row.status === "promoted").slice(-sustainedWeeks);
+  if (recentPromoted.length < sustainedWeeks) {
+    return undefined;
+  }
+
+  const latest = recentPromoted[recentPromoted.length - 1] as ExperimentBaselineRow;
+  const previous = recentPromoted[recentPromoted.length - 2];
+  return {
+    exp_id: expId,
+    promoted_sha: latest.version_sha,
+    archived_sha: previous?.version_sha,
+    sustained_weeks: sustainedWeeks,
+    event: "promote",
+  };
+}
+
+export function writeBaselinePromotionEvent(path: string, promotion: BaselinePromotion): void {
+  mkdirSync(dirname(path), { recursive: true });
+  const existing = existsSync(path) ? readFileSync(path, "utf8") : "";
+  const prefix = existing.length === 0 || existing.endsWith("\n") ? existing : `${existing}\n`;
+  writeFileSync(
+    path,
+    `${prefix}${JSON.stringify({ ts: new Date(0).toISOString(), actor: "baseline-promoter", ...promotion })}\n`,
+  );
+}
