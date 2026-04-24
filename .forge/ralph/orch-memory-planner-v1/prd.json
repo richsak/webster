@@ -20,7 +20,9 @@
       ],
       "technicalNotes": "Follow the style in scripts/critic-genealogy.ts and scripts/memory.ts (or src/memory). Use readFileSync + path.join; do not use async file APIs unless the existing modules already do. Keep the function free of network I/O. Reuse the feature #51 export rather than re-reading JSONL lines directly.",
       "dependsOn": [],
-      "priority": 1
+      "priority": 1,
+      "passes": true,
+      "notes": "Implemented in iteration 1. Files: scripts/planner-context.ts, scripts/__tests__/planner-context.test.ts."
     },
     {
       "id": "US-002",
@@ -38,8 +40,12 @@
         "bun run type-check, bun run lint --max-warnings 0, bun test, bun run format:check pass."
       ],
       "technicalNotes": "Reuse helper names / patterns from scripts/critic-genealogy.ts (registerAgent, createSession, sendUserMessage, pollUntilIdle) rather than duplicating low-level fetch code. Keep the HTTP base URL configurable via env (ANTHROPIC_API_BASE defaulting to https://api.anthropic.com). Import appendEvent from the same module feature #51 added. Do NOT edit agents/webster-planner.json (owned by feature #50) and do NOT edit prompts/second-wbs-session.md in this story (US-003 owns that).",
-      "dependsOn": ["US-001"],
-      "priority": 2
+      "dependsOn": [
+        "US-001"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Implemented in iteration 2. Files: scripts/planner-invoke.ts, scripts/__tests__/planner-invoke.test.ts."
     },
     {
       "id": "US-003",
@@ -53,9 +59,14 @@
         "Update README.md or an adjacent doc section if the prior council flow explicitly enumerated the steps, so the step count remains accurate.",
         "bun run validate passes."
       ],
-      "technicalNotes": "Edit prompts/second-wbs-session.md only — do not change orchestrator-owned I/O in the helpers. The step should read like the existing numbered steps: plain bash with comments and exit-on-error semantics. Do not implement runtime invocation of critics from this file; that remains in the later fan-out step.",
-      "dependsOn": ["US-001", "US-002"],
-      "priority": 3
+      "technicalNotes": "Edit prompts/second-wbs-session.md only \u2014 do not change orchestrator-owned I/O in the helpers. The step should read like the existing numbered steps: plain bash with comments and exit-on-error semantics. Do not implement runtime invocation of critics from this file; that remains in the later fan-out step.",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Implemented in iteration 3. Files: prompts/second-wbs-session.md, README.md."
     }
   ]
 }

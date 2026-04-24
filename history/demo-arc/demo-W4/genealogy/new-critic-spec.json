@@ -1,0 +1,18 @@
+{
+  "name": "bounce-guard-critic",
+  "scope": "Landing-page experiments that lift reward while risking first-session bounce-rate regression.",
+  "description": "Flags visual, CSS, and copy changes that may increase immediate exits even when aggregate reward appears positive.",
+  "rationale": "Week 3 produced a gate-failing image win and a harmful CSS rollback, so Webster needs a dedicated critic for bounce-risk patterns before conservative W4 tuning ships.",
+  "focus_owned": [
+    "bounce-rate guardrail risk",
+    "above-the-fold visual aggression",
+    "reward-positive but gate-failing experiment patterns"
+  ],
+  "focus_not_owned": [
+    "general conversion copy",
+    "brand tone",
+    "technical SEO",
+    "clinical compliance"
+  ],
+  "severity_rubric": "P0 when a proposed change repeats a known bounce-rate gate failure; P1 when visual urgency may increase exits; P2 when copy or spacing weakly suggests bounce sensitivity."
+}
