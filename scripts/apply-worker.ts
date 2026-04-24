@@ -606,6 +606,23 @@ export function runCriticRerunGate(
   }
 
   const jsonStart = stdout.indexOf("{");
+  if (jsonStart < 0) {
+    return {
+      passed: false,
+      configured: true,
+      criticalCount: 1,
+      highCount: 0,
+      findings: [
+        {
+          critic: "critic-rerun-command",
+          severity: "CRITICAL",
+          issue: "Critic rerun command did not emit JSON findings.",
+        },
+      ],
+      output,
+    };
+  }
+
   const findings = parseCriticFindings(JSON.parse(stdout.slice(jsonStart)));
   const criticalCount = findings.filter((finding) => finding.severity === "CRITICAL").length;
   const highCount = findings.filter((finding) => finding.severity === "HIGH").length;
@@ -752,20 +769,26 @@ function parseVisualReviewFindings(
 ): { severity: Severity; issue: string; evidence?: string }[] {
   const jsonStart = output.indexOf("{");
   if (jsonStart >= 0) {
-    const parsed = JSON.parse(output.slice(jsonStart)) as { findings?: unknown };
-    if (Array.isArray(parsed.findings)) {
-      return parsed.findings.flatMap((finding) => {
-        if (!isRecord(finding)) {
-          return [];
-        }
-        return [
-          {
-            severity: parseSeverity(finding.severity, "visual_review.finding.severity"),
-            issue: expectString(finding.issue, "visual_review.finding.issue"),
-            evidence: typeof finding.evidence === "string" ? finding.evidence : undefined,
-          },
-        ];
-      });
+    try {
+      const parsed = JSON.parse(output.slice(jsonStart)) as { findings?: unknown };
+      if (Array.isArray(parsed.findings)) {
+        return parsed.findings.flatMap((finding) => {
+          if (!isRecord(finding)) {
+            return [];
+          }
+          return [
+            {
+              severity: parseSeverity(finding.severity, "visual_review.finding.severity"),
+              issue: expectString(finding.issue, "visual_review.finding.issue"),
+              evidence: typeof finding.evidence === "string" ? finding.evidence : undefined,
+            },
+          ];
+        });
+      }
+    } catch (error) {
+      if (!(error instanceof SyntaxError)) {
+        throw error;
+      }
     }
   }
 

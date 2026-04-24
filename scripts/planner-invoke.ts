@@ -71,7 +71,14 @@ function loadPlannerSpec(): AgentJSON {
     throw new Error(`planner spec missing at ${PLANNER_SPEC_PATH}`);
   }
 
-  return JSON.parse(readFileSync(PLANNER_SPEC_PATH, "utf8")) as AgentJSON;
+  try {
+    return JSON.parse(readFileSync(PLANNER_SPEC_PATH, "utf8")) as AgentJSON;
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new Error(`planner spec at ${PLANNER_SPEC_PATH} is invalid JSON: ${error.message}`);
+    }
+    throw error;
+  }
 }
 
 function loadEnvironmentId(): string {

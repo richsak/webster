@@ -46,7 +46,7 @@ export function verifyProposalIntent(proposal: string, renderedText: string): In
   });
 }
 
-function main(): void {
+function main(): boolean {
   const [proposalPath, renderedTextPath, outPath] = Bun.argv.slice(2);
   if (!proposalPath || !renderedTextPath || !outPath) {
     throw new Error(
@@ -58,11 +58,14 @@ function main(): void {
     readFileSync(renderedTextPath, "utf8"),
   );
   writeFileSync(outPath, `${JSON.stringify({ checks }, null, 2)}\n`);
+  return checks.every((check) => check.status === "PASS");
 }
 
 if (import.meta.main) {
   try {
-    main();
+    if (!main()) {
+      process.exit(1);
+    }
   } catch (error) {
     console.error((error as Error).message);
     process.exit(1);

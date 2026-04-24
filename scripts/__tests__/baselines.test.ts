@@ -64,8 +64,15 @@ describe("per-experiment baselines", () => {
         sustained_weeks: 2,
         event: "promote",
       });
-      expect(readBaselineRows).toBeDefined();
-      expect(readFileSync(path, "utf8")).toContain('"actor":"baseline-promoter"');
+      const promotionRow = JSON.parse(readFileSync(path, "utf8"));
+      expect(promotionRow).toMatchObject({
+        exp_id: "exp-01-hero",
+        promoted_sha: "new",
+        archived_sha: "old",
+        sustained_weeks: 2,
+        event: "promote",
+        actor: "baseline-promoter",
+      });
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

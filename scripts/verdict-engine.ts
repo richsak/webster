@@ -95,16 +95,6 @@ export function verdictForExperiment(
       lane: "fallback-promote",
     };
   }
-  if (rewardDelta > 0 && !gatesPassed) {
-    return {
-      exp_id: expId,
-      verdict: "archive",
-      confidence,
-      reward_delta: rewardDelta,
-      gate_status: gateStatus,
-      lane: "gate-win",
-    };
-  }
   if (rewardDelta < 0) {
     return {
       exp_id: expId,
