@@ -24,8 +24,8 @@
       "technicalNotes": "Build on scripts/apply-worker.ts:287-317 for parseDecision/parseProposal, 319-357 for applyMutation, 359-369 for runValidation, 372-393 for buildCommitMessage, 395-429 for commitExperiment, and 442-457 for emitSkip/writeApplyLog. Mirror CLI entrypoint/error shape from scripts/critic-genealogy.ts:676-694 and package script style from package.json scripts. Fixture artifact shapes are visible in history/2026-04-23/decision.json and history/2026-04-23/proposal.md.",
       "dependsOn": [],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented in iteration 1. Files: scripts/apply-worker-cli.ts, scripts/apply-worker.ts, package.json, .forge/ralph/apply-worker-cli-v5/prd.md."
     },
     {
       "id": "US-002",
@@ -47,7 +47,9 @@
         "Tests pass"
       ],
       "technicalNotes": "Use scripts/__tests__/memory.test.ts:1-18 as the temp-path and cleanup pattern. Exercise the CLI from US-001 rather than only unit-testing helper functions. Keep fixtures minimal but schema-faithful to history/2026-04-23/decision.json:1-25 and proposal markdown sections from history/2026-04-23/proposal.md:1-28. Inspect commit messages with git log in the isolated fixture repo. The broken-output case should prove runValidation from scripts/apply-worker.ts:359-369 prevents commitExperiment from scripts/apply-worker.ts:395-429.",
-      "dependsOn": ["US-001"],
+      "dependsOn": [
+        "US-001"
+      ],
       "priority": 2,
       "passes": false,
       "notes": ""
