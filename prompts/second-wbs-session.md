@@ -1,5 +1,22 @@
 # Second wbs session — full council fan-out + redesigner proposal
 
+This prompt runs one complete Webster weekly council pass: prepare the branch, run planner, fan out the managed-agent critics, optionally spawn a genealogy critic, synthesize the redesign proposal, and open the draft PR.
+Expect 30–50 minutes wall-clock because API sessions and branch writes are polled deliberately.
+The bash lives in markdown so a tired operator can read the intent, copy/re-run individual steps, and keep the orchestration auditable in git.
+
+1. [Pre-flight](#pre-flight-mandatory--do-not-skip)
+2. [Session constants](#session-constants)
+3. [Step 1 — Seed analytics history](#step-1--seed-10-week-mock-analytics-history-2-min-idempotent)
+4. [Step 2 — Prepare shared branch](#step-2--prepare-shared-branch-1-min)
+5. [Step 3 — Run planner](#step-3--run-planner-35-min)
+6. [Step 4 — Fan-out managed agents](#step-4--fan-out-6-parallel-managed-agent-sessions-1520-min)
+7. [Step 5 — Verify findings](#step-5--verify-findings-2-min)
+8. [Step 5.5 — Critic Genealogy](#step-55--critic-genealogy-010-min-fail-open)
+9. [Step 6 — Redesigner session](#step-6--redesigner-session-510-min)
+10. [Step 7 — Open draft PR](#step-7--open-draft-pr-1-min)
+11. [Step 8 — Checkpoint + exit](#step-8--checkpoint--exit)
+12. [Failure guide](#if-a-step-fails)
+
 > **Override default Operating Loop.** This is a council-run session. Execute the steps below end-to-end. Do NOT call `forge isolation list`, do NOT scan `FEATURES.md` for `todo` rows, do NOT enter a feature-implementation loop.
 
 ## What this session does
@@ -93,6 +110,8 @@ echo "WEEK_DATE=$WEEK_DATE  BRANCH=$BRANCH  LP_TARGET=$LP_TARGET"
 echo "ENV_ID=$ENV_ID  VAULT_ID=$VAULT_ID"
 ```
 
+Purpose: give the monitor enough prior-week baselines to make anomaly calls.
+
 ## Step 1 — Seed 10-week mock analytics history (2 min; idempotent)
 
 Monitor needs prior-week baselines to compute WoW deltas. If history is missing, it will write "Week 1 baseline: no prior week" and skip anomaly detection — survivable but wastes monitor spend.
@@ -159,6 +178,8 @@ else
 fi
 ```
 
+Purpose: put every local and remote writer on the same council branch.
+
 ## Step 2 — Prepare shared branch (1 min)
 
 All 6 parallel workers + the redesigner commit to `$BRANCH`. The critics' system prompts already create-or-skip the branch via `create_branch` MCP (422 on exists = proceed), so this local setup is about keeping your working tree consistent, not about creating the branch remotely.
@@ -175,6 +196,8 @@ else
   git push -u origin "$BRANCH"
 fi
 ```
+
+Purpose: turn memory, verdicts, and monitor context into the critic run plan.
 
 ## Step 3 — Run planner (3–5 min)
 
@@ -257,6 +280,8 @@ fi
 
 echo "✓ Planner output ready for critics: $PLAN_PATH"
 ```
+
+Purpose: run monitor and the five critics in parallel against the same plan and branch.
 
 ## Step 4 — Fan-out: 6 parallel Managed Agent sessions (15–20 min)
 
@@ -362,6 +387,8 @@ for L in "${LABELS[@]}"; do
 done
 ```
 
+Purpose: confirm enough real findings landed before spending redesigner tokens.
+
 ## Step 5 — Verify findings (2 min)
 
 Fetch the branch, confirm each agent actually wrote a non-stub findings file.
@@ -405,6 +432,8 @@ fi
 # Run our own gate against what the critics wrote — catches format drift
 bun scripts/validate-findings.ts
 ```
+
+Purpose: let Opus detect any unowned recurring scope and spawn a specialist if warranted.
 
 ## Step 5.5 — Critic Genealogy (0–10 min; fail-open)
 
@@ -456,6 +485,8 @@ git fetch origin "$BRANCH"
 git reset --hard "origin/$BRANCH"
 ```
 
+Purpose: synthesize findings into the week’s proposal and decision artifact.
+
 ## Step 6 — Redesigner session (5–10 min)
 
 Single synthesis call. Reads all findings on `$BRANCH`, commits `history/$WEEK_DATE/proposal.md` + `decision.json` to the same branch.
@@ -491,6 +522,8 @@ else
   echo "  decision.json: $([[ -f "$DECISION" ]] && echo present || echo MISSING)"
 fi
 ```
+
+Purpose: package the council run as a draft PR for human review.
 
 ## Step 7 — Open draft PR (1 min)
 
@@ -539,6 +572,8 @@ EOF
 fi
 echo "PR: $PR_URL"
 ````
+
+Purpose: write a durable completion checkpoint and leave the operator with next actions.
 
 ## Step 8 — Checkpoint + exit
 
