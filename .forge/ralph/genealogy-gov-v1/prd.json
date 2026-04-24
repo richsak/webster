@@ -68,8 +68,8 @@
         "US-002"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "Promoted findings source must be explicit and testable; if current history lacks rows, implement a deterministic parser/helper and fixture it rather than guessing from prose."
+      "passes": true,
+      "notes": "Implemented in iteration 3. Files: scripts/critic-genealogy.ts, scripts/__tests__/critic-genealogy.test.ts."
     }
   ]
 }
