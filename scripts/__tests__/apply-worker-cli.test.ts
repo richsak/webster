@@ -24,6 +24,15 @@ interface ApplyLogExperiment {
 
 interface ApplyLogFixture {
   experiments: ApplyLogExperiment[];
+  pr_emission?: {
+    clusters: {
+      experiment_ids: string[];
+      labels: string[];
+      draft: boolean;
+      title: string;
+    }[];
+    skipped_experiment_ids: string[];
+  };
 }
 
 function decode(output: Uint8Array<ArrayBufferLike>): string {
@@ -70,7 +79,11 @@ function writeJson(path: string, value: unknown): void {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function createFixtureRepo(testName: string, after: string): FixtureRepo {
+function createFixtureRepo(
+  testName: string,
+  after: string,
+  severity: "CRITICAL" | "HIGH" = "HIGH",
+): FixtureRepo {
   const root = join(tmpdir(), `apply-worker-cli-${testName}-${Date.now()}-${randomUUID()}`);
   const weekDir = join(root, WEEK_DIR);
   const targetFile = join(root, TARGET_FILE);
@@ -106,7 +119,7 @@ function createFixtureRepo(testName: string, after: string): FixtureRepo {
     selected_issues: [
       {
         owner: "copy",
-        severity: "HIGH",
+        severity,
         issue: "The homepage headline is unclear for clinic directors.",
         evidence: "copy/findings.md: The headline fails one-read clarity.",
         proposed_change:
@@ -122,7 +135,7 @@ function createFixtureRepo(testName: string, after: string): FixtureRepo {
       "",
       "## Issues selected (top 1)",
       "",
-      "### 1. [HIGH] Update homepage headline",
+      `### 1. [${severity}] Update homepage headline`,
       "",
       `**Target file(s):** \`${TARGET_FILE}\``,
       "",
@@ -184,6 +197,12 @@ describe("apply-worker CLI integration", () => {
         status: "applied",
       });
       expect(log.experiments[0]?.commit_sha).toEqual(expect.stringMatching(/^[0-9a-f]+$/));
+      expect(log.pr_emission?.clusters).toHaveLength(1);
+      expect(log.pr_emission?.clusters[0]).toMatchObject({
+        experiment_ids: ["exp-01-update-homepage-headline"],
+        labels: ["webster-apply"],
+        draft: false,
+      });
     } finally {
       removeFixtureRepo(repo);
     }
@@ -212,6 +231,10 @@ describe("apply-worker CLI integration", () => {
       expect(readFileSync(join(repo.weekDir, "skips.jsonl"), "utf8")).toContain(
         '"reason":"lint_failure"',
       );
+      expect(log.pr_emission?.clusters[0]).toMatchObject({
+        labels: ["webster-apply", "partial"],
+        draft: false,
+      });
     } finally {
       removeFixtureRepo(repo);
     }
@@ -250,6 +273,7 @@ describe("apply-worker CLI integration", () => {
     const repo = createFixtureRepo(
       "critic-veto",
       "<h1>Clinic directors get one clear protocol</h1>",
+      "CRITICAL",
     );
 
     try {
@@ -273,6 +297,11 @@ describe("apply-worker CLI integration", () => {
       expect(readFileSync(join(repo.weekDir, "skips.jsonl"), "utf8")).toContain(
         '"reason":"critic_veto"',
       );
+      expect(log.pr_emission?.clusters[0]).toMatchObject({
+        labels: ["webster-apply", "partial"],
+        draft: true,
+        title: "[partial] Webster apply cluster 1",
+      });
     } finally {
       removeFixtureRepo(repo);
     }

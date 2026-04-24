@@ -6,6 +6,7 @@ import {
   applyMutation,
   buildCommitMessage,
   buildExpectedExperimentId,
+  buildPrEmissionPlan,
   commitExperiment,
   emitSkip,
   parseDecision,
@@ -262,6 +263,7 @@ async function main(): Promise<number> {
     run_timestamp: new Date().toISOString(),
     experiments,
     validation_summary: validationSummary,
+    pr_emission: buildPrEmissionPlan(experiments),
   };
   writeApplyLog(args.weekDir, log);
   console.log(`wrote ${join(args.weekDir, "apply-log.json")}`);

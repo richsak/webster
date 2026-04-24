@@ -57,6 +57,23 @@ export interface ApplyExperiment {
   skip_details?: Record<string, unknown>;
 }
 
+export interface PrCluster {
+  id: string;
+  experiment_ids: string[];
+  files_touched: string[];
+  labels: string[];
+  draft: boolean;
+  title: string;
+  body: string;
+}
+
+export interface PrEmissionPlan {
+  mode: "plan-only" | "emitted";
+  max_prs: 3;
+  clusters: PrCluster[];
+  skipped_experiment_ids: string[];
+}
+
 export interface ApplyLogJSON {
   week: string;
   run_timestamp: string;
@@ -68,6 +85,7 @@ export interface ApplyLogJSON {
     runtime_validation_passed: boolean;
     critic_rerun_passed: boolean;
   };
+  pr_emission?: PrEmissionPlan;
 }
 
 export interface SkipRow {
@@ -652,6 +670,94 @@ export function emitSkip(weekDir: string, row: SkipRow): void {
 
   appendJsonLine(resolveWeekFilePath(weekDir, "skips.jsonl"), row);
   appendJsonLine(resolveWeekFilePath(weekDir, "memory.jsonl"), row);
+}
+
+function experimentFiles(experiment: ApplyExperiment): string[] {
+  return Array.from(new Set(experiment.mutations.map((mutation) => mutation.file))).sort();
+}
+
+function experimentsOverlap(left: ApplyExperiment, right: ApplyExperiment): boolean {
+  const rightFiles = new Set(experimentFiles(right));
+  return experimentFiles(left).some((file) => rightFiles.has(file));
+}
+
+function buildClusterBody(experiments: ApplyExperiment[]): string {
+  return experiments
+    .map((experiment) => {
+      const status =
+        experiment.status === "skipped" ? `skipped: ${experiment.skip_reason}` : "applied";
+      return `- ${experiment.exp_id} (${experiment.severity}, ${status}): ${experiment.title}`;
+    })
+    .join("\n");
+}
+
+export function buildPrEmissionPlan(experiments: ApplyExperiment[]): PrEmissionPlan {
+  const roots = experiments.map((_, index) => index);
+  const find = (index: number): number => {
+    while (roots[index] !== index) {
+      roots[index] = roots[roots[index] as number] as number;
+      index = roots[index] as number;
+    }
+    return index;
+  };
+  const union = (left: number, right: number): void => {
+    roots[find(right)] = find(left);
+  };
+
+  for (let left = 0; left < experiments.length; left += 1) {
+    for (let right = left + 1; right < experiments.length; right += 1) {
+      if (
+        experimentsOverlap(
+          experiments[left] as ApplyExperiment,
+          experiments[right] as ApplyExperiment,
+        )
+      ) {
+        union(left, right);
+      }
+    }
+  }
+
+  const grouped = new Map<number, ApplyExperiment[]>();
+  experiments.forEach((experiment, index) => {
+    const root = find(index);
+    grouped.set(root, [...(grouped.get(root) ?? []), experiment]);
+  });
+
+  const chunks = Array.from(grouped.values()).flatMap((group) => {
+    const sorted = [...group].sort((left, right) => left.exp_id.localeCompare(right.exp_id));
+    const output: ApplyExperiment[][] = [];
+    for (let index = 0; index < sorted.length; index += 3) {
+      output.push(sorted.slice(index, index + 3));
+    }
+    return output;
+  });
+
+  const selectedChunks = chunks.slice(0, 3);
+  const skippedExperimentIds = experiments
+    .filter((experiment) => experiment.status === "skipped")
+    .map((experiment) => experiment.exp_id);
+
+  return {
+    mode: "plan-only",
+    max_prs: 3,
+    skipped_experiment_ids: skippedExperimentIds,
+    clusters: selectedChunks.map((chunk, index) => {
+      const hasSkipped = chunk.some((experiment) => experiment.status === "skipped");
+      const hasCriticalSkipped = chunk.some(
+        (experiment) => experiment.status === "skipped" && experiment.severity === "CRITICAL",
+      );
+      const labels = ["webster-apply", ...(hasSkipped ? ["partial"] : [])];
+      return {
+        id: `cluster-${(index + 1).toString().padStart(2, "0")}`,
+        experiment_ids: chunk.map((experiment) => experiment.exp_id),
+        files_touched: Array.from(new Set(chunk.flatMap(experimentFiles))).sort(),
+        labels,
+        draft: hasCriticalSkipped,
+        title: `${hasSkipped ? "[partial] " : ""}Webster apply cluster ${index + 1}`,
+        body: buildClusterBody(chunk),
+      };
+    }),
+  };
 }
 
 export function writeApplyLog(weekDir: string, log: ApplyLogJSON): void {
