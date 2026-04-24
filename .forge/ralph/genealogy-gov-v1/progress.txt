@@ -1,0 +1,33 @@
+## Codebase Patterns
+
+### Governance helpers stay pure and injectable
+- **Where**: `scripts/critic-genealogy.ts`
+- **Pattern**: Put governance decisions in exported pure helpers and inject data providers, then call the helper in `main()` immediately before the side-effecting API boundary.
+- **Example**: `evaluateCriticDedup(candidate, critics, embed)` runs before `registerAgent()` and is tested with deterministic vectors.
+
+---
+
+## 2026-04-24T00:00:00.000Z — US-001: Layer 2 embedding dedup blocks overlapping critic specs
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/critic-genealogy.ts` — added cosine-similarity dedup helper over candidate/existing critic scope and description, governance rejection output, and pre-registration gate.
+- `scripts/__tests__/critic-genealogy.test.ts` — added no-network unit coverage for below-threshold allow, exact 0.60 reject, and above-threshold reject behavior.
+- `.forge/ralph/genealogy-gov-v1/prd.md` — fixed markdownlint MD036 formatting so `bun run validate` can pass.
+- `.forge/ralph/genealogy-gov-v1/prd.json` — marked US-001 complete.
+
+**Acceptance criteria verified**:
+- [x] Add an orchestrator-side dedup helper in `scripts/critic-genealogy.ts` that compares a candidate `NewCriticSpec` against active `CriticSummary` entries using embedding cosine similarity over scope and description text.
+- [x] Reject candidate specs with cosine similarity >= 0.60 to any active critic before `registerAgent()` performs `POST /v1/agents`.
+- [x] Governance rejection prints the closest existing critic name, similarity score, and candidate scope without registering an agent or creating a session.
+- [x] Dry-run mode still runs and reports the dedup decision before printing a would-register spec.
+- [x] Unit tests cover below-threshold allow, exactly-0.60 reject, and above-threshold reject behavior without live Anthropic network calls.
+- [x] Type-check passes.
+- [x] Tests pass.
+- [x] `bun run validate` passes.
+
+**Learnings**:
+- `bun run validate` includes markdownlint over `.forge/ralph/**/*.md`; generated PRD footer emphasis triggered MD036 and had to be normalized.
+- The local package has no `cli` script, so Ralph workflow event emits fail harmlessly with `Script not found "cli"` under the required `|| true` guard.
+
+---
