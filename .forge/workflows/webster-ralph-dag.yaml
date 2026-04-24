@@ -28,8 +28,12 @@ nodes:
     bash: |
       set -e
 
-      # Read $ARGUMENTS via heredoc so shell-special characters in the user
-      # message (quotes, $, `, etc.) cannot inject into the script.
+      # Wrap the user message in a single-quoted heredoc so shell-special chars
+      # (quotes, dollar signs, backticks, etc.) in the argument cannot inject
+      # into the surrounding script. Forge templates the argument into the
+      # heredoc body only — never reference the template var name in any
+      # comment, because Forge substitutes it literally and a multi-line
+      # message can break out of single-line comments and turn into commands.
       ARG=$(cat <<'___FORGE_ARG_MARKER_XY7Z9___'
       $ARGUMENTS
       ___FORGE_ARG_MARKER_XY7Z9___
@@ -60,24 +64,17 @@ nodes:
         cp "$ARG" "$PRD_DIR/prd.md"
         INPUT_TYPE="external_prd"
 
-      # Case C: auto-discover existing ralph dir if arg doesn't point to one
+      # Case C: free text, derive slug for a fresh PRD.
+      # Intentionally no auto-discover of leftover .forge/ralph/*/ dirs here —
+      # that silently hijacked fresh dispatches whenever a prior completed PRD
+      # remained on disk, causing the implement loop to spin against a done
+      # PRD and hit max_iterations. If an operator wants to resume an existing
+      # PRD, they pass the dir path explicitly (handled in Case A above).
       else
-        EXISTING=$(find .forge/ralph -maxdepth 2 -name "prd.json" -type f 2>/dev/null | head -1)
-        if [ -n "$EXISTING" ]; then
-          CANDIDATE=$(dirname "$EXISTING")
-          if [ -f "$CANDIDATE/prd.md" ]; then
-            INPUT_TYPE="ready"
-            PRD_DIR="$CANDIDATE"
-          fi
-        fi
-
-        # Case C proper: free text, derive slug
-        if [ -z "$PRD_DIR" ]; then
-          SLUG=$(derive_slug "$ARG")
-          [ -z "$SLUG" ] && SLUG="ralph-$(date +%s)"
-          PRD_DIR=".forge/ralph/$SLUG"
-          INPUT_TYPE="needs_generation"
-        fi
+        SLUG=$(derive_slug "$ARG")
+        [ -z "$SLUG" ] && SLUG="ralph-$(date +%s)"
+        PRD_DIR=".forge/ralph/$SLUG"
+        INPUT_TYPE="needs_generation"
       fi
 
       # Emit JSON object on stdout so downstream nodes can read input_type / prd_dir.

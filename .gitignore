@@ -17,3 +17,6 @@ tmp/
 .claude/scheduled_tasks.lock
 *.zip
 !examples/**/*.zip
+
+# Ralph PRD artifacts — regenerated per dispatch
+.forge/ralph/
