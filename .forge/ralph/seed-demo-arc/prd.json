@@ -1,0 +1,95 @@
+{
+  "project": "Webster",
+  "branchName": "feat/seed-demo-arc",
+  "prdFile": "prd.md",
+  "description": "Seed script that writes the full 4-week Q9 demo arc artifact tree under history/demo-arc/ — 9 experiments, 6 Q4 outcome lanes, 1 genealogy spawn, idempotent.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Types, interfaces, constants, and directory scaffold",
+      "description": "As a demo runner, I want the seeder's foundational layer in place — TypeScript types, experiment spec constants, and the directory clear/create logic — so that subsequent artifact-writer stories can import and use them without duplication.",
+      "acceptanceCriteria": [
+        "File `scripts/seed-demo-arc.ts` exists and is runnable via `bun run scripts/seed-demo-arc.ts`",
+        "TODO comment at top of file notes integration follow-up with story #51 (memory substrate) and story #47 (proposal schema v2)",
+        "Interfaces defined: `MemoryRow`, `BaselineRow`, `ExperimentVerdict`, `VerdictJSON`, `AgentJSON`, `NewCriticSpec` — shapes match DOMAIN-MODEL.md verbatim",
+        "EXPERIMENT_SPECS constant array defines all 9 experiments with: exp_id, week, kind, reward_delta_pct, p_value, gate outcomes, outcome lane — values match Q9 demo arc table in DOMAIN-MODEL.md:411-416",
+        "ROOT constant uses `resolve(import.meta.dir, '..')` (mirrors scripts/critic-genealogy.ts:29)",
+        "DEMO_ARC_DIR constant points to `history/demo-arc/`",
+        "initDemoArcDir() function: calls `rmSync(DEMO_ARC_DIR, { recursive: true, force: true })` then `mkdirSync` for all 4 week subdirs + genealogy subdir — no silent fallback on mkdir failure",
+        "`bun run type-check` passes with zero errors",
+        "`bun run lint` passes with zero warnings",
+        "`bun run format:check` passes"
+      ],
+      "technicalNotes": "Mirror import style from scripts/critic-genealogy.ts:16-18 (node:fs, node:path only). Use `import { rmSync, mkdirSync, writeFileSync } from 'node:fs'` and `import { join, resolve } from 'node:path'`. Week directories: `demo-W1` through `demo-W4` as string constants. No external deps. strict TypeScript — no implicit any, no unused locals.",
+      "dependsOn": [],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "W1 + W2 artifact writers (4 experiments)",
+      "description": "As a demo runner, I want weeks 1 and 2 fully seeded — covering the cold-start fast-track win (W1) and the parallel-experiment week with fast-track + fallback + gate-win outcomes (W2) — so that the first half of the demo arc is readable by planner and critics.",
+      "acceptanceCriteria": [
+        "`history/demo-arc/demo-W1/proposal.md` exists with a kind-aware issue block for exp-01-hero-h1-rewrite (kind: text)",
+        "`history/demo-arc/demo-W1/decision.json` exists with week, selected_issues (1 entry for exp-01), reasoning, monitor_signal fields",
+        "`history/demo-arc/demo-W1/verdict.json` exists — shape matches VerdictJSON interface; exp-01 entry has reward_delta_pct=15, p_value=0.003, all gates pass, classification=improved, outcome=promote-fast-track",
+        "`history/demo-arc/demo-W2/proposal.md` exists with 3 kind-aware issue blocks: exp-02 (text), exp-03 (component), exp-04 (asset)",
+        "`history/demo-arc/demo-W2/decision.json` exists with 3 selected_issues entries",
+        "`history/demo-arc/demo-W2/verdict.json` exists — exp-02: reward_delta_pct=8, p_value=0.02, outcome=promote-fallback; exp-03: reward_delta_pct=12, p_value=0.006, outcome=promote-fast-track; exp-04: reward_delta_pct=0, brand_voice gate=improved, outcome=promote-gate-win",
+        "`history/demo-arc/baselines.jsonl` contains 4 rows after W1+W2 run (exp-01: promoted; exp-02: promoted; exp-03: promoted; exp-04: promoted)",
+        "`history/demo-arc/memory.jsonl` contains ≥6 rows after W1+W2 run — at minimum: verdict-ready + promote events for each of the 4 experiments",
+        "All JSON files parse without error (`JSON.parse` on file content succeeds)",
+        "`bun run type-check` passes with zero errors"
+      ],
+      "technicalNotes": "Write functions: `writeProposal(week, experiments)`, `writeDecision(week, experiments)`, `writeVerdict(week, experiments)`, `appendMemoryRows(rows)`, `appendBaselineRows(rows)`. Use `writeFileSync` for JSON/MD and append-pattern `appendFileSync` for JSONL (each row is `JSON.stringify(row) + '\\n'`). proposal.md format mirrors history/2026-04-23/proposal.md — markdown with `## Experiments` section, each exp as a subsection with kind, target files, proposed change. decision.json mirrors history/2026-04-23/decision.json shape: `{ week, selected_issues[], reasoning, monitor_signal }`.",
+      "dependsOn": ["US-001"],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "W3 artifact writers — gate-fail + rollback beat",
+      "description": "As a demo runner, I want week 3 seeded with the dramatic gate-fail and auto-rollback events — so that the demo shows the safety net firing and the learning-insight capture path working.",
+      "acceptanceCriteria": [
+        "`history/demo-arc/demo-W3/proposal.md` exists with 3 kind-aware issue blocks: exp-05 (asset), exp-06 (css), exp-07 (text)",
+        "`history/demo-arc/demo-W3/decision.json` exists with 3 selected_issues and a reasoning field that explains the intentional overshoot direction",
+        "`history/demo-arc/demo-W3/verdict.json` exists — exp-05: reward_delta_pct=10, p_value=0.008, bounce_rate gate=fail, outcome=archive-gate-fail; exp-06: reward_delta_pct=-11, p_value=0.004, classification=hurt, outcome=auto-rollback; exp-07: reward_delta_pct=4, p_value=0.08, classification=neutral, outcome=hold",
+        "`history/demo-arc/baselines.jsonl` contains 3 new rows after W3: exp-05 status=archived-gate-fail, exp-06 status=rolled-back, exp-07 absent (hold means no baseline row written)",
+        "`history/demo-arc/memory.jsonl` contains ≥5 new rows for W3: verdict-ready for each exp + rollback event for exp-06 (actor=verdict, event=rollback) + regression event for exp-05 (actor=verdict, event=regression) with insight about gate-fail pattern",
+        "Total baselines.jsonl row count is 7 (4 from W1+W2 + 3 from W3 — exp-07 hold produces no baseline row)",
+        "`bun run type-check` passes with zero errors"
+      ],
+      "technicalNotes": "Rollback memory row: `{ ts, week: 'demo-W3', actor: 'verdict', event: 'rollback', refs: { exp_id: 'exp-06-cta-color-shift' }, insight: 'Auto-rollback fired on exp-06: -11% reward p=0.004 exceeds auto-rollback threshold (p<0.01 negative).' }`. Gate-fail row: `{ actor: 'verdict', event: 'regression', refs: { exp_id: 'exp-05-mid-section-image-swap' }, insight: 'Bounce rate regressed +8% p=0.03 on asset swap — archived as reward+gate-fail learning insight.' }`. Hold experiments (exp-07) do NOT get a baselines.jsonl row — status hold means baseline unchanged.",
+      "dependsOn": ["US-002"],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "W4 artifacts, genealogy mock, main entry, idempotency, validate",
+      "description": "As a demo runner, I want week 4 seeded with both fast-track promotions and the bounce-guard-critic genealogy spawn mock — and the full script wired as a runnable entry point that is idempotent and passes bun run validate.",
+      "acceptanceCriteria": [
+        "`history/demo-arc/demo-W4/proposal.md` exists with 2 kind-aware issue blocks: exp-08 (text), exp-09 (css); planner reasoning notes conservative tuning in response to W3 pattern",
+        "`history/demo-arc/demo-W4/decision.json` exists with 2 selected_issues + monitor_signal noting bounce anomaly from W3 as motivation for new critic",
+        "`history/demo-arc/demo-W4/verdict.json` exists — exp-08: reward_delta_pct=9, p_value=0.01, all gates pass, outcome=promote-fast-track; exp-09: reward_delta_pct=6, p_value=0.03, all gates pass, outcome=promote-fast-track",
+        "`history/demo-arc/demo-W4/genealogy/spec.json` exists — shape matches NewCriticSpec: name=bounce-guard-critic, scope=bounce-guard, rationale references W3 gate-fail pattern, focus_owned has ≥3 items, focus_not_owned has ≥3 items, severity_rubric ≥50 chars",
+        "`history/demo-arc/demo-W4/genealogy/session.json` exists — mock session snapshot object with id, status=completed, agent fields",
+        "`history/demo-arc/demo-W4/genealogy/rationale.md` exists — markdown with `# Genealogy — week demo-W4` header + rationale paragraph",
+        "`agents/bounce-guard-critic.json` is written ONLY if the file does not already exist (skip, do not overwrite existing file); shape matches AgentJSON interface",
+        "`history/demo-arc/baselines.jsonl` final row count = 9 (exp-08 + exp-09 both promoted)",
+        "`history/demo-arc/memory.jsonl` final row count ≥18 — includes gap-detected event for W4 genealogy spawn (actor=planner, event=gap-detected, insight references bounce-guard gap)",
+        "Running script twice produces identical `history/demo-arc/` tree (idempotency: clear-first via `rmSync` on `DEMO_ARC_DIR` before repopulate)",
+        "`bun run validate` exits 0 with zero lint warnings",
+        "`bun test` passes (test in `scripts/__tests__/seed-demo-arc.test.ts` verifies: file tree exists, baselines.jsonl has 9 rows, memory.jsonl has ≥18 rows, all verdict.json files parse, idempotency via two-run comparison)"
+      ],
+      "technicalNotes": "Main entry: `async function main() { initDemoArcDir(); writeW1(); writeW2(); writeW3(); writeW4(); console.log('Demo arc seeded.'); }`. Idempotency anchor: `initDemoArcDir()` calls `rmSync(DEMO_ARC_DIR, { recursive: true, force: true })` before any writes. agents/bounce-guard-critic.json guard: `if (!existsSync(agentPath)) { writeFileSync(...) }`. AgentJSON for bounce-guard-critic: model='claude-sonnet-4-6', copy tools array from `agents/brand-voice-critic.json` template (matches critic-genealogy.ts pattern). Test file mirrors `scripts/__tests__/critic-genealogy.test.ts` structure: imports from bun:test, uses `afterAll` to clean up. genealogy/session.json mock shape: `{ id: 'ses_mock-w4-genealogy', status: 'completed', agent: 'bounce-guard-critic', created_at: '<iso>' }`.",
+      "dependsOn": ["US-003"],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
