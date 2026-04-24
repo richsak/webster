@@ -75,7 +75,7 @@ nodes:
         fi
       fi
 
-      # Emit JSON object on stdout so $detect-input.output.input_type resolves
+      # Emit JSON object on stdout so downstream nodes can read input_type / prd_dir.
       printf '{"input_type":"%s","prd_dir":"%s"}\n' "$INPUT_TYPE" "$PRD_DIR"
 
   # ═══════════════════════════════════════════════════════════════
