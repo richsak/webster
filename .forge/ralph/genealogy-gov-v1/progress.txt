@@ -1,0 +1,88 @@
+## Codebase Patterns
+
+### Archive-on-idle uses explicit decision owners
+- **Where**: `scripts/critic-genealogy.ts`
+- **Pattern**: Treat `history/<week>/genealogy/spec.json` as spawn provenance and `history/<week>/decision.json:selected_issues[].owner` as promoted-finding evidence; move agent specs with `renameSync` to preserve bytes.
+- **Example**: `archiveIdleSpawnedCritics(agentsDir, historyRoot, weekDate)` runs before `loadExistingCritics()` in `main()`.
+
+### Governance helpers stay pure and injectable
+- **Where**: `scripts/critic-genealogy.ts`
+- **Pattern**: Put governance decisions in exported pure helpers and inject data providers, then call the helper in `main()` immediately before the side-effecting API boundary.
+- **Example**: `evaluateCriticDedup(candidate, critics, embed)` runs before `registerAgent()` and is tested with deterministic vectors.
+
+---
+
+## 2026-04-24T00:00:00.000Z — US-001: Layer 2 embedding dedup blocks overlapping critic specs
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/critic-genealogy.ts` — added cosine-similarity dedup helper over candidate/existing critic scope and description, governance rejection output, and pre-registration gate.
+- `scripts/__tests__/critic-genealogy.test.ts` — added no-network unit coverage for below-threshold allow, exact 0.60 reject, and above-threshold reject behavior.
+- `.forge/ralph/genealogy-gov-v1/prd.md` — fixed markdownlint MD036 formatting so `bun run validate` can pass.
+- `.forge/ralph/genealogy-gov-v1/prd.json` — marked US-001 complete.
+
+**Acceptance criteria verified**:
+- [x] Add an orchestrator-side dedup helper in `scripts/critic-genealogy.ts` that compares a candidate `NewCriticSpec` against active `CriticSummary` entries using embedding cosine similarity over scope and description text.
+- [x] Reject candidate specs with cosine similarity >= 0.60 to any active critic before `registerAgent()` performs `POST /v1/agents`.
+- [x] Governance rejection prints the closest existing critic name, similarity score, and candidate scope without registering an agent or creating a session.
+- [x] Dry-run mode still runs and reports the dedup decision before printing a would-register spec.
+- [x] Unit tests cover below-threshold allow, exactly-0.60 reject, and above-threshold reject behavior without live Anthropic network calls.
+- [x] Type-check passes.
+- [x] Tests pass.
+- [x] `bun run validate` passes.
+
+**Learnings**:
+- `bun run validate` includes markdownlint over `.forge/ralph/**/*.md`; generated PRD footer emphasis triggered MD036 and had to be normalized.
+- The local package has no `cli` script, so Ralph workflow event emits fail harmlessly with `Script not found "cli"` under the required `|| true` guard.
+
+---
+## 2026-04-24T08:29:55.000Z — US-002: Layer 3 13-week cap with operator soft override
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/critic-genealogy.ts` — added `--override-quarterly-cap`, rolling 13-week genealogy spawn counting, malformed in-window spec validation, and pre-registration cap gate.
+- `scripts/__tests__/critic-genealogy.test.ts` — added no-network unit coverage for count 0, count 2 allow, count 3 block, count 3 override allow, exactly-13-week boundary inclusion, and malformed in-window genealogy spec failure.
+- `.forge/ralph/genealogy-gov-v1/prd.json` — marked US-002 complete.
+
+**Acceptance criteria verified**:
+- [x] Add a CLI soft-override flag, named `--override-quarterly-cap` or equivalent, to `parseArgs()` and `CLIArgs` in `scripts/critic-genealogy.ts`.
+- [x] Count spawned critic specs from `history/<YYYY-MM-DD>/genealogy/spec.json` in the rolling 13-week window ending at `args.weekDate`.
+- [x] Block registration when the count is already 3 or more and the override flag is false.
+- [x] Allow registration when the count is 3 or more only if the override flag is true, and print an explicit operator override message.
+- [x] Ignore malformed or missing non-genealogy history directories only when they are irrelevant; malformed in-window genealogy spec data fails loudly with an actionable error.
+- [x] Unit tests cover count 0, count 2 allow, count 3 block, count 3 with override allow, and boundary dates at exactly 13 weeks.
+- [x] Type-check passes.
+- [x] Tests pass.
+- [x] `bun run validate` passes.
+
+**Learnings**:
+- The registration choke point now has two pure governance gates before API side effects: dedup first, then quarterly cap before `registerAgent()` and `createSession()`.
+- Treat the 13-week boundary as inclusive: a spawn exactly 91 days before `args.weekDate` counts toward the cap.
+- Non-date history directories can be ignored; in-window `genealogy/spec.json` files must parse as agent-like JSON so broken genealogy artifacts fail loudly.
+
+---
+## 2026-04-24T09:15:00.000Z — US-003: Layer 4 archive idle spawned critics
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/critic-genealogy.ts` — added genealogy-spawn provenance loading, promoted-finding owner parsing from decision history, archive-on-idle moves to `agents/archive/`, and startup pruning before active critic loading.
+- `scripts/__tests__/critic-genealogy.test.ts` — added unit coverage for idle spawned critic archival, active spawned critic retention, original critic retention, archived critic exclusion from active summaries, promoted owner parsing, and spawned provenance loading.
+- `.forge/ralph/genealogy-gov-v1/prd.json` — marked US-003 complete.
+
+**Acceptance criteria verified**:
+- [x] Add archive-on-idle logic in `scripts/critic-genealogy.ts` that evaluates spawned critics and moves idle specs from `agents/<name>.json` to `agents/archive/<name>.json`.
+- [x] A spawned critic is archived only when it has 0 findings promoted across the last 8 weeks; critics with at least 1 promoted finding in that window remain active.
+- [x] Original committed baseline critics are not archived by the idle rule unless history proves they were genealogy-spawned.
+- [x] `loadExistingCritics()` continues to load only active `agents/*-critic.json` files and excludes `agents/archive/*.json` by path.
+- [x] Archive actions create `agents/archive/` if missing and preserve the JSON spec byte-for-byte except for formatting caused by existing JSON write conventions if needed.
+- [x] Unit tests cover idle spawned critic archived, active spawned critic retained, original critic retained, and archived critic excluded from active critic summaries.
+- [x] Type-check passes.
+- [x] Tests pass.
+- [x] `bun run validate` passes.
+
+**Learnings**:
+- Spawned-critic provenance should come from `history/<week>/genealogy/spec.json`, not from current agent names alone, so baseline critics are safe by default.
+- Promoted-finding evidence is explicit in `decision.json:selected_issues[].owner`; missing decision files mean no promoted findings for that week, while malformed present decision files fail loudly.
+- `renameSync` preserves archived agent JSON bytes and avoids rewriting specs during governance pruning.
+
+---

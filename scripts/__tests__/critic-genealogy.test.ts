@@ -1,13 +1,20 @@
 import { describe, expect, test } from "bun:test";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
-import { readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import {
   CLIError,
+  archiveIdleSpawnedCritics,
   buildGapPrompt,
   buildSystemPrompt,
+  countRecentGenealogySpawns,
+  evaluateCriticDedup,
+  evaluateQuarterlyCap,
   loadExistingCritics,
+  loadPromotedFindingOwners,
+  loadSpawnedCritics,
   parseArgs,
   spliceNewSpec,
   type AgentJSON,
@@ -47,6 +54,7 @@ describe("parseArgs", () => {
     expect(args.branch).toBe("council/2026-04-23");
     expect(args.weekDate).toBe("2026-04-23");
     expect(args.dryRun).toBe(true);
+    expect(args.overrideQuarterlyCap).toBe(false);
     expect(args.fixtures).toBe(null);
   });
 
@@ -54,6 +62,11 @@ describe("parseArgs", () => {
     const args = parseArgs(["--fixtures", "scripts/__tests__/fixtures/genealogy"]);
     expect(args.fixtures).toBe("scripts/__tests__/fixtures/genealogy");
     expect(args.branch).toBe(null);
+  });
+
+  test("parses --override-quarterly-cap", () => {
+    const args = parseArgs(["--branch", "council/2026-04-23", "--override-quarterly-cap"]);
+    expect(args.overrideQuarterlyCap).toBe(true);
   });
 
   test("defaults lpTarget and weekDate", () => {
@@ -87,6 +100,220 @@ describe("loadExistingCritics", () => {
     for (const c of loadExistingCritics()) {
       expect(c.description.length).toBeGreaterThan(20);
     }
+  });
+
+  test("excludes archived critic specs from active summaries", () => {
+    const agentsDir = makeHistoryFixture();
+    writeAgentSpec(agentsDir, "active-critic", "active");
+    mkdirSync(join(agentsDir, "archive"), { recursive: true });
+    writeAgentSpec(join(agentsDir, "archive"), "archived-critic", "archived");
+
+    const summaries = loadExistingCritics(agentsDir);
+    expect(summaries.map((critic) => critic.name)).toEqual(["active-critic"]);
+  });
+});
+
+function makeHistoryFixture(): string {
+  return mkdtempSync(join(tmpdir(), "webster-genealogy-history-"));
+}
+
+function writeAgentSpec(agentsDir: string, name: string, scope: string): string {
+  mkdirSync(agentsDir, { recursive: true });
+  const spec = {
+    name,
+    description: `${name} fixture description long enough for active critic loading`,
+    model: "claude-sonnet-4-6",
+    system: "fixture system",
+    tools: [],
+    metadata: { role: "critic", scope },
+  } satisfies AgentJSON;
+  const path = join(agentsDir, `${name}.json`);
+  writeFileSync(path, `${JSON.stringify(spec, null, 2)}\n`);
+  return path;
+}
+
+function writeGenealogySpec(
+  historyRoot: string,
+  weekDate: string,
+  name = `${weekDate}-critic`,
+  scope = name.replace(/-critic$/, ""),
+): void {
+  const dir = join(historyRoot, weekDate, "genealogy");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, "spec.json"),
+    JSON.stringify({ name, description: "Spawned critic fixture", metadata: { scope } }),
+  );
+}
+
+function writeDecision(historyRoot: string, weekDate: string, owners: string[]): void {
+  const dir = join(historyRoot, weekDate);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, "decision.json"),
+    JSON.stringify({ week: weekDate, selected_issues: owners.map((owner) => ({ owner })) }),
+  );
+}
+
+describe("archive-on-idle governance", () => {
+  test("archives idle spawned critics with no promoted findings in 8 weeks", () => {
+    const agentsDir = makeHistoryFixture();
+    const historyRoot = makeHistoryFixture();
+    const originalBytes = '{\n  "name": "visual-design-critic",\n  "description": "Fixture"\n}\n';
+    writeGenealogySpec(historyRoot, "2026-04-03", "visual-design-critic", "visual-design");
+    mkdirSync(agentsDir, { recursive: true });
+    writeFileSync(join(agentsDir, "visual-design-critic.json"), originalBytes);
+
+    const result = archiveIdleSpawnedCritics(agentsDir, historyRoot, "2026-04-24");
+
+    expect(result.archived).toEqual(["visual-design-critic"]);
+    expect(existsSync(join(agentsDir, "visual-design-critic.json"))).toBe(false);
+    const archivedPath = join(agentsDir, "archive", "visual-design-critic.json");
+    expect(readFileSync(archivedPath, "utf8")).toBe(originalBytes);
+  });
+
+  test("retains spawned critics with at least one promoted finding in 8 weeks", () => {
+    const agentsDir = makeHistoryFixture();
+    const historyRoot = makeHistoryFixture();
+    writeAgentSpec(agentsDir, "visual-design-critic", "visual-design");
+    writeGenealogySpec(historyRoot, "2026-04-03", "visual-design-critic", "visual-design");
+    writeDecision(historyRoot, "2026-04-17", ["visual-design"]);
+
+    const result = archiveIdleSpawnedCritics(agentsDir, historyRoot, "2026-04-24");
+
+    expect(result.retained).toEqual(["visual-design-critic"]);
+    expect(result.archived).toEqual([]);
+    expect(existsSync(join(agentsDir, "visual-design-critic.json"))).toBe(true);
+  });
+
+  test("retains original critics without genealogy provenance", () => {
+    const agentsDir = makeHistoryFixture();
+    const historyRoot = makeHistoryFixture();
+    writeAgentSpec(agentsDir, "brand-voice-critic", "brand-voice");
+
+    const result = archiveIdleSpawnedCritics(agentsDir, historyRoot, "2026-04-24");
+
+    expect(result.archived).toEqual([]);
+    expect(existsSync(join(agentsDir, "brand-voice-critic.json"))).toBe(true);
+  });
+
+  test("promoted findings use explicit selected issue owners from decision history", () => {
+    const historyRoot = makeHistoryFixture();
+    writeDecision(historyRoot, "2026-04-10", ["visual-design"]);
+    writeDecision(historyRoot, "2026-02-01", ["stale-owner"]);
+
+    expect([...loadPromotedFindingOwners(historyRoot, "2026-04-24")]).toEqual(["visual-design"]);
+  });
+
+  test("loads spawned critic provenance from genealogy specs", () => {
+    const historyRoot = makeHistoryFixture();
+    writeGenealogySpec(historyRoot, "2026-04-03", "visual-design-critic", "visual-design");
+
+    expect(loadSpawnedCritics(historyRoot)).toEqual([
+      { name: "visual-design-critic", scope: "visual-design" },
+    ]);
+  });
+});
+
+describe("quarterly cap governance", () => {
+  test("counts 0 spawned critics in an empty history", () => {
+    const historyRoot = makeHistoryFixture();
+    expect(countRecentGenealogySpawns(historyRoot, "2026-04-24")).toBe(0);
+    const decision = evaluateQuarterlyCap(historyRoot, "2026-04-24", false);
+    expect(decision.allowed).toBe(true);
+    expect(decision.recentSpawnCount).toBe(0);
+  });
+
+  test("allows count 2 below the cap", () => {
+    const historyRoot = makeHistoryFixture();
+    writeGenealogySpec(historyRoot, "2026-04-10");
+    writeGenealogySpec(historyRoot, "2026-04-17");
+    const decision = evaluateQuarterlyCap(historyRoot, "2026-04-24", false);
+    expect(decision.allowed).toBe(true);
+    expect(decision.recentSpawnCount).toBe(2);
+  });
+
+  test("blocks count 3 without override", () => {
+    const historyRoot = makeHistoryFixture();
+    writeGenealogySpec(historyRoot, "2026-04-03");
+    writeGenealogySpec(historyRoot, "2026-04-10");
+    writeGenealogySpec(historyRoot, "2026-04-17");
+    const decision = evaluateQuarterlyCap(historyRoot, "2026-04-24", false);
+    expect(decision.allowed).toBe(false);
+    expect(decision.recentSpawnCount).toBe(3);
+    expect(decision.overrideUsed).toBe(false);
+  });
+
+  test("allows count 3 with operator override", () => {
+    const historyRoot = makeHistoryFixture();
+    writeGenealogySpec(historyRoot, "2026-04-03");
+    writeGenealogySpec(historyRoot, "2026-04-10");
+    writeGenealogySpec(historyRoot, "2026-04-17");
+    const decision = evaluateQuarterlyCap(historyRoot, "2026-04-24", true);
+    expect(decision.allowed).toBe(true);
+    expect(decision.recentSpawnCount).toBe(3);
+    expect(decision.overrideUsed).toBe(true);
+  });
+
+  test("includes boundary dates exactly 13 weeks back and excludes older spawns", () => {
+    const historyRoot = makeHistoryFixture();
+    writeGenealogySpec(historyRoot, "2026-01-23");
+    writeGenealogySpec(historyRoot, "2026-01-22");
+    const decision = evaluateQuarterlyCap(historyRoot, "2026-04-24", false);
+    expect(decision.recentSpawnCount).toBe(1);
+    expect(decision.windowStart).toBe("2026-01-23");
+  });
+
+  test("fails loudly on malformed in-window genealogy spec data", () => {
+    const historyRoot = makeHistoryFixture();
+    mkdirSync(join(historyRoot, "2026-04-17", "genealogy"), { recursive: true });
+    writeFileSync(join(historyRoot, "2026-04-17", "genealogy", "spec.json"), "not-json");
+    mkdirSync(join(historyRoot, "not-a-week", "genealogy"), { recursive: true });
+    expect(() => evaluateQuarterlyCap(historyRoot, "2026-04-24", false)).toThrow(
+      /malformed genealogy history/,
+    );
+  });
+});
+
+describe("evaluateCriticDedup", () => {
+  const candidate: NewCriticSpec = {
+    ...SAMPLE_SPEC,
+    scope: "accessibility",
+    description: "Accessibility audit for contrast and keyboard focus.",
+  };
+  const critics = [
+    {
+      name: "existing-critic",
+      scope: "existing",
+      description: "Existing critic description.",
+    },
+  ];
+
+  test("allows a candidate below the 0.60 similarity threshold", () => {
+    const decision = evaluateCriticDedup(candidate, critics, (text) =>
+      text.includes("accessibility") ? [1, 0] : [0.59, Math.sqrt(1 - 0.59 * 0.59)],
+    );
+    expect(decision.allowed).toBe(true);
+    expect(decision.closestCritic?.name).toBe("existing-critic");
+    expect(decision.similarity).toBeCloseTo(0.59, 5);
+  });
+
+  test("rejects a candidate exactly at the 0.60 similarity threshold", () => {
+    const decision = evaluateCriticDedup(candidate, critics, (text) =>
+      text.includes("accessibility") ? [1, 0] : [0.6, 0.8],
+    );
+    expect(decision.allowed).toBe(false);
+    expect(decision.closestCritic?.name).toBe("existing-critic");
+    expect(decision.similarity).toBeCloseTo(0.6, 5);
+  });
+
+  test("rejects a candidate above the 0.60 similarity threshold", () => {
+    const decision = evaluateCriticDedup(candidate, critics, (text) =>
+      text.includes("accessibility") ? [1, 0] : [0.75, Math.sqrt(1 - 0.75 * 0.75)],
+    );
+    expect(decision.allowed).toBe(false);
+    expect(decision.closestCritic?.name).toBe("existing-critic");
+    expect(decision.similarity).toBeCloseTo(0.75, 5);
   });
 });
 

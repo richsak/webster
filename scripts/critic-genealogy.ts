@@ -14,7 +14,14 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { join, resolve } from "node:path";
 
 const API = "https://api.anthropic.com/v1";
@@ -25,6 +32,11 @@ const LP_TARGET_DEFAULT = "https://certified.richerhealth.ca";
 const TEMPLATE_PATH = "agents/brand-voice-critic.json";
 const POLL_INTERVAL_MS = 30_000;
 const POLL_DEADLINE_MS = 20 * 60 * 1000;
+const DEDUP_SIMILARITY_THRESHOLD = 0.6;
+const QUARTERLY_CAP_MAX_SPAWNS = 3;
+const QUARTERLY_CAP_WINDOW_DAYS = 13 * 7;
+const IDLE_ARCHIVE_WINDOW_DAYS = 8 * 7;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const ROOT = resolve(import.meta.dir, "..");
 
@@ -59,12 +71,41 @@ interface CriticSummary {
   description: string;
 }
 
+interface DedupDecision {
+  allowed: boolean;
+  closestCritic: CriticSummary | null;
+  similarity: number;
+  candidateScope: string;
+}
+
+type EmbeddingVector = Map<string, number> | number[];
+type EmbeddingFn = (text: string) => EmbeddingVector;
+
 interface CLIArgs {
   branch: string | null;
   fixtures: string | null;
   weekDate: string;
   lpTarget: string;
   dryRun: boolean;
+  overrideQuarterlyCap: boolean;
+}
+
+interface QuarterlyCapDecision {
+  allowed: boolean;
+  recentSpawnCount: number;
+  windowStart: string;
+  windowEnd: string;
+  overrideUsed: boolean;
+}
+
+interface SpawnedCriticRecord {
+  name: string;
+  scope: string;
+}
+
+interface ArchiveIdleCriticsResult {
+  archived: string[];
+  retained: string[];
 }
 
 class CLIError extends Error {}
@@ -76,6 +117,7 @@ function parseArgs(argv: string[]): CLIArgs {
     weekDate: new Date().toISOString().slice(0, 10),
     lpTarget: LP_TARGET_DEFAULT,
     dryRun: false,
+    overrideQuarterlyCap: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -89,6 +131,8 @@ function parseArgs(argv: string[]): CLIArgs {
       args.lpTarget = argv[++i] ?? args.lpTarget;
     } else if (a === "--dry-run") {
       args.dryRun = true;
+    } else if (a === "--override-quarterly-cap") {
+      args.overrideQuarterlyCap = true;
     } else if (a === "--help" || a === "-h") {
       throw new CLIError("help");
     } else {
@@ -106,8 +150,8 @@ function parseArgs(argv: string[]): CLIArgs {
 
 function printUsage(): void {
   console.log(`Usage:
-  bun scripts/critic-genealogy.ts --branch <council-branch> [--week YYYY-MM-DD] [--lp-target URL] [--dry-run]
-  bun scripts/critic-genealogy.ts --fixtures <dir> [--week YYYY-MM-DD] [--lp-target URL] [--dry-run]
+  bun scripts/critic-genealogy.ts --branch <council-branch> [--week YYYY-MM-DD] [--lp-target URL] [--dry-run] [--override-quarterly-cap]
+  bun scripts/critic-genealogy.ts --fixtures <dir> [--week YYYY-MM-DD] [--lp-target URL] [--dry-run] [--override-quarterly-cap]
 
 Examples:
   bun scripts/critic-genealogy.ts --branch council/2026-04-23
@@ -152,8 +196,7 @@ function loadEnvironmentId(): string {
   return id;
 }
 
-function loadExistingCritics(): CriticSummary[] {
-  const agentsDir = join(ROOT, "agents");
+function loadExistingCritics(agentsDir = join(ROOT, "agents")): CriticSummary[] {
   const specs: CriticSummary[] = [];
   for (const f of readdirSync(agentsDir)) {
     if (!f.endsWith("-critic.json")) {
@@ -186,6 +229,281 @@ function loadFindingsFromFixtures(dir: string): Map<string, string> {
     process.exit(1);
   }
   return map;
+}
+
+function textForDedup(scope: string, description: string): string {
+  return `${scope}\n${description}`.toLowerCase();
+}
+
+function embedText(text: string): EmbeddingVector {
+  const vector = new Map<string, number>();
+  const tokens = text.match(/[a-z0-9]+/g) ?? [];
+  for (const token of tokens) {
+    vector.set(token, (vector.get(token) ?? 0) + 1);
+  }
+  return vector;
+}
+
+function cosineSimilarity(a: EmbeddingVector, b: EmbeddingVector): number {
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) {
+      throw new Error(`embedding vectors have different lengths: ${a.length} vs ${b.length}`);
+    }
+    let dot = 0;
+    let aNorm = 0;
+    let bNorm = 0;
+    for (let i = 0; i < a.length; i++) {
+      const aValue = a[i] ?? 0;
+      const bValue = b[i] ?? 0;
+      dot += aValue * bValue;
+      aNorm += aValue * aValue;
+      bNorm += bValue * bValue;
+    }
+    return aNorm === 0 || bNorm === 0 ? 0 : dot / (Math.sqrt(aNorm) * Math.sqrt(bNorm));
+  }
+
+  if (Array.isArray(a) || Array.isArray(b)) {
+    throw new Error("embedding vector types must match");
+  }
+
+  let dot = 0;
+  let aNorm = 0;
+  let bNorm = 0;
+  for (const value of a.values()) {
+    aNorm += value * value;
+  }
+  for (const [key, value] of b.entries()) {
+    bNorm += value * value;
+    dot += (a.get(key) ?? 0) * value;
+  }
+  return aNorm === 0 || bNorm === 0 ? 0 : dot / (Math.sqrt(aNorm) * Math.sqrt(bNorm));
+}
+
+function evaluateCriticDedup(
+  candidate: NewCriticSpec,
+  activeCritics: CriticSummary[],
+  embed: EmbeddingFn = embedText,
+): DedupDecision {
+  const candidateEmbedding = embed(textForDedup(candidate.scope, candidate.description));
+  let closestCritic: CriticSummary | null = null;
+  let similarity = 0;
+
+  for (const critic of activeCritics) {
+    const criticEmbedding = embed(textForDedup(critic.scope, critic.description));
+    const score = cosineSimilarity(candidateEmbedding, criticEmbedding);
+    if (!closestCritic || score > similarity) {
+      closestCritic = critic;
+      similarity = score;
+    }
+  }
+
+  return {
+    allowed: similarity < DEDUP_SIMILARITY_THRESHOLD,
+    closestCritic,
+    similarity,
+    candidateScope: candidate.scope,
+  };
+}
+
+function printDedupRejection(decision: DedupDecision): void {
+  console.error("GOVERNANCE BLOCK: duplicate critic scope detected.");
+  console.error(`  closest existing critic: ${decision.closestCritic?.name ?? "none"}`);
+  console.error(`  similarity: ${decision.similarity.toFixed(3)}`);
+  console.error(`  candidate scope: ${decision.candidateScope}`);
+}
+
+function parseHistoryDate(value: string): Date {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error(`history date must be YYYY-MM-DD: ${value}`);
+  }
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
+    throw new Error(`history date is invalid: ${value}`);
+  }
+  return date;
+}
+
+function formatHistoryDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function countRecentGenealogySpawns(historyRoot: string, weekDate: string): number {
+  const windowEnd = parseHistoryDate(weekDate);
+  const windowStart = new Date(windowEnd.getTime() - QUARTERLY_CAP_WINDOW_DAYS * MS_PER_DAY);
+
+  if (!existsSync(historyRoot)) {
+    return 0;
+  }
+
+  let count = 0;
+  for (const entry of readdirSync(historyRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !/^\d{4}-\d{2}-\d{2}$/.test(entry.name)) {
+      continue;
+    }
+
+    const entryDate = parseHistoryDate(entry.name);
+    if (entryDate < windowStart || entryDate > windowEnd) {
+      continue;
+    }
+
+    const genealogyDir = join(historyRoot, entry.name, "genealogy");
+    if (!existsSync(genealogyDir)) {
+      continue;
+    }
+
+    const specPath = join(genealogyDir, "spec.json");
+    if (!existsSync(specPath)) {
+      throw new Error(`malformed genealogy history: missing ${specPath}`);
+    }
+
+    try {
+      const parsed = JSON.parse(readFileSync(specPath, "utf8")) as AgentJSON;
+      if (!parsed.name || !parsed.description) {
+        throw new Error("spec.json must include name and description");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`malformed genealogy history: ${specPath}: ${message}`);
+    }
+    count += 1;
+  }
+  return count;
+}
+
+function evaluateQuarterlyCap(
+  historyRoot: string,
+  weekDate: string,
+  overrideQuarterlyCap: boolean,
+): QuarterlyCapDecision {
+  const windowEnd = parseHistoryDate(weekDate);
+  const windowStart = new Date(windowEnd.getTime() - QUARTERLY_CAP_WINDOW_DAYS * MS_PER_DAY);
+  const recentSpawnCount = countRecentGenealogySpawns(historyRoot, weekDate);
+  const overCap = recentSpawnCount >= QUARTERLY_CAP_MAX_SPAWNS;
+  return {
+    allowed: !overCap || overrideQuarterlyCap,
+    recentSpawnCount,
+    windowStart: formatHistoryDate(windowStart),
+    windowEnd: formatHistoryDate(windowEnd),
+    overrideUsed: overCap && overrideQuarterlyCap,
+  };
+}
+
+function printQuarterlyCapBlock(decision: QuarterlyCapDecision): void {
+  console.error("GOVERNANCE BLOCK: quarterly critic spawn cap reached.");
+  console.error(`  recent genealogy spawns: ${decision.recentSpawnCount}`);
+  console.error(`  cap: ${QUARTERLY_CAP_MAX_SPAWNS} per 13 weeks`);
+  console.error(`  window: ${decision.windowStart}..${decision.windowEnd}`);
+  console.error("  override: rerun with --override-quarterly-cap after operator approval");
+}
+
+function loadSpawnedCritics(historyRoot: string): SpawnedCriticRecord[] {
+  if (!existsSync(historyRoot)) {
+    return [];
+  }
+
+  const spawned = new Map<string, SpawnedCriticRecord>();
+  for (const entry of readdirSync(historyRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !/^\d{4}-\d{2}-\d{2}$/.test(entry.name)) {
+      continue;
+    }
+
+    const specPath = join(historyRoot, entry.name, "genealogy", "spec.json");
+    if (!existsSync(specPath)) {
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(readFileSync(specPath, "utf8")) as AgentJSON;
+      if (!parsed.name || !parsed.description) {
+        throw new Error("spec.json must include name and description");
+      }
+      const scope = parsed.metadata?.scope ?? parsed.name.replace(/-critic$/, "");
+      spawned.set(parsed.name, { name: parsed.name, scope });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`malformed genealogy history: ${specPath}: ${message}`);
+    }
+  }
+  return [...spawned.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function loadPromotedFindingOwners(historyRoot: string, weekDate: string): Set<string> {
+  const windowEnd = parseHistoryDate(weekDate);
+  const windowStart = new Date(windowEnd.getTime() - IDLE_ARCHIVE_WINDOW_DAYS * MS_PER_DAY);
+  const promotedOwners = new Set<string>();
+
+  if (!existsSync(historyRoot)) {
+    return promotedOwners;
+  }
+
+  for (const entry of readdirSync(historyRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !/^\d{4}-\d{2}-\d{2}$/.test(entry.name)) {
+      continue;
+    }
+
+    const entryDate = parseHistoryDate(entry.name);
+    if (entryDate < windowStart || entryDate > windowEnd) {
+      continue;
+    }
+
+    const decisionPath = join(historyRoot, entry.name, "decision.json");
+    if (!existsSync(decisionPath)) {
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(readFileSync(decisionPath, "utf8")) as {
+        selected_issues?: unknown;
+      };
+      if (!Array.isArray(parsed.selected_issues)) {
+        throw new Error("decision.json must include selected_issues array");
+      }
+      for (const [index, issue] of parsed.selected_issues.entries()) {
+        if (!issue || typeof issue !== "object") {
+          throw new Error(`selected_issues[${index}] must be an object`);
+        }
+        const owner = (issue as { owner?: unknown }).owner;
+        if (typeof owner !== "string" || owner.length === 0) {
+          throw new Error(`selected_issues[${index}].owner must be a non-empty string`);
+        }
+        promotedOwners.add(owner);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`malformed decision history: ${decisionPath}: ${message}`);
+    }
+  }
+
+  return promotedOwners;
+}
+
+function archiveIdleSpawnedCritics(
+  agentsDir: string,
+  historyRoot: string,
+  weekDate: string,
+): ArchiveIdleCriticsResult {
+  const promotedOwners = loadPromotedFindingOwners(historyRoot, weekDate);
+  const spawnedCritics = loadSpawnedCritics(historyRoot);
+  const archiveDir = join(agentsDir, "archive");
+  const result: ArchiveIdleCriticsResult = { archived: [], retained: [] };
+
+  for (const critic of spawnedCritics) {
+    const activePath = join(agentsDir, `${critic.name}.json`);
+    if (!existsSync(activePath)) {
+      continue;
+    }
+
+    if (promotedOwners.has(critic.scope) || promotedOwners.has(critic.name)) {
+      result.retained.push(critic.name);
+      continue;
+    }
+
+    mkdirSync(archiveDir, { recursive: true });
+    renameSync(activePath, join(archiveDir, `${critic.name}.json`));
+    result.archived.push(critic.name);
+  }
+
+  return result;
 }
 
 function loadFindingsFromBranch(branch: string, critics: CriticSummary[]): Map<string, string> {
@@ -599,6 +917,15 @@ async function main(): Promise<number> {
   const apiKey = getAPIKey();
   const envId = loadEnvironmentId();
 
+  const archiveResult = archiveIdleSpawnedCritics(
+    join(ROOT, "agents"),
+    join(ROOT, "history"),
+    args.weekDate,
+  );
+  if (archiveResult.archived.length > 0) {
+    console.log(`archived idle spawned critics: ${archiveResult.archived.join(", ")}`);
+  }
+
   const critics = loadExistingCritics();
   console.log(`existing critics: ${critics.map((c) => c.scope).join(", ")}`);
 
@@ -618,6 +945,34 @@ async function main(): Promise<number> {
   const newSpec = gap.new_critic;
   console.log(`gap found: ${newSpec.name} (scope: ${newSpec.scope})`);
   console.log(`rationale: ${newSpec.rationale}`);
+
+  const dedupDecision = evaluateCriticDedup(newSpec, critics);
+  if (!dedupDecision.allowed) {
+    printDedupRejection(dedupDecision);
+    return 0;
+  }
+  console.log(
+    `dedup check passed: closest=${dedupDecision.closestCritic?.name ?? "none"} similarity=${dedupDecision.similarity.toFixed(3)}`,
+  );
+
+  const capDecision = evaluateQuarterlyCap(
+    join(ROOT, "history"),
+    args.weekDate,
+    args.overrideQuarterlyCap,
+  );
+  if (!capDecision.allowed) {
+    printQuarterlyCapBlock(capDecision);
+    return 0;
+  }
+  if (capDecision.overrideUsed) {
+    console.warn(
+      `OPERATOR OVERRIDE: allowing genealogy spawn despite ${capDecision.recentSpawnCount} spawns in ${capDecision.windowStart}..${capDecision.windowEnd}.`,
+    );
+  } else {
+    console.log(
+      `quarterly cap check passed: ${capDecision.recentSpawnCount}/${QUARTERLY_CAP_MAX_SPAWNS} spawns in ${capDecision.windowStart}..${capDecision.windowEnd}`,
+    );
+  }
 
   const templateRaw = readFileSync(join(ROOT, TEMPLATE_PATH), "utf8");
   const template = JSON.parse(templateRaw) as AgentJSON;
@@ -698,11 +1053,24 @@ export {
   CLIError,
   buildGapPrompt,
   buildSystemPrompt,
+  cosineSimilarity,
+  archiveIdleSpawnedCritics,
+  countRecentGenealogySpawns,
+  evaluateCriticDedup,
+  evaluateQuarterlyCap,
   loadExistingCritics,
+  loadPromotedFindingOwners,
+  loadSpawnedCritics,
   parseArgs,
   type AgentJSON,
+  type ArchiveIdleCriticsResult,
   type CLIArgs,
   type CriticSummary,
+  type DedupDecision,
+  type EmbeddingFn,
+  type EmbeddingVector,
   type GapResponse,
   type NewCriticSpec,
+  type QuarterlyCapDecision,
+  type SpawnedCriticRecord,
 };
