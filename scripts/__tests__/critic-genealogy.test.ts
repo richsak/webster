@@ -1,13 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import {
   CLIError,
   buildGapPrompt,
   buildSystemPrompt,
+  countRecentGenealogySpawns,
   evaluateCriticDedup,
+  evaluateQuarterlyCap,
   loadExistingCritics,
   parseArgs,
   spliceNewSpec,
@@ -48,6 +51,7 @@ describe("parseArgs", () => {
     expect(args.branch).toBe("council/2026-04-23");
     expect(args.weekDate).toBe("2026-04-23");
     expect(args.dryRun).toBe(true);
+    expect(args.overrideQuarterlyCap).toBe(false);
     expect(args.fixtures).toBe(null);
   });
 
@@ -55,6 +59,11 @@ describe("parseArgs", () => {
     const args = parseArgs(["--fixtures", "scripts/__tests__/fixtures/genealogy"]);
     expect(args.fixtures).toBe("scripts/__tests__/fixtures/genealogy");
     expect(args.branch).toBe(null);
+  });
+
+  test("parses --override-quarterly-cap", () => {
+    const args = parseArgs(["--branch", "council/2026-04-23", "--override-quarterly-cap"]);
+    expect(args.overrideQuarterlyCap).toBe(true);
   });
 
   test("defaults lpTarget and weekDate", () => {
@@ -88,6 +97,79 @@ describe("loadExistingCritics", () => {
     for (const c of loadExistingCritics()) {
       expect(c.description.length).toBeGreaterThan(20);
     }
+  });
+});
+
+function makeHistoryFixture(): string {
+  return mkdtempSync(join(tmpdir(), "webster-genealogy-history-"));
+}
+
+function writeGenealogySpec(historyRoot: string, weekDate: string): void {
+  const dir = join(historyRoot, weekDate, "genealogy");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, "spec.json"),
+    JSON.stringify({ name: `${weekDate}-critic`, description: "Spawned critic fixture" }),
+  );
+}
+
+describe("quarterly cap governance", () => {
+  test("counts 0 spawned critics in an empty history", () => {
+    const historyRoot = makeHistoryFixture();
+    expect(countRecentGenealogySpawns(historyRoot, "2026-04-24")).toBe(0);
+    const decision = evaluateQuarterlyCap(historyRoot, "2026-04-24", false);
+    expect(decision.allowed).toBe(true);
+    expect(decision.recentSpawnCount).toBe(0);
+  });
+
+  test("allows count 2 below the cap", () => {
+    const historyRoot = makeHistoryFixture();
+    writeGenealogySpec(historyRoot, "2026-04-10");
+    writeGenealogySpec(historyRoot, "2026-04-17");
+    const decision = evaluateQuarterlyCap(historyRoot, "2026-04-24", false);
+    expect(decision.allowed).toBe(true);
+    expect(decision.recentSpawnCount).toBe(2);
+  });
+
+  test("blocks count 3 without override", () => {
+    const historyRoot = makeHistoryFixture();
+    writeGenealogySpec(historyRoot, "2026-04-03");
+    writeGenealogySpec(historyRoot, "2026-04-10");
+    writeGenealogySpec(historyRoot, "2026-04-17");
+    const decision = evaluateQuarterlyCap(historyRoot, "2026-04-24", false);
+    expect(decision.allowed).toBe(false);
+    expect(decision.recentSpawnCount).toBe(3);
+    expect(decision.overrideUsed).toBe(false);
+  });
+
+  test("allows count 3 with operator override", () => {
+    const historyRoot = makeHistoryFixture();
+    writeGenealogySpec(historyRoot, "2026-04-03");
+    writeGenealogySpec(historyRoot, "2026-04-10");
+    writeGenealogySpec(historyRoot, "2026-04-17");
+    const decision = evaluateQuarterlyCap(historyRoot, "2026-04-24", true);
+    expect(decision.allowed).toBe(true);
+    expect(decision.recentSpawnCount).toBe(3);
+    expect(decision.overrideUsed).toBe(true);
+  });
+
+  test("includes boundary dates exactly 13 weeks back and excludes older spawns", () => {
+    const historyRoot = makeHistoryFixture();
+    writeGenealogySpec(historyRoot, "2026-01-23");
+    writeGenealogySpec(historyRoot, "2026-01-22");
+    const decision = evaluateQuarterlyCap(historyRoot, "2026-04-24", false);
+    expect(decision.recentSpawnCount).toBe(1);
+    expect(decision.windowStart).toBe("2026-01-23");
+  });
+
+  test("fails loudly on malformed in-window genealogy spec data", () => {
+    const historyRoot = makeHistoryFixture();
+    mkdirSync(join(historyRoot, "2026-04-17", "genealogy"), { recursive: true });
+    writeFileSync(join(historyRoot, "2026-04-17", "genealogy", "spec.json"), "not-json");
+    mkdirSync(join(historyRoot, "not-a-week", "genealogy"), { recursive: true });
+    expect(() => evaluateQuarterlyCap(historyRoot, "2026-04-24", false)).toThrow(
+      /malformed genealogy history/,
+    );
   });
 });
 
