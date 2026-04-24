@@ -427,13 +427,53 @@ function writeVerdict(week: DemoWeek, experiments: ExperimentSpec[]): void {
   writeFileSync(join(DEMO_ARC_DIR, week, "verdict.json"), `${JSON.stringify(verdict, null, 2)}\n`);
 }
 
+function getBaselineStatus(experiment: ExperimentSpec): BaselineRow["status"] | null {
+  switch (experiment.outcome) {
+    case "archive-gate-fail":
+      return "archived-gate-fail";
+    case "auto-rollback":
+      return "rolled-back";
+    case "hold":
+      return null;
+    case "promote-fast-track":
+    case "promote-fallback":
+    case "promote-gate-win":
+      return "promoted";
+  }
+}
+
 function buildBaselineRows(experiments: ExperimentSpec[]): BaselineRow[] {
-  return experiments.map((experiment) => ({
-    exp_id: experiment.exp_id,
-    week: experiment.week,
-    status: "promoted",
-    baseline_sha: experiment.baseline_sha,
-  }));
+  return experiments.flatMap((experiment) => {
+    const status = getBaselineStatus(experiment);
+
+    if (status === null) {
+      return [];
+    }
+
+    return [
+      {
+        exp_id: experiment.exp_id,
+        week: experiment.week,
+        status,
+        baseline_sha: experiment.baseline_sha,
+      },
+    ];
+  });
+}
+
+function getFinalMemoryEvent(experiment: ExperimentSpec): MemoryRow["event"] {
+  switch (experiment.outcome) {
+    case "archive-gate-fail":
+      return "regression";
+    case "auto-rollback":
+      return "rollback";
+    case "hold":
+      return "skip";
+    case "promote-fast-track":
+    case "promote-fallback":
+    case "promote-gate-win":
+      return "promote";
+  }
 }
 
 function buildWeekMemoryRows(week: DemoWeek, experiments: ExperimentSpec[]): MemoryRow[] {
@@ -441,7 +481,12 @@ function buildWeekMemoryRows(week: DemoWeek, experiments: ExperimentSpec[]): Mem
 
   return experiments.flatMap((experiment, index) => {
     const verdictReadyTimestamp = new Date(baseTimestamp + index * 2 * 60_000).toISOString();
-    const promoteTimestamp = new Date(baseTimestamp + (index * 2 + 1) * 60_000).toISOString();
+    const finalTimestamp = new Date(baseTimestamp + (index * 2 + 1) * 60_000).toISOString();
+    const baselineStatus = getBaselineStatus(experiment);
+    const finalRefs =
+      baselineStatus === null
+        ? { exp_id: experiment.exp_id }
+        : { exp_id: experiment.exp_id, baseline_sha: experiment.baseline_sha };
 
     return [
       {
@@ -453,11 +498,11 @@ function buildWeekMemoryRows(week: DemoWeek, experiments: ExperimentSpec[]): Mem
         insight: experiment.verdict_ready_insight,
       },
       {
-        ts: promoteTimestamp,
+        ts: finalTimestamp,
         week,
         actor: "verdict",
-        event: "promote",
-        refs: { exp_id: experiment.exp_id, baseline_sha: experiment.baseline_sha },
+        event: getFinalMemoryEvent(experiment),
+        refs: finalRefs,
         insight: experiment.promote_insight,
       },
     ];
@@ -482,11 +527,21 @@ function writeW2(): void {
   appendMemoryRows(buildWeekMemoryRows(DEMO_W2, experiments));
 }
 
+function writeW3(): void {
+  const experiments = getExperimentsForWeek(DEMO_W3);
+  writeProposal(DEMO_W3, experiments);
+  writeDecision(DEMO_W3, experiments);
+  writeVerdict(DEMO_W3, experiments);
+  appendBaselineRows(buildBaselineRows(experiments));
+  appendMemoryRows(buildWeekMemoryRows(DEMO_W3, experiments));
+}
+
 function main(): void {
   initDemoArcDir();
   writeW1();
   writeW2();
-  console.log("Demo arc seeded through demo-W2.");
+  writeW3();
+  console.log("Demo arc seeded through demo-W3.");
 }
 
 if (import.meta.main) {
@@ -508,6 +563,7 @@ export {
   writeDecision,
   writeProposal,
   writeVerdict,
+  writeW3,
   type AgentJSON,
   type BaselineRow,
   type DecisionJSON,
