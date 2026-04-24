@@ -21,8 +21,8 @@
       "technicalNotes": "Modify scripts/critic-genealogy.ts around NewCriticSpec/CriticSummary definitions (lines 31-60), active critic loading (lines 155-168), and the main flow before registerAgent() (lines 457+ and main registration section). Follow fail-fast error style from lines 339-356. Add tests in scripts/__tests__/critic-genealogy.test.ts mirroring direct helper tests at lines 93-120 and 160-203. Existing agents expose metadata.scope and description in agents/*-critic.json.",
       "dependsOn": [],
       "priority": 1,
-      "passes": false,
-      "notes": "Layer 1 prompt edits are explicitly deferred; do not modify prompts/second-wbs-session.md."
+      "passes": true,
+      "notes": "Implemented in iteration 1. Files: scripts/critic-genealogy.ts, scripts/__tests__/critic-genealogy.test.ts, .forge/ralph/genealogy-gov-v1/prd.md."
     },
     {
       "id": "US-002",
@@ -40,7 +40,9 @@
         "bun run validate passes"
       ],
       "technicalNotes": "Extend scripts/critic-genealogy.ts parseArgs() at lines 72-105 and printUsage() at lines 107-115. Use writeArtifacts() output convention at lines 570-585: each spawn writes history/<week>/genealogy/spec.json. Gate the main flow before registerAgent() and createSession(). Add parseArgs tests beside scripts/__tests__/critic-genealogy.test.ts lines 44-75 and helper tests with temporary history fixtures.",
-      "dependsOn": ["US-001"],
+      "dependsOn": [
+        "US-001"
+      ],
       "priority": 2,
       "passes": false,
       "notes": "Use user-specified cap: max 3 new critics per 13 weeks, not the older 2-per-quarter text in context/DOMAIN-MODEL.md."
@@ -61,7 +63,10 @@
         "bun run validate passes"
       ],
       "technicalNotes": "Implement in scripts/critic-genealogy.ts near loadExistingCritics() lines 155-168 and main startup before active critic summary logging. Use agents/*-critic.json naming shown by agents/brand-voice-critic.json and peers. Use genealogy provenance from history/<week>/genealogy/spec.json created by writeArtifacts() lines 570-585. Add tests in scripts/__tests__/critic-genealogy.test.ts next to loadExistingCritics tests at lines 78-90; use temporary fixture directories or exported pure helpers to avoid mutating real agents during tests.",
-      "dependsOn": ["US-001", "US-002"],
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
       "priority": 3,
       "passes": false,
       "notes": "Promoted findings source must be explicit and testable; if current history lacks rows, implement a deterministic parser/helper and fixture it rather than guessing from prose."
