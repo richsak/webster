@@ -26,7 +26,28 @@ export interface StubVisualAsset {
   status: "stub";
   type: string;
   comment: string;
+  reason?: string;
 }
+
+export interface GeneratedVisualAsset {
+  status: "generated";
+  type: VisualAssetType;
+  mime_type: string;
+  base64_data: string;
+  estimated_cost_usd: number;
+}
+
+export interface GenerateVisualAssetOptions {
+  apiKey?: string;
+  model?: string;
+  maxCostUsd?: number;
+  fetchImpl?: (input: string, init?: RequestInit) => Promise<Response>;
+  retryDelaysMs?: number[];
+}
+
+export const DEFAULT_IMAGE_MODEL = "gpt-image-1";
+export const DEFAULT_IMAGE_COST_CEILING_USD = 2;
+export const ESTIMATED_IMAGE_COST_USD = 0.25;
 
 export const GENERATE_VISUAL_ASSET_SCHEMA = {
   type: "object",
@@ -61,11 +82,21 @@ export function isVisualAssetType(value: string): value is VisualAssetType {
   return VISUAL_ASSET_TYPES.some((type) => type === value);
 }
 
-export function buildUnknownAssetTypeStub(type: string): StubVisualAsset {
+export function buildUnknownAssetTypeStub(type: string, reason = "unknown-type"): StubVisualAsset {
   return {
     status: "stub",
     type,
+    reason,
     comment: `<!-- asset TBD: unknown visual asset type '${type}' -->`,
+  };
+}
+
+function buildAssetStub(type: string, reason: string): StubVisualAsset {
+  return {
+    status: "stub",
+    type,
+    reason,
+    comment: `<!-- asset TBD: ${type}; ${reason} -->`,
   };
 }
 
@@ -109,4 +140,105 @@ export function normalizeGenerateVisualAssetInput(
     },
     prompt: record.prompt,
   };
+}
+
+function shouldRetry(status: number): boolean {
+  return status === 408 || status === 409 || status === 429 || status >= 500;
+}
+
+function structuredErrorReason(status: number, body: string): string {
+  const lowerBody = body.toLowerCase();
+  if (status === 429 || lowerBody.includes("rate limit")) {
+    return "rate-limit";
+  }
+  if (
+    lowerBody.includes("safety") ||
+    lowerBody.includes("content_policy") ||
+    lowerBody.includes("nsfw")
+  ) {
+    return "nsfw-filter";
+  }
+  return `openai-error-${status}`;
+}
+
+function extractImageBase64(response: unknown): string | undefined {
+  if (
+    typeof response !== "object" ||
+    response === null ||
+    !Array.isArray((response as { data?: unknown }).data)
+  ) {
+    return undefined;
+  }
+
+  const first = ((response as { data: unknown[] }).data[0] ?? {}) as Record<string, unknown>;
+  return typeof first.b64_json === "string" ? first.b64_json : undefined;
+}
+
+function isStubVisualAsset(
+  input: GenerateVisualAssetInput | StubVisualAsset,
+): input is StubVisualAsset {
+  return "status" in input && input.status === "stub";
+}
+
+export async function generateVisualAsset(
+  input: GenerateVisualAssetInput | StubVisualAsset,
+  options: GenerateVisualAssetOptions = {},
+): Promise<GeneratedVisualAsset | StubVisualAsset> {
+  if (isStubVisualAsset(input)) {
+    return input;
+  }
+
+  const maxCostUsd = options.maxCostUsd ?? DEFAULT_IMAGE_COST_CEILING_USD;
+  if (ESTIMATED_IMAGE_COST_USD > maxCostUsd) {
+    return buildAssetStub(input.type, "cost-ceiling");
+  }
+
+  const apiKey = options.apiKey === undefined ? process.env.OPENAI_API_KEY : options.apiKey;
+  if (!apiKey) {
+    return buildAssetStub(input.type, "missing-openai-api-key");
+  }
+
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const retryDelaysMs = options.retryDelaysMs ?? [250, 1000];
+  const attempts = retryDelaysMs.length + 1;
+  let lastReason = "unknown-openai-error";
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const response = await fetchImpl("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: options.model ?? DEFAULT_IMAGE_MODEL,
+        prompt: `${input.prompt}\n\nBrand context: ${JSON.stringify(input.brand_context)}`,
+        size: `${input.dims.width}x${input.dims.height}`,
+        response_format: "b64_json",
+      }),
+    });
+
+    const body = await response.text();
+    if (response.ok) {
+      const base64 = extractImageBase64(JSON.parse(body));
+      return base64
+        ? {
+            status: "generated",
+            type: input.type,
+            mime_type: "image/png",
+            base64_data: base64,
+            estimated_cost_usd: ESTIMATED_IMAGE_COST_USD,
+          }
+        : buildAssetStub(input.type, "missing-image-data");
+    }
+
+    lastReason = structuredErrorReason(response.status, body);
+    if (!shouldRetry(response.status) || attempt === attempts - 1) {
+      break;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, retryDelaysMs[attempt] ?? 0));
+  }
+
+  return buildAssetStub(input.type, lastReason);
 }
