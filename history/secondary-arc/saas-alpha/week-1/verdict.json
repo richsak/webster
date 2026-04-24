@@ -1,0 +1,22 @@
+{
+  "substrate": "saas-alpha",
+  "run": "week-1",
+  "experiments": [
+    {
+      "exp_id": "saas-w1-audit-cta",
+      "kind": "text",
+      "reward_delta_pct": 3.7,
+      "p_value": 0.018,
+      "classification": "neutral",
+      "outcome": "promote-fallback"
+    },
+    {
+      "exp_id": "saas-w1-export-card",
+      "kind": "component",
+      "reward_delta_pct": 1.1,
+      "p_value": 0.21,
+      "classification": "neutral",
+      "outcome": "hold"
+    }
+  ]
+}

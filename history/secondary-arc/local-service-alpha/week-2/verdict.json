@@ -1,0 +1,22 @@
+{
+  "substrate": "local-service-alpha",
+  "run": "week-2",
+  "experiments": [
+    {
+      "exp_id": "local-w2-photo-proof",
+      "kind": "asset",
+      "reward_delta_pct": -6.5,
+      "p_value": 0.005,
+      "classification": "hurt",
+      "outcome": "auto-rollback"
+    },
+    {
+      "exp_id": "local-w2-crew-care",
+      "kind": "text",
+      "reward_delta_pct": 7.3,
+      "p_value": 0.006,
+      "classification": "improved",
+      "outcome": "promote-gate-win"
+    }
+  ]
+}

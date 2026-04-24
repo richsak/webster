@@ -1,0 +1,22 @@
+{
+  "substrate": "saas-alpha",
+  "run": "onboard",
+  "experiments": [
+    {
+      "exp_id": "saas-onboard-hero-clarity",
+      "kind": "text",
+      "reward_delta_pct": 8.4,
+      "p_value": 0.006,
+      "classification": "improved",
+      "outcome": "promote-fast-track"
+    },
+    {
+      "exp_id": "saas-onboard-proof-stack",
+      "kind": "component",
+      "reward_delta_pct": 5.9,
+      "p_value": 0.009,
+      "classification": "improved",
+      "outcome": "promote-gate-win"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "substrate": "local-service-alpha",
+  "run": "onboard",
+  "experiments": [
+    {
+      "exp_id": "local-onboard-urgency-copy",
+      "kind": "text",
+      "reward_delta_pct": 9.1,
+      "p_value": 0.004,
+      "classification": "improved",
+      "outcome": "promote-fast-track"
+    },
+    {
+      "exp_id": "local-onboard-quote-proof",
+      "kind": "component",
+      "reward_delta_pct": 6.8,
+      "p_value": 0.008,
+      "classification": "improved",
+      "outcome": "promote-gate-win"
+    }
+  ]
+}

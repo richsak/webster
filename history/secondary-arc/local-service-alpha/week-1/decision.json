@@ -1,0 +1,26 @@
+{
+  "substrate": "local-service-alpha",
+  "run": "week-1",
+  "selected_issues": [
+    {
+      "exp_id": "local-w1-seasonal-packages",
+      "kind": "text",
+      "target_files": [
+        "site/secondary/local-service-alpha/index.html"
+      ],
+      "proposed_change": "Make seasonal packages the secondary CTA for homeowners comparing bundled work.",
+      "expected_outcome_lane": "hold"
+    },
+    {
+      "exp_id": "local-w1-arrival-window",
+      "kind": "component",
+      "target_files": [
+        "site/secondary/local-service-alpha/index.html"
+      ],
+      "proposed_change": "Add morning-or-afternoon arrival-window language to reduce scheduling uncertainty.",
+      "expected_outcome_lane": "promote-fallback"
+    }
+  ],
+  "reasoning": "Week 1 compares scope-education copy with a scheduling-risk reducer after trust basics improved quote starts.",
+  "monitor_signal": "Scheduling language improved quote-form starts; seasonal package exploration remained inconclusive."
+}

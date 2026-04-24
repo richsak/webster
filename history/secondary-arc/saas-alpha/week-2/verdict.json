@@ -1,0 +1,22 @@
+{
+  "substrate": "saas-alpha",
+  "run": "week-2",
+  "experiments": [
+    {
+      "exp_id": "saas-w2-security-badge",
+      "kind": "asset",
+      "reward_delta_pct": 2.9,
+      "p_value": 0.031,
+      "classification": "neutral",
+      "outcome": "archive-gate-fail"
+    },
+    {
+      "exp_id": "saas-w2-density-tune",
+      "kind": "css",
+      "reward_delta_pct": 6.2,
+      "p_value": 0.007,
+      "classification": "improved",
+      "outcome": "promote-gate-win"
+    }
+  ]
+}
