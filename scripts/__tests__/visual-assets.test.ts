@@ -1,10 +1,15 @@
 import { describe, expect, test } from "bun:test";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   GENERATE_VISUAL_ASSET_SCHEMA,
   VISUAL_ASSET_TYPES,
   buildUnknownAssetTypeStub,
   generateVisualAsset,
+  loadBrandContext,
   normalizeGenerateVisualAssetInput,
+  persistGeneratedVisualAsset,
 } from "../visual-assets";
 
 describe("visual asset tool schema", () => {
@@ -100,6 +105,86 @@ describe("visual asset tool schema", () => {
       base64_data: "abc123",
       estimated_cost_usd: 0.25,
     });
+  });
+
+  test("loads brand context from business markdown and palette JSON", () => {
+    const dir = mkdtempSync(join(tmpdir(), "visual-brand-"));
+    try {
+      const businessPath = join(dir, "business.md");
+      const palettePath = join(dir, "palette.json");
+      writeFileSync(
+        businessPath,
+        [
+          "# Business",
+          "",
+          "| Field | Value |",
+          "| --- | --- |",
+          "| Operator | Dr. Nicolette Richer, DSocSci |",
+          "| Campaign LP | certified.richerhealth.ca |",
+          "",
+          "## Brand voice (one-liner)",
+          "Warm-authoritative with deliberate edge.",
+          "",
+          "## Certification positioning",
+          "N&D certification (Nutrition & Detoxification).",
+          "",
+          "## Signature phrase",
+          '"Your body can heal."',
+        ].join("\n"),
+      );
+      writeFileSync(palettePath, JSON.stringify({ primary: "#80A8A7" }));
+
+      expect(loadBrandContext(businessPath, palettePath)).toMatchObject({
+        identity: { operator: "Dr. Nicolette Richer, DSocSci" },
+        voice: "Warm-authoritative with deliberate edge.",
+        positioning: "N&D certification (Nutrition & Detoxification).",
+        signature_phrase: "Your body can heal.",
+        palette: { primary: "#80A8A7" },
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("persists generated assets and writes a gitignored dedup cache", () => {
+    const dir = mkdtempSync(join(tmpdir(), "visual-persist-"));
+    try {
+      const outputRoot = join(dir, "site/public/assets/generated");
+      const cacheRoot = join(dir, ".webster/generated-cache");
+      const persisted = persistGeneratedVisualAsset(
+        {
+          status: "generated",
+          type: "og_card",
+          mime_type: "image/png",
+          base64_data: Buffer.from("fake image").toString("base64"),
+          estimated_cost_usd: 0.25,
+        },
+        "2026-04-23",
+        "Hero OG Card!",
+        { outputRoot, cacheRoot },
+      );
+
+      expect(persisted.path).toBe(join(outputRoot, "2026-04-23/og_card-hero-og-card.png"));
+      expect(existsSync(persisted.path)).toBe(true);
+      expect(readFileSync(persisted.path, "utf8")).toBe("fake image");
+      expect(existsSync(join(cacheRoot, `${persisted.cache_key}.png`))).toBe(true);
+
+      const second = persistGeneratedVisualAsset(
+        {
+          status: "generated",
+          type: "og_card",
+          mime_type: "image/png",
+          base64_data: Buffer.from("fake image").toString("base64"),
+          estimated_cost_usd: 0.25,
+        },
+        "2026-04-23",
+        "Hero OG Card!",
+        { outputRoot, cacheRoot },
+      );
+      expect(second.reused_cache).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   test("falls back to a structured NSFW stub on safety rejection", async () => {

@@ -21,6 +21,9 @@ tmp/
 # Ralph PRD artifacts — regenerated per dispatch
 .forge/ralph/
 
+# Webster generated asset dedup cache
+.webster/generated-cache/
+
 # Pi subagent transient outputs (scout context.md, planner plan.md at repo root)
 /context.md
 /plan.md

@@ -1,5 +1,9 @@
 #!/usr/bin/env bun
 
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+
 export const VISUAL_ASSET_TYPES = [
   "og_card",
   "hero_background",
@@ -20,6 +24,12 @@ export interface GenerateVisualAssetInput {
   brand_context: Record<string, unknown>;
   dims: VisualAssetDims;
   prompt: string;
+}
+
+export interface PersistedVisualAsset {
+  path: string;
+  cache_key: string;
+  reused_cache: boolean;
 }
 
 export interface StubVisualAsset {
@@ -80,6 +90,54 @@ export const GENERATE_VISUAL_ASSET_SCHEMA = {
 
 export function isVisualAssetType(value: string): value is VisualAssetType {
   return VISUAL_ASSET_TYPES.some((type) => type === value);
+}
+
+function slugify(value: string): string {
+  const slug = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 48)
+    .replace(/-+$/g, "");
+
+  return slug.length > 0 ? slug : "asset";
+}
+
+function parseBusinessTable(markdown: string): Record<string, string> {
+  const rows: Record<string, string> = {};
+  for (const line of markdown.split("\n")) {
+    const match = line.match(/^\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|$/);
+    if (!match || match[1]?.trim() === "Field") {
+      continue;
+    }
+    const key = slugify(match[1] ?? "").replace(/-/g, "_");
+    rows[key] = (match[2] ?? "").trim();
+  }
+  return rows;
+}
+
+function extractSection(markdown: string, heading: string): string | undefined {
+  const regex = new RegExp(`## ${heading}\\n+([\\s\\S]*?)(?:\\n## |$)`, "i");
+  return markdown.match(regex)?.[1]?.trim();
+}
+
+export function loadBrandContext(
+  businessPath = "context/business.md",
+  palettePath = "context/palette.json",
+): Record<string, unknown> {
+  const business = readFileSync(businessPath, "utf8");
+  const palette = existsSync(palettePath)
+    ? (JSON.parse(readFileSync(palettePath, "utf8")) as Record<string, unknown>)
+    : {};
+
+  return {
+    identity: parseBusinessTable(business),
+    voice: extractSection(business, "Brand voice \\(one-liner\\)") ?? "",
+    positioning: extractSection(business, "Certification positioning") ?? "",
+    signature_phrase: business.match(/"([^"]+)"/)?.[1] ?? "",
+    palette,
+  };
 }
 
 export function buildUnknownAssetTypeStub(type: string, reason = "unknown-type"): StubVisualAsset {
@@ -178,6 +236,41 @@ function isStubVisualAsset(
   input: GenerateVisualAssetInput | StubVisualAsset,
 ): input is StubVisualAsset {
   return "status" in input && input.status === "stub";
+}
+
+export function persistGeneratedVisualAsset(
+  asset: GeneratedVisualAsset,
+  week: string,
+  slug: string,
+  options: { outputRoot?: string; cacheRoot?: string } = {},
+): PersistedVisualAsset {
+  const extension = asset.mime_type === "image/jpeg" ? "jpg" : "png";
+  const safeSlug = slugify(slug);
+  const outputPath = join(
+    options.outputRoot ?? "site/public/assets/generated",
+    week,
+    `${asset.type}-${safeSlug}.${extension}`,
+  );
+  const cacheKey = createHash("sha256").update(asset.base64_data).digest("hex");
+  const cachePath = join(
+    options.cacheRoot ?? ".webster/generated-cache",
+    `${cacheKey}.${extension}`,
+  );
+  const bytes = Buffer.from(asset.base64_data, "base64");
+  const reusedCache = existsSync(cachePath);
+
+  mkdirSync(dirname(outputPath), { recursive: true });
+  mkdirSync(dirname(cachePath), { recursive: true });
+  if (!reusedCache) {
+    writeFileSync(cachePath, bytes);
+  }
+  writeFileSync(outputPath, bytes);
+
+  return {
+    path: outputPath,
+    cache_key: cacheKey,
+    reused_cache: reusedCache,
+  };
 }
 
 export async function generateVisualAsset(
