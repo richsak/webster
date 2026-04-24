@@ -1,0 +1,127 @@
+{
+  "project": "Webster",
+  "branchName": "feat/apply-worker-core",
+  "prdFile": "prd.md",
+  "description": "CLI apply-worker that reads redesigner proposal + decision, mutates site files, enforces lint/type/format hard floor, and commits one-per-experiment with Experiment-Id trailer (ADR-0002 Q8).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Types, interfaces & proposal parser",
+      "description": "As the Forge orchestrator, I want all shared types defined and a parser that reads proposal.md + decision.json into typed structures, so downstream functions operate on well-typed data with no silent coercions.",
+      "acceptanceCriteria": [
+        "File `scripts/apply-worker.ts` created with all types exported: DecisionJSON, DecisionIssue, ProposalIssue, RawMutation, MutationResult, ApplyExperiment, ApplyLogJSON, SkipRow",
+        "`parseDecision(json: unknown): DecisionJSON` exported — validates shape, throws on missing fields, returns typed struct",
+        "`parseProposal(md: string, decision: DecisionJSON): ProposalIssue[]` exported — extracts issue sections by heading, parses before/after code blocks, maps to ProposalIssue[]",
+        "Issues in return value ordered to match decision.json `selected_issues` order",
+        "Issues with no parseable before/after blocks produce `mutations: []` (not thrown)",
+        "No `any` types without justification comment",
+        "Type-check passes with zero errors",
+        "Lint passes with zero warnings"
+      ],
+      "technicalNotes": "Model file structure on `scripts/critic-genealogy.ts:1-80` — named exports, no side-effects at module scope. Proposal sections are H3 headings (`### N. [SEVERITY] title`). Before/after blocks are fenced code immediately following 'Before' / 'After' labels. 'Target file(s):' line gives files_touched. See `history/2026-04-23/proposal.md` and `history/2026-04-23/decision.json` for the canonical format.",
+      "dependsOn": [],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Text mutation engine",
+      "description": "As the apply-worker, I want a function that takes a file path + before/after strings and applies an exact-text replacement, so site files are mutated precisely as the proposal specifies.",
+      "acceptanceCriteria": [
+        "`applyMutation(filePath: string, before: string, after: string): MutationResult` exported from `scripts/apply-worker.ts`",
+        "When `before` string is found in file: replaces first occurrence, writes file, returns `{ status: 'applied', ... }`",
+        "When `before` string is NOT found in file: does not modify file, returns `{ status: 'string_mismatch', ... }`",
+        "Function does not throw on string_mismatch — caller decides what to do with the result",
+        "File encoding: UTF-8 read and write",
+        "Type-check passes with zero errors",
+        "Lint passes with zero warnings"
+      ],
+      "technicalNotes": "Use `Bun.file(filePath).text()` to read, `Bun.write(filePath, mutated)` to write. Exact string match via `String.prototype.includes` + `String.prototype.replace` (first occurrence only). No regex — the before string is literal HTML/Astro. File: `scripts/apply-worker.ts`.",
+      "dependsOn": ["US-001"],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Validation gate + commit discipline",
+      "description": "As the apply-worker, I want to run lint + type-check + format-check after each mutation and commit passing experiments with an Experiment-Id trailer, so only validated code enters the git history.",
+      "acceptanceCriteria": [
+        "`runValidation(): ValidationResult` exported — shells out `bun run lint --max-warnings 0`, `bun run type-check`, `bun run format:check` via `Bun.spawnSync`; returns `{ lintPassed, typeCheckPassed, formatCheckPassed, output: string }`",
+        "`buildCommitMessage(expId: string, index: number, title: string, files: string[]): string` exported — returns message with feat(apply) subject, body with issue number and files, and `Experiment-Id: <expId>` footer trailer",
+        "Commit message footer has a blank line before `Experiment-Id:` trailer (Git trailer convention)",
+        "Exp-id format: `exp-NN-<slug>` where NN is zero-padded issue index and slug is kebab-case title truncated to 40 chars",
+        "`commitExperiment(files: string[], message: string): string` exported — runs `git add <files>`, `git commit -m <message>`, returns commit SHA parsed from git output",
+        "If any validation step fails, `runValidation` still captures all three results (doesn't short-circuit)",
+        "Type-check passes with zero errors",
+        "Lint passes with zero warnings"
+      ],
+      "technicalNotes": "Use `Bun.spawnSync` for all shell calls — matches `scripts/critic-genealogy.ts:~540` pattern. Capture stdout + stderr from each validation command for skip_details. Git commit SHA: parse from `git commit` stdout line matching `/\\[.+ ([0-9a-f]+)\\]/`. Slug generation: lowercase, replace non-alnum with `-`, collapse consecutive `-`, trim to 40 chars. File: `scripts/apply-worker.ts`.",
+      "dependsOn": ["US-002"],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Skip-row emission + apply-log writer",
+      "description": "As the apply-worker, I want skip rows written to skips.jsonl + memory.jsonl on failure, and a complete apply-log.json written at the end, so downstream consumers (#56 skip-contract, visual reviewer #41, next-week planner) have the data they need.",
+      "acceptanceCriteria": [
+        "`emitSkip(weekDir: string, row: SkipRow): void` exported — appends one JSON line to `<weekDir>/skips.jsonl` and one JSON line to `<weekDir>/memory.jsonl`; creates file if not present",
+        "SkipRow written verbatim as defined in types (ts, week, actor, event, exp_id, reason, details, concern_ref)",
+        "`writeApplyLog(weekDir: string, log: ApplyLogJSON): void` exported — writes `<weekDir>/apply-log.json` (overwrites if exists)",
+        "`apply-log.json` contains all experiments (applied + skipped), run_timestamp (ISO 8601), week string, validation_summary with final lint/type/format booleans",
+        "JSONL files use `\\n`-separated JSON objects with no trailing newline issues (safe for append)",
+        "Type-check passes with zero errors",
+        "Lint passes with zero warnings"
+      ],
+      "technicalNotes": "Append to JSONL: read existing content (empty string if file missing), append `JSON.stringify(row) + '\\n'`, write back via `Bun.write`. `apply-log.json` is full JSON (not JSONL). `weekDir` is resolved relative to process.cwd() — e.g. `history/2026-04-23`. File: `scripts/apply-worker.ts`.",
+      "dependsOn": ["US-003"],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "CLI entrypoint + orchestration",
+      "description": "As the Forge orchestrator, I want to run `bun scripts/apply-worker.ts --week 2026-04-23` and have it apply all selected issues end-to-end, so the full pipeline step is automated.",
+      "acceptanceCriteria": [
+        "`parseArgs(argv: string[]): { week: string; dryRun: boolean }` exported — parses `--week <date>` and `--dry-run`; throws `CLIError` with usage message if `--week` missing",
+        "`main()` function exported — orchestrates: parseArgs → read + validate input files → parseDecision → parseProposal → for each issue: applyMutation → if applied: runValidation → if pass: commitExperiment; if fail: rollback file + emitSkip; if string_mismatch: emitSkip → writeApplyLog",
+        "Rollback on validation failure: restore file contents to pre-mutation state before emitting skip row",
+        "Issues processed in order of `decision.json.selected_issues`",
+        "Each issue committed separately — never batched into one commit",
+        "Dry-run mode: prints mutation plan (files, before/after excerpts), does not write files or commit",
+        "`if (import.meta.main) { main().catch(...) }` pattern — no side effects at module scope",
+        "Non-zero exit (process.exit(1)) on fatal errors (missing files, parse failures)",
+        "Exit 0 when all issues processed (even if all skipped)",
+        "`bun run validate` green on the final state of `scripts/apply-worker.ts`"
+      ],
+      "technicalNotes": "Mirror `scripts/critic-genealogy.ts` main() shape: parseArgs at top, try/catch in main, console.error + process.exit(1) for fatals. Input files: `history/<week>/proposal.md` and `history/<week>/decision.json` relative to cwd. Rollback: store original file content before applyMutation, restore on validation failure via Bun.write. For dry-run: print `[DRY RUN] would mutate <file>: <first 80 chars of before> → <first 80 chars of after>`. File: `scripts/apply-worker.ts`.",
+      "dependsOn": ["US-001", "US-002", "US-003", "US-004"],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Unit tests: parse, commit-message, skip-emit",
+      "description": "As a developer, I want unit tests covering the parse, commit-message-building, and skip-emit paths, so regressions in these critical data-transformation functions are caught immediately.",
+      "acceptanceCriteria": [
+        "File `scripts/__tests__/apply-worker.test.ts` created",
+        "parseProposal tests: parses a multi-issue proposal string into correct ProposalIssue array (correct titles, severities, before/after blocks, files_touched); handles missing before/after blocks gracefully (mutations: [])",
+        "parseDecision tests: parses valid decision JSON; throws on missing `selected_issues` key; throws on invalid severity value",
+        "buildCommitMessage tests: returns message with correct `feat(apply):` subject, `Experiment-Id: exp-01-<slug>` trailer, blank line before trailer, files listed in body",
+        "emitSkip tests: after calling emitSkip with a mock weekDir (tmp dir), both `skips.jsonl` and `memory.jsonl` exist and contain the correct JSON line; calling twice appends two lines",
+        "All 4 test groups pass with `bun test`",
+        "`bun run validate` green"
+      ],
+      "technicalNotes": "Use `bun:test` (describe/test/expect) — see `scripts/__tests__/critic-genealogy.test.ts:1-80` for exact import pattern. Import named exports directly from `'../apply-worker.ts'`. For emitSkip test: use `os.tmpdir() + '/apply-worker-test-' + Date.now()` as weekDir; clean up after. No mocking of Bun.spawnSync needed — test only pure functions (parseProposal, parseDecision, buildCommitMessage, emitSkip). Fixture proposal string: inline minimal markdown with one issue block including Before/After fenced blocks.",
+      "dependsOn": ["US-005"],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
