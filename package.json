@@ -15,6 +15,7 @@
     "lint:fix": "eslint . --cache --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "apply-worker": "bun scripts/apply-worker-cli.ts",
     "seed:secondary": "bun scripts/seed-secondary-substrates.ts",
     "validate:agents": "bun scripts/validate-agents.ts",
     "validate:findings": "bun scripts/validate-findings.ts",
