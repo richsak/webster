@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { appendEvent, type MemoryEvent } from "../memory.ts";
-import { marshalPlannerContext } from "../planner-context.ts";
+import { appendColdStartOriginEvent, marshalPlannerContext } from "../planner-context.ts";
 
 function buildTmpDir(testName: string): string {
   return join(tmpdir(), `planner-context-${testName}-${Date.now()}-${randomUUID()}`);
@@ -103,9 +103,21 @@ describe("marshalPlannerContext", () => {
         monitorPath: join(root, "missing-monitor.md"),
       });
 
-      expect(context).toContain(
-        "COLD_START: no prior planner memory, verdicts, or monitor anomalies were available.",
-      );
+      expect(context).toContain('direction_hint="broad exploration, baseline-only analytics"');
+      expect(context).toContain("direction_hint: broad exploration, baseline-only analytics");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test("writes a cold-start origin event row", () => {
+    const root = buildTmpDir("origin-event");
+    const memoryPath = join(root, "history", "memory.jsonl");
+
+    try {
+      appendColdStartOriginEvent("2026-W17", memoryPath);
+      expect(readFileSync(memoryPath, "utf8")).toContain('"event":"origin"');
+      expect(readFileSync(memoryPath, "utf8")).toContain("broad exploration");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

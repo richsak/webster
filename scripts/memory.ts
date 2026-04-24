@@ -9,7 +9,8 @@ export type EventType =
   | "skip"
   | "regression"
   | "gap-detected"
-  | "verdict-ready";
+  | "verdict-ready"
+  | "origin";
 
 export type EventRefs = Record<string, string>;
 

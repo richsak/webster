@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { tailN as readMemoryTail, type MemoryEvent } from "./memory.ts";
+import { appendEvent, tailN as readMemoryTail, type MemoryEvent } from "./memory.ts";
 
 export interface PlannerContextOptions {
   memoryPath: string;
@@ -11,7 +11,7 @@ export interface PlannerContextOptions {
 
 const DEFAULT_TAIL_N = 50;
 const COLD_START =
-  "COLD_START: no prior planner memory, verdicts, or monitor anomalies were available.";
+  'COLD_START: direction_hint="broad exploration, baseline-only analytics"; no prior planner memory, verdicts, or monitor anomalies were available.';
 
 function formatMemoryTail(events: MemoryEvent[]): string {
   if (events.length === 0) {
@@ -47,6 +47,22 @@ function readMonitorAnomalies(monitorPath: string): string {
   return readFileSync(monitorPath, "utf8").trim();
 }
 
+export function buildOriginEvent(week: string): MemoryEvent {
+  return {
+    ts: new Date(0).toISOString(),
+    week,
+    actor: "planner",
+    event: "origin",
+    refs: {},
+    insight:
+      'Cold-start planner origin: direction_hint="broad exploration, baseline-only analytics".',
+  };
+}
+
+export function appendColdStartOriginEvent(week: string, memoryPath: string): void {
+  appendEvent(buildOriginEvent(week), memoryPath);
+}
+
 export function marshalPlannerContext(opts: PlannerContextOptions): string {
   const memoryEvents = readMemoryTail(opts.tailN ?? DEFAULT_TAIL_N, opts.memoryPath);
   const verdicts = readRecentVerdicts(opts.verdictDir);
@@ -63,6 +79,8 @@ export function marshalPlannerContext(opts: PlannerContextOptions): string {
     "",
     "## MONITOR_ANOMALIES",
     monitorAnomalies.length > 0 ? monitorAnomalies : "No monitor anomalies found.",
-    ...(isColdStart ? ["", COLD_START] : []),
+    ...(isColdStart
+      ? ["", COLD_START, "direction_hint: broad exploration, baseline-only analytics"]
+      : []),
   ].join("\n");
 }
