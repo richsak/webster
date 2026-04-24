@@ -1,6 +1,6 @@
 # Findings — Week 2026-04-23
 
-## Issues identified
+## Issues
 
 - [CRITICAL] Hero H1 "YOUR PRACTICE. THEIR PLAYBOOK. PATIENTS NOTICE." fails one-read clarity — "THEIR" has no clear referent on a cold read: it could be the practitioners' rogue individual playbooks (the problem) or Richer Health's proprietary playbook (the solution). The three fragments resolve only after reading the subheadline, violating the one-read test for a hero headline. — Hero section, H1 text.
 

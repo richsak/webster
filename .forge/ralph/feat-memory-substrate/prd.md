@@ -18,12 +18,12 @@ Provide a typed, append-only event log that the orchestrator can write to and th
 
 ### Success Metrics
 
-| Metric | Target | How Measured |
-|--------|--------|--------------|
-| Type safety | Zero `any` without justification | `bun run type-check` passes |
-| Idempotency | Duplicate (ts+week+actor+event+exp_id) row not appended | Unit test for idempotency case |
-| Schema round-trip | Parse → serialize → re-parse is lossless | Unit test with full event shape |
-| Reader correctness | tailN(3) on 5-event file returns last 3 | Unit test |
+| Metric             | Target                                                  | How Measured                    |
+| ------------------ | ------------------------------------------------------- | ------------------------------- |
+| Type safety        | Zero `any` without justification                        | `bun run type-check` passes     |
+| Idempotency        | Duplicate (ts+week+actor+event+exp_id) row not appended | Unit test for idempotency case  |
+| Schema round-trip  | Parse → serialize → re-parse is lossless                | Unit test with full event shape |
+| Reader correctness | tailN(3) on 5-event file returns last 3                 | Unit test                       |
 
 ### Non-Goals (Out of Scope)
 
@@ -67,13 +67,13 @@ filter(criteria: Partial<Pick<MemoryEvent, "week" | "actor" | "event">>): Memory
 
 ### States to Handle
 
-| State | Description | Behavior |
-|-------|-------------|----------|
-| First write | `history/memory.jsonl` doesn't exist | `mkdirSync` + create file on first append |
-| Duplicate event | Same ts+week+actor+event+exp_id already present | Skip silently (idempotent) |
-| No exp_id in refs | Idempotency key incomplete | Always append (no dedup check) |
-| Malformed row | A line in the file isn't valid JSON | `filter`/`tailN` skip the bad line + propagate error |
-| Empty file | Zero events | `tailN` returns `[]`; `filter` returns `[]` |
+| State             | Description                                     | Behavior                                             |
+| ----------------- | ----------------------------------------------- | ---------------------------------------------------- |
+| First write       | `history/memory.jsonl` doesn't exist            | `mkdirSync` + create file on first append            |
+| Duplicate event   | Same ts+week+actor+event+exp_id already present | Skip silently (idempotent)                           |
+| No exp_id in refs | Idempotency key incomplete                      | Always append (no dedup check)                       |
+| Malformed row     | A line in the file isn't valid JSON             | `filter`/`tailN` skip the bad line + propagate error |
+| Empty file        | Zero events                                     | `tailN` returns `[]`; `filter` returns `[]`          |
 
 ---
 
@@ -103,12 +103,12 @@ export type EventRefs = Record<string, string>;
 
 // One row in history/memory.jsonl
 export interface MemoryEvent {
-  ts: string;       // ISO 8601 timestamp
-  week: string;     // e.g. "2026-W17"
-  actor: string;    // e.g. "planner", "apply", "visual", "verdict", "human"
+  ts: string; // ISO 8601 timestamp
+  week: string; // e.g. "2026-W17"
+  actor: string; // e.g. "planner", "apply", "visual", "verdict", "human"
   event: EventType;
   refs: EventRefs;
-  insight: string;  // one-sentence durable takeaway
+  insight: string; // one-sentence durable takeaway
 }
 
 // Filter criteria for reader helper
@@ -130,16 +130,16 @@ export type MemoryFilter = Partial<Pick<MemoryEvent, "week" | "actor" | "event">
 
 ### Story Overview
 
-| ID | Title | Priority | Dependencies |
-|----|-------|----------|--------------|
-| US-001 | MemoryEvent type + EventType enum | 1 | — |
-| US-002 | appendEvent helper with idempotency | 2 | US-001 |
-| US-003 | tailN + filter reader helpers | 3 | US-001 |
-| US-004 | Unit tests: round-trip, idempotency, tailN, filter | 4 | US-002, US-003 |
+| ID     | Title                                              | Priority | Dependencies   |
+| ------ | -------------------------------------------------- | -------- | -------------- |
+| US-001 | MemoryEvent type + EventType enum                  | 1        | —              |
+| US-002 | appendEvent helper with idempotency                | 2        | US-001         |
+| US-003 | tailN + filter reader helpers                      | 3        | US-001         |
+| US-004 | Unit tests: round-trip, idempotency, tailN, filter | 4        | US-002, US-003 |
 
 ### Dependency Graph
 
-```
+```text
 US-001 (schema/types)
     ↓
 US-002 (append helper)   US-003 (reader helpers)
@@ -161,4 +161,4 @@ Every story must pass:
 
 ---
 
-*Generated: 2026-04-23T00:00:00Z*
+Generated: 2026-04-23T00:00:00Z

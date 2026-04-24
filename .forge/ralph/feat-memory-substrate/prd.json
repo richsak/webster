@@ -21,8 +21,8 @@
       "technicalNotes": "Create scripts/memory.ts. Type naming: CapitalCase per scripts/critic-genealogy.ts:31-68. JSON-compat keys use snake_case (e.g. refs.exp_id). No default exports. No src/ directory — scripts/ is the right location.",
       "dependsOn": [],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented in iteration 1. Files: scripts/memory.ts. Commit: 3670941."
     },
     {
       "id": "US-002",

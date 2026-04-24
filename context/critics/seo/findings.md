@@ -1,6 +1,6 @@
 # Findings — Week 2026-04-23
 
-## Issues identified
+## Issues
 
 - [CRITICAL] No JSON-LD structured data present — page source contains no `<script type="application/ld+json">` block; Google cannot surface a rich result for Nicolette Richer (Person / DSocSci credential) or Richer Health (HealthAndBeautyBusiness / LocalBusiness); all schema eligibility is forfeited
 - [CRITICAL] Canonical tag absent — no `<link rel="canonical" href="https://certified.richerhealth.ca/">` detected; subdomain LP risks duplicate-content relationship with richerhealth.ca and any staging variants; Googlebot must guess the preferred URL

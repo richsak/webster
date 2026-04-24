@@ -1,0 +1,31 @@
+## Codebase Patterns
+
+### Memory substrate module shape
+- **Where**: `scripts/memory.ts:1-20`
+- **Pattern**: Keep the memory substrate in a standalone `scripts/` module with a first-line orchestrator-only guard comment and named exports only.
+- **Example**: `export type MemoryFilter = Partial<Pick<MemoryEvent, "week" | "actor" | "event">>;`
+
+---
+
+## 2026-04-23T00:00:00Z — US-001: MemoryEvent type + EventType enum
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/memory.ts` — added the orchestrator-only memory schema module with `EventType`, `EventRefs`, `MemoryEvent`, and `MemoryFilter`
+
+**Acceptance criteria verified**:
+- [x] `scripts/memory.ts` exists with the required ADR-0001 header on line 1
+- [x] `EventType` is a string union of exactly 6 values: `promote | rollback | skip | regression | gap-detected | verdict-ready`
+- [x] `EventRefs` is typed as `Record<string, string>`
+- [x] `MemoryEvent` has fields `ts`, `week`, `actor`, `event`, `refs`, and `insight` with no optional fields
+- [x] `MemoryFilter` is `Partial<Pick<MemoryEvent, "week" | "actor" | "event">>`
+- [x] All types are exported as named exports
+- [x] No `any` was introduced
+- [x] `bun run type-check` passes
+
+**Learnings**:
+- Existing script conventions in this repo favor small, named-export utility modules in `scripts/` rather than introducing a new `src/` layer.
+- Targeted validation passed: `bun run type-check`, `bun run lint --max-warnings 0`, `bun run test`, and `prettier --check scripts/memory.ts`.
+- Full `bun run validate` is currently blocked by pre-existing markdownlint failures in repo docs (`context/DOMAIN-MODEL.md`, `context/FEATURES.md`, `context/ROADMAP.md`, `context/v2-design.md`, and `.forge/ralph/feat-memory-substrate/prd.md`) that were outside US-001 scope.
+
+---

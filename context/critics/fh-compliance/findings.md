@@ -1,6 +1,6 @@
 # Findings — Week 2026-04-23
 
-## Issues identified
+## Issues
 
 - [CRITICAL] DSocSci / non-MD disclaimer is entirely absent from the page — Nicolette is called "FOUNDER & MASTER CLINICIAN" and health-outcome claims appear throughout, yet no disclaimer stating "Dr. Nicolette Richer holds a Doctorate in Social Sciences (DSocSci). She is not a licensed medical doctor." appears anywhere on the LP. Required wherever health outcomes are discussed. — evidence: rendered LP, no matching text found in any section
 
