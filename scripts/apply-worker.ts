@@ -2,6 +2,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { appendEvent } from "./memory.ts";
 
 export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 
@@ -119,6 +120,8 @@ export interface SkipRow {
   exp_id: string;
   reason:
     | "apply-fail"
+    | "critic-veto"
+    | "visual-veto"
     | "string_mismatch"
     | "lint_failure"
     | "type_failure"
@@ -687,12 +690,33 @@ function appendJsonLine(filePath: string, row: unknown): void {
   writeFileSync(filePath, `${prefix}${JSON.stringify(row)}\n`);
 }
 
+function canonicalSkipReason(reason: string): SkipRow["reason"] {
+  if (reason === "critic_veto") {
+    return "critic-veto";
+  }
+  if (reason === "visual_veto" || reason === "runtime_failure") {
+    return "visual-veto";
+  }
+  return "apply-fail";
+}
+
 export function emitSkip(weekDir: string, row: SkipRow): void {
   const resolvedWeekDir = resolve(process.cwd(), weekDir);
   mkdirSync(resolvedWeekDir, { recursive: true });
+  const canonicalRow = { ...row, reason: canonicalSkipReason(row.reason) };
 
-  appendJsonLine(resolveWeekFilePath(weekDir, "skips.jsonl"), row);
-  appendJsonLine(resolveWeekFilePath(weekDir, "memory.jsonl"), row);
+  appendJsonLine(resolveWeekFilePath(weekDir, "skips.jsonl"), canonicalRow);
+  appendEvent(
+    {
+      ts: canonicalRow.ts,
+      week: canonicalRow.week,
+      actor: canonicalRow.actor,
+      event: "skip",
+      refs: { exp_id: canonicalRow.exp_id, concern_ref: canonicalRow.concern_ref },
+      insight: `${canonicalRow.reason}: ${JSON.stringify(canonicalRow.details)}`,
+    },
+    resolve(process.cwd(), "history", "memory.jsonl"),
+  );
 }
 
 function experimentFiles(experiment: ApplyExperiment): string[] {

@@ -243,7 +243,7 @@ describe("apply-worker CLI integration", () => {
       });
       expect(log.experiments[0]?.commit_sha).toBeUndefined();
       expect(readFileSync(join(repo.weekDir, "skips.jsonl"), "utf8")).toContain(
-        '"reason":"lint_failure"',
+        '"reason":"apply-fail"',
       );
       expect(log.pr_emission?.clusters[0]).toMatchObject({
         labels: ["webster-apply", "partial"],
@@ -374,7 +374,7 @@ describe("apply-worker CLI integration", () => {
         skip_reason: "critic_veto",
       });
       expect(readFileSync(join(repo.weekDir, "skips.jsonl"), "utf8")).toContain(
-        '"reason":"critic_veto"',
+        '"reason":"critic-veto"',
       );
       expect(log.pr_emission?.clusters[0]).toMatchObject({
         labels: ["webster-apply", "partial"],
