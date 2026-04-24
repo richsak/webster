@@ -148,4 +148,4 @@ Every story must pass:
 
 ---
 
-*Generated: 2026-04-24T00:00:00.000Z*
+Generated: 2026-04-24T00:00:00.000Z
