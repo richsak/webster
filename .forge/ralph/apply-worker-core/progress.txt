@@ -1,5 +1,10 @@
 ## Codebase Patterns
 
+### JSONL skip sink append helper
+- **Where**: `scripts/apply-worker.ts:433-452`
+- **Pattern**: Resolve week artifact paths from `process.cwd()`, create the week directory once, then append verbatim JSON rows to both `skips.jsonl` and `memory.jsonl` while repairing a missing terminal newline before the new row.
+- **Example**: `const prefix = existing.length === 0 || existing.endsWith("\n") ? existing : `${existing}\n`;`
+
 ### Validation gate aggregator + experiment commit discipline
 - **Where**: `scripts/apply-worker.ts:356-426`
 - **Pattern**: Run lint, type-check, and format-check with `Bun.spawnSync` in sequence without short-circuiting, aggregate each command's stdout/stderr into one string for skip diagnostics, and validate `exp-NN-<slug>` against the issue index/title before building the commit message and parsing the resulting git SHA.
@@ -93,5 +98,27 @@
 - Aggregating validation output into one string now gives later skip-emission/orchestration stories a ready-made payload for `skip_details` without rerunning commands.
 - Validating `expId` against the issue index + slug at commit-message-build time catches mismatched trailers before git history is mutated.
 - `bun run cli workflow event emit ...` is unavailable in this repo (`error: Script not found "cli"`), so Ralph event emission currently no-ops as instructed.
+
+---
+
+## 2026-04-23 — US-004: Skip-row emission + apply-log writer
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/apply-worker.ts` — added JSONL append helpers plus exported `emitSkip` and `writeApplyLog` for weekly skip + apply artifacts
+
+**Acceptance criteria verified**:
+- [x] `emitSkip(weekDir: string, row: SkipRow): void` appends one JSON line to both `<weekDir>/skips.jsonl` and `<weekDir>/memory.jsonl`
+- [x] Skip rows are written verbatim from the `SkipRow` object with no field remapping
+- [x] `writeApplyLog(weekDir: string, log: ApplyLogJSON): void` overwrites `<weekDir>/apply-log.json`
+- [x] `apply-log.json` preserves week, run timestamp, experiments, and final validation summary from the provided `ApplyLogJSON`
+- [x] JSONL append logic keeps newline-separated objects safe even when an existing file is missing a trailing newline
+- [x] `bun run type-check` passes with zero errors
+- [x] `bun run lint --max-warnings 0` passes with zero warnings
+
+**Learnings**:
+- A shared append helper is the safest way to keep `skips.jsonl` and `memory.jsonl` in lockstep for the later #56 skip-contract consumer.
+- Resolving `weekDir` from `process.cwd()` keeps apply-worker artifact writes aligned with the repo-relative `history/<week>/` contract while still supporting absolute temp dirs in smoke checks.
+- A tiny temp-dir smoke check is enough to verify JSONL append semantics before the dedicated unit-test story lands.
 
 ---

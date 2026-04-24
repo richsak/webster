@@ -79,8 +79,8 @@
       "technicalNotes": "Append to JSONL: read existing content (empty string if file missing), append `JSON.stringify(row) + '\\n'`, write back via `Bun.write`. `apply-log.json` is full JSON (not JSONL). `weekDir` is resolved relative to process.cwd() — e.g. `history/2026-04-23`. File: `scripts/apply-worker.ts`.",
       "dependsOn": ["US-003"],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented in iteration 4. Files: scripts/apply-worker.ts. Added skip-row append helpers for skips.jsonl + memory.jsonl and apply-log.json writer."
     },
     {
       "id": "US-005",
