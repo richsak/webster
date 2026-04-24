@@ -10,6 +10,7 @@ import {
   emitSkip,
   parseDecision,
   parseProposal,
+  runCriticRerunGate,
   runRuntimeValidation,
   runValidation,
   writeApplyLog,
@@ -177,6 +178,30 @@ async function applyIssue(
     };
   }
 
+  const criticRerun = runCriticRerunGate(weekDir, expId, issue.files_touched);
+  if (!criticRerun.passed) {
+    restoreFiles(issue.files_touched);
+    const details = {
+      configured: criticRerun.configured,
+      critical_count: criticRerun.criticalCount,
+      high_count: criticRerun.highCount,
+      findings: criticRerun.findings,
+      output: criticRerun.output,
+    };
+    emitSkip(weekDir, buildSkipRow(week, expId, "critic_veto", details, issue));
+    console.error(`skipped ${expId}: critic_veto`);
+
+    return {
+      exp_id: expId,
+      severity: issue.severity,
+      title: issue.title,
+      status: "skipped",
+      mutations,
+      skip_reason: "critic_veto",
+      skip_details: details,
+    };
+  }
+
   const message = buildCommitMessage(expId, issue.index, issue.title, issue.files_touched);
   const commitSha = commitExperiment(issue.files_touched, message);
   console.log(`committed ${expId}: ${commitSha}`);
@@ -209,6 +234,7 @@ async function main(): Promise<number> {
     type_check_passed: true,
     format_check_passed: true,
     runtime_validation_passed: true,
+    critic_rerun_passed: true,
   };
 
   for (const issue of issues) {
@@ -225,6 +251,9 @@ async function main(): Promise<number> {
     }
     if (experiment.skip_reason === "runtime_failure") {
       validationSummary.runtime_validation_passed = false;
+    }
+    if (experiment.skip_reason === "critic_veto") {
+      validationSummary.critic_rerun_passed = false;
     }
   }
 

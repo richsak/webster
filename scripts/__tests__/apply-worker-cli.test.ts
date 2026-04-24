@@ -48,11 +48,15 @@ function run(command: string[], cwd: string): string {
   return decode(result.stdout);
 }
 
-function runCli(repo: FixtureRepo): { exitCode: number; stdout: string; stderr: string } {
+function runCli(
+  repo: FixtureRepo,
+  env?: Record<string, string>,
+): { exitCode: number; stdout: string; stderr: string } {
   const result = Bun.spawnSync(["bun", CLI_PATH, WEEK_DIR], {
     cwd: repo.root,
     stdout: "pipe",
     stderr: "pipe",
+    env: env ? { ...process.env, ...env } : process.env,
   });
 
   return {
@@ -236,6 +240,38 @@ describe("apply-worker CLI integration", () => {
       });
       expect(readFileSync(join(repo.weekDir, "skips.jsonl"), "utf8")).toContain(
         "booking CTA has non-resolving href",
+      );
+    } finally {
+      removeFixtureRepo(repo);
+    }
+  });
+
+  test("blocks critic rerun vetoes before commit", () => {
+    const repo = createFixtureRepo(
+      "critic-veto",
+      "<h1>Clinic directors get one clear protocol</h1>",
+    );
+
+    try {
+      const commitCountBefore = run(["git", "rev-list", "--count", "HEAD"], repo.root);
+      const cli = runCli(repo, {
+        WEBSTER_CRITIC_RERUN_CMD:
+          'printf \'{"findings":[{"critic":"conversion","severity":"CRITICAL","issue":"New CTA regression"}]}\'',
+      });
+      const commitCountAfter = run(["git", "rev-list", "--count", "HEAD"], repo.root);
+
+      expect(cli.exitCode).toBe(0);
+      expect(commitCountAfter).toBe(commitCountBefore);
+      expect(readFileSync(repo.targetFile, "utf8")).toBe("<h1>Old clinic headline</h1>\n");
+
+      const log = readApplyLog(repo);
+      expect(log.experiments[0]).toMatchObject({
+        exp_id: "exp-01-update-homepage-headline",
+        status: "skipped",
+        skip_reason: "critic_veto",
+      });
+      expect(readFileSync(join(repo.weekDir, "skips.jsonl"), "utf8")).toContain(
+        '"reason":"critic_veto"',
       );
     } finally {
       removeFixtureRepo(repo);

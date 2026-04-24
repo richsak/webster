@@ -52,7 +52,8 @@ export interface ApplyExperiment {
     | "lint_failure"
     | "type_failure"
     | "format_failure"
-    | "runtime_failure";
+    | "runtime_failure"
+    | "critic_veto";
   skip_details?: Record<string, unknown>;
 }
 
@@ -65,6 +66,7 @@ export interface ApplyLogJSON {
     type_check_passed: boolean;
     format_check_passed: boolean;
     runtime_validation_passed: boolean;
+    critic_rerun_passed: boolean;
   };
 }
 
@@ -80,7 +82,8 @@ export interface SkipRow {
     | "lint_failure"
     | "type_failure"
     | "format_failure"
-    | "runtime_failure";
+    | "runtime_failure"
+    | "critic_veto";
   details: Record<string, unknown>;
   concern_ref: string;
 }
@@ -100,6 +103,21 @@ export interface RuntimeValidationResult {
     noInlineScriptErrors: boolean;
   };
   errors: string[];
+}
+
+export interface CriticFinding {
+  critic: string;
+  severity: Severity;
+  issue: string;
+}
+
+export interface CriticRerunResult {
+  passed: boolean;
+  configured: boolean;
+  criticalCount: number;
+  highCount: number;
+  findings: CriticFinding[];
+  output: string;
 }
 
 interface ParsedSection {
@@ -283,10 +301,14 @@ export function buildExpectedExperimentId(index: number, title: string): string 
   return `exp-${index.toString().padStart(2, "0")}-${slugifyTitle(title)}`;
 }
 
-function runCommand(command: string[]): { passed: boolean; output: string } {
+function runCommand(
+  command: string[],
+  env?: Record<string, string>,
+): { passed: boolean; output: string } {
   const result = Bun.spawnSync(command, {
     stdout: "pipe",
     stderr: "pipe",
+    env: env ? { ...process.env, ...env } : process.env,
   });
   const stdout = decodeOutput(result.stdout);
   const stderr = decodeOutput(result.stderr);
@@ -470,6 +492,87 @@ export function runRuntimeValidation(files: string[]): RuntimeValidationResult {
       noInlineScriptErrors: !errors.some((error) => error.includes("inline script")),
     },
     errors,
+  };
+}
+
+function parseCriticFindings(value: unknown): CriticFinding[] {
+  if (!isRecord(value) || !Array.isArray(value.findings)) {
+    throw new Error("critic rerun output must be JSON with a findings array");
+  }
+
+  return value.findings.map((finding, index) => {
+    if (!isRecord(finding)) {
+      throw new Error(`critic finding ${index} must be an object`);
+    }
+
+    return {
+      critic: expectString(finding.critic, `findings[${index}].critic`),
+      severity: parseSeverity(finding.severity, `findings[${index}].severity`),
+      issue: expectString(finding.issue, `findings[${index}].issue`),
+    };
+  });
+}
+
+export function runCriticRerunGate(
+  weekDir: string,
+  expId: string,
+  files: string[],
+): CriticRerunResult {
+  const command = process.env.WEBSTER_CRITIC_RERUN_CMD;
+  if (!command || command.trim().length === 0) {
+    return {
+      passed: true,
+      configured: false,
+      criticalCount: 0,
+      highCount: 0,
+      findings: [],
+      output: "WEBSTER_CRITIC_RERUN_CMD not configured; managed-agent rerun skipped locally.",
+    };
+  }
+
+  const result = Bun.spawnSync(["bash", "-lc", command], {
+    stdout: "pipe",
+    stderr: "pipe",
+    env: {
+      ...process.env,
+      WEBSTER_WEEK_DIR: weekDir,
+      WEBSTER_EXPERIMENT_ID: expId,
+      WEBSTER_CHANGED_FILES: files.join("\n"),
+    },
+  });
+  const stdout = decodeOutput(result.stdout);
+  const stderr = decodeOutput(result.stderr);
+  const output = [stdout, stderr].filter((part) => part.length > 0).join("\n");
+
+  if (result.exitCode !== 0) {
+    return {
+      passed: false,
+      configured: true,
+      criticalCount: 1,
+      highCount: 0,
+      findings: [
+        {
+          critic: "critic-rerun-command",
+          severity: "CRITICAL",
+          issue: "Critic rerun command exited non-zero.",
+        },
+      ],
+      output,
+    };
+  }
+
+  const jsonStart = stdout.indexOf("{");
+  const findings = parseCriticFindings(JSON.parse(stdout.slice(jsonStart)));
+  const criticalCount = findings.filter((finding) => finding.severity === "CRITICAL").length;
+  const highCount = findings.filter((finding) => finding.severity === "HIGH").length;
+
+  return {
+    passed: criticalCount === 0 && highCount <= 2,
+    configured: true,
+    criticalCount,
+    highCount,
+    findings,
+    output,
   };
 }
 
