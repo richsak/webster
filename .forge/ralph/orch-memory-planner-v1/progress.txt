@@ -59,3 +59,23 @@
 - `bun run cli` is not defined in this repo, so Ralph workflow event emissions failed harmlessly under the required `|| true` wrapper.
 
 ---
+## 2026-04-24 — US-003: Orchestrator step in prompts/second-wbs-session.md
+
+**Status**: PASSED
+**Files changed**:
+- `prompts/second-wbs-session.md` — added fail-closed Step 3 planner orchestration before critic fan-out, marshaling context through `scripts/planner-context.ts`, invoking `scripts/planner-invoke.ts`, committing `history/<week>/plan.md` + `history/memory.jsonl`, and passing `PLAN_PATH` to downstream agents.
+- `README.md` — updated architecture diagram, weekly-flow step count, runtime estimate, and weekly-run summary to include the planner step.
+
+**Acceptance criteria verified**:
+- [x] Edit prompts/second-wbs-session.md to add a new numbered step titled 'Run planner' placed BEFORE the critic fan-out step.
+- [x] The step shows the bash/bun invocation that marshals context via scripts/planner-context.ts and invokes the planner via scripts/planner-invoke.ts, with the week argument set to the current ISO week folder name under history/.
+- [x] The step specifies that on planner error the run halts with a non-zero exit status and a pointer to the error message.
+- [x] The step references history/<week>/plan.md as the output artifact consumed by later steps.
+- [x] Update README.md or an adjacent doc section if the prior council flow explicitly enumerated the steps, so the step count remains accurate.
+- [x] bun run validate passes.
+
+**Learnings**:
+- The weekly runner uses `WEEK_DATE=$(date -u +%Y-%m-%d)` as its history folder slug, so the planner step reuses that existing ISO-8601 UTC folder naming pattern instead of introducing a second week format.
+- `bun --eval` receives user arguments at `process.argv.slice(1)`, which keeps the prompt-only invocation small without adding CLI code to the helper modules.
+
+---

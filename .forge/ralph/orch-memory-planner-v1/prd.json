@@ -59,14 +59,14 @@
         "Update README.md or an adjacent doc section if the prior council flow explicitly enumerated the steps, so the step count remains accurate.",
         "bun run validate passes."
       ],
-      "technicalNotes": "Edit prompts/second-wbs-session.md only — do not change orchestrator-owned I/O in the helpers. The step should read like the existing numbered steps: plain bash with comments and exit-on-error semantics. Do not implement runtime invocation of critics from this file; that remains in the later fan-out step.",
+      "technicalNotes": "Edit prompts/second-wbs-session.md only \u2014 do not change orchestrator-owned I/O in the helpers. The step should read like the existing numbered steps: plain bash with comments and exit-on-error semantics. Do not implement runtime invocation of critics from this file; that remains in the later fan-out step.",
       "dependsOn": [
         "US-001",
         "US-002"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented in iteration 3. Files: prompts/second-wbs-session.md, README.md."
     }
   ]
 }
