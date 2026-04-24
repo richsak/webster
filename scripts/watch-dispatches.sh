@@ -86,7 +86,8 @@ ping_dispatcher() {
   local branch="$3"
   local status="$4"
 
-  local response_log="$WATCHER_LOG_DIR/response-${slug}-$(date +%s).log"
+  local response_log
+  response_log="$WATCHER_LOG_DIR/response-${slug}-$(date +%s).log"
   local msg
   msg="watcher: dispatch ${feature} on ${branch} finished (status=${status}). Pick up this completion: read .claude/checkpoints/ for prior state, inspect forge isolation list for merge state, update context/FEATURES.md row (todo→in-progress→done/blocked), and if queue has room (<=3 concurrent), dispatch the next L11 feature per the dispatcher rules. Watcher log: $WATCHER_LOG. Workflow log: $LOG_DIR/${slug}.log."
 
