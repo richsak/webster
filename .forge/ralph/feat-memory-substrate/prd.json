@@ -1,0 +1,91 @@
+{
+  "project": "Webster",
+  "branchName": "feat/memory-substrate",
+  "prdFile": "prd.md",
+  "description": "Typed JSONL event log schema + append helper + reader helpers for history/memory.jsonl — orchestrator-owned, agents never touch it (ADR-0001).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "MemoryEvent type + EventType enum",
+      "description": "As the orchestrator, I want a TypeScript type for memory events so that every row written to history/memory.jsonl is structurally validated at compile time.",
+      "acceptanceCriteria": [
+        "File scripts/memory.ts exists with first line: // ORCHESTRATOR-ONLY: agents must not import this module directly (ADR-0001)",
+        "EventType is a string union of exactly 6 values: promote | rollback | skip | regression | gap-detected | verdict-ready",
+        "EventRefs is typed as Record<string, string>",
+        "MemoryEvent interface has fields: ts (string), week (string), actor (string), event (EventType), refs (EventRefs), insight (string) — no optional fields, no extra fields",
+        "MemoryFilter type is Partial<Pick<MemoryEvent, 'week' | 'actor' | 'event'>>",
+        "All types are exported named exports",
+        "No `any` without a justification comment",
+        "bun run type-check passes"
+      ],
+      "technicalNotes": "Create scripts/memory.ts. Type naming: CapitalCase per scripts/critic-genealogy.ts:31-68. JSON-compat keys use snake_case (e.g. refs.exp_id). No default exports. No src/ directory — scripts/ is the right location.",
+      "dependsOn": [],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "appendEvent helper with idempotency",
+      "description": "As the orchestrator, I want to append a single MemoryEvent to history/memory.jsonl so that every significant action is durably recorded, with deduplication when an exp_id is present.",
+      "acceptanceCriteria": [
+        "appendEvent(event: MemoryEvent, logPath?: string): void — logPath defaults to 'history/memory.jsonl' relative to process.cwd()",
+        "Creates history/ directory with mkdirSync({ recursive: true }) if it doesn't exist",
+        "Creates memory.jsonl if it doesn't exist on first call",
+        "Appends exactly one JSON-encoded line (JSON.stringify(event) + newline) per non-duplicate call",
+        "Idempotency: if refs.exp_id is present AND a row with identical (ts, week, actor, event, refs.exp_id) already exists, the function returns without writing",
+        "If refs.exp_id is absent, always appends (no dedup check)",
+        "fs errors propagate — no try/catch swallowing errors",
+        "bun run type-check passes"
+      ],
+      "technicalNotes": "Use appendFileSync from node:fs for atomic line appends. mkdirSync pattern from scripts/critic-genealogy.ts:573-590. For idempotency: readFileSync the existing file (if it exists), parse lines, check for matching tuple before appending. Dedup check only when refs.exp_id is truthy.",
+      "dependsOn": ["US-001"],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "tailN + filter reader helpers",
+      "description": "As the orchestrator, I want to read recent or filtered events from history/memory.jsonl so that the planner can be given a curated history slice without re-reading all raw artifacts.",
+      "acceptanceCriteria": [
+        "tailN(n: number, logPath?: string): MemoryEvent[] — returns the last n events from the log; returns [] if file doesn't exist",
+        "filter(criteria: MemoryFilter, logPath?: string): MemoryEvent[] — returns all events matching ALL provided criteria fields; returns [] if file doesn't exist",
+        "Both functions skip malformed lines (non-JSON) and throw an error identifying the bad line number",
+        "tailN(0) returns []",
+        "tailN(n) where n > total events returns all events",
+        "filter({}) with empty criteria returns all events",
+        "Both functions return typed MemoryEvent[] — no unknown or any return types",
+        "bun run type-check passes"
+      ],
+      "technicalNotes": "Read file with readFileSync, split on newline, filter empty lines, JSON.parse each. Tail: slice from end. Filter: check each criteria key for equality. Both accept optional logPath defaulting to 'history/memory.jsonl'. Pattern: readFileSync from scripts/critic-genealogy.ts:162.",
+      "dependsOn": ["US-001"],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Unit tests: round-trip, idempotency, tailN, filter",
+      "description": "As a developer, I want unit tests for all memory substrate helpers so that regressions are caught before merge.",
+      "acceptanceCriteria": [
+        "Test file at scripts/__tests__/memory.test.ts using bun:test (describe, test, expect imports)",
+        "Schema round-trip test: construct a MemoryEvent with all 6 event values, JSON.stringify + JSON.parse, assert equality",
+        "appendEvent test: write 3 events to a temp file, read back with tailN(3), assert all 3 present",
+        "Idempotency test: append same event (with refs.exp_id) twice, assert file contains exactly 1 line",
+        "No-dedup test: append same event WITHOUT refs.exp_id twice, assert file contains exactly 2 lines",
+        "tailN test: write 5 events, tailN(3) returns last 3 in order",
+        "filter test: write events with 2 different actors, filter({ actor: 'planner' }) returns only planner events",
+        "filter empty criteria test: filter({}) returns all events",
+        "Temp files use a unique path per test (e.g. /tmp/memory-test-{Date.now()}.jsonl) to avoid cross-test contamination",
+        "bun test passes with zero failures",
+        "bun run validate passes"
+      ],
+      "technicalNotes": "Test framework: bun:test — import { describe, test, expect } from 'bun:test'. Pattern from scripts/__tests__/critic-genealogy.test.ts:44-76. Use Date.now() or crypto.randomUUID() for unique temp file paths. Clean up temp files in each test or accept they're ephemeral in /tmp.",
+      "dependsOn": ["US-002", "US-003"],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
