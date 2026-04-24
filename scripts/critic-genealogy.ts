@@ -88,6 +88,7 @@ interface CLIArgs {
   lpTarget: string;
   dryRun: boolean;
   overrideQuarterlyCap: boolean;
+  plannerRequestPath: string | null;
 }
 
 interface QuarterlyCapDecision {
@@ -118,6 +119,7 @@ function parseArgs(argv: string[]): CLIArgs {
     lpTarget: LP_TARGET_DEFAULT,
     dryRun: false,
     overrideQuarterlyCap: false,
+    plannerRequestPath: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -133,6 +135,8 @@ function parseArgs(argv: string[]): CLIArgs {
       args.dryRun = true;
     } else if (a === "--override-quarterly-cap") {
       args.overrideQuarterlyCap = true;
+    } else if (a === "--planner-request") {
+      args.plannerRequestPath = argv[++i] ?? null;
     } else if (a === "--help" || a === "-h") {
       throw new CLIError("help");
     } else {
@@ -150,8 +154,8 @@ function parseArgs(argv: string[]): CLIArgs {
 
 function printUsage(): void {
   console.log(`Usage:
-  bun scripts/critic-genealogy.ts --branch <council-branch> [--week YYYY-MM-DD] [--lp-target URL] [--dry-run] [--override-quarterly-cap]
-  bun scripts/critic-genealogy.ts --fixtures <dir> [--week YYYY-MM-DD] [--lp-target URL] [--dry-run] [--override-quarterly-cap]
+  bun scripts/critic-genealogy.ts --branch <council-branch> [--week YYYY-MM-DD] [--lp-target URL] [--dry-run] [--override-quarterly-cap] [--planner-request path]
+  bun scripts/critic-genealogy.ts --fixtures <dir> [--week YYYY-MM-DD] [--lp-target URL] [--dry-run] [--override-quarterly-cap] [--planner-request path]
 
 Examples:
   bun scripts/critic-genealogy.ts --branch council/2026-04-23
@@ -534,6 +538,7 @@ function buildGapPrompt(
   findings: Map<string, string>,
   lpTarget: string,
   weekDate: string,
+  plannerRequest?: string,
 ): string {
   const criticsBlock = critics
     .map((c, i) => `${i + 1}. ${c.name} — scope: ${c.scope}\n   ${c.description}`)
@@ -557,7 +562,9 @@ ${findingsBlock}
 
 - LP_TARGET: ${lpTarget}
 - WEEK_DATE: ${weekDate}
+${plannerRequest ? `- Planner new_critic_request: ${plannerRequest.trim()}` : "- Planner new_critic_request: none"}
 - Pay special attention to each critic's "Out of scope" section — these are concrete things the critic SAW but DIDN'T own. Cross-critic repetition there is the strongest gap signal.
+- Treat planner new_critic_request as additive evidence only: it can focus your search, but it cannot bypass the same dedup, non-overlap, cap, and concrete-evidence requirements.
 
 ## Task
 
@@ -581,8 +588,9 @@ async function detectGap(
   findings: Map<string, string>,
   lpTarget: string,
   weekDate: string,
+  plannerRequest?: string,
 ): Promise<GapResponse> {
-  const prompt = buildGapPrompt(critics, findings, lpTarget, weekDate);
+  const prompt = buildGapPrompt(critics, findings, lpTarget, weekDate, plannerRequest);
   const body = {
     model: "claude-opus-4-7",
     max_tokens: 4096,
@@ -934,8 +942,23 @@ async function main(): Promise<number> {
     : loadFindingsFromBranch(args.branch as string, critics);
   console.log(`findings loaded: ${[...findings.keys()].join(", ")}`);
 
+  const plannerRequest =
+    args.plannerRequestPath && existsSync(args.plannerRequestPath)
+      ? readFileSync(args.plannerRequestPath, "utf8")
+      : undefined;
+  if (plannerRequest) {
+    console.log(`planner new_critic_request loaded: ${args.plannerRequestPath}`);
+  }
+
   console.log("detecting gap (Opus 4.7)...");
-  const gap = await detectGap(apiKey, critics, findings, args.lpTarget, args.weekDate);
+  const gap = await detectGap(
+    apiKey,
+    critics,
+    findings,
+    args.lpTarget,
+    args.weekDate,
+    plannerRequest,
+  );
 
   if (!gap.gap_found || !gap.new_critic) {
     console.log("no gap detected — council coverage is complete this week");

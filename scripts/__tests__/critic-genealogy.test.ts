@@ -69,6 +69,16 @@ describe("parseArgs", () => {
     expect(args.overrideQuarterlyCap).toBe(true);
   });
 
+  test("parses --planner-request", () => {
+    const args = parseArgs([
+      "--branch",
+      "council/2026-04-23",
+      "--planner-request",
+      "tmp/request.json",
+    ]);
+    expect(args.plannerRequestPath).toBe("tmp/request.json");
+  });
+
   test("defaults lpTarget and weekDate", () => {
     const args = parseArgs(["--branch", "x"]);
     expect(args.lpTarget).toBe("https://certified.richerhealth.ca");

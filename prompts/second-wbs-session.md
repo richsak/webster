@@ -246,6 +246,15 @@ git add "$PLAN_PATH" history/memory.jsonl
 git commit -m "chore(planner): add plan for week $WEEK_DATE"
 git push origin "$BRANCH"
 
+PLAN_TEXT=$(cat "$PLAN_PATH")
+PLANNER_REQUEST_FILE="tmp/planner-new-critic-request-$WEEK_DATE.json"
+if jq -e 'has("new_critic_request") and (.new_critic_request != null)' "$PLAN_PATH" >/dev/null; then
+  jq '.new_critic_request' "$PLAN_PATH" > "$PLANNER_REQUEST_FILE"
+  echo "Planner requested possible new critic: $PLANNER_REQUEST_FILE"
+else
+  rm -f "$PLANNER_REQUEST_FILE"
+fi
+
 echo "✓ Planner output ready for critics: $PLAN_PATH"
 ```
 
@@ -314,12 +323,18 @@ Launch all 6 in parallel:
 MSG_CRITIC="BRANCH=$BRANCH
 WEEK_DATE=$WEEK_DATE
 LP_TARGET=$LP_TARGET
-PLAN_PATH=$PLAN_PATH"
+PLAN_PATH=$PLAN_PATH
+
+Planner context (additive only; do not suppress, downgrade, or ignore findings outside this direction):
+$PLAN_TEXT"
 
 MSG_MONITOR="BRANCH=$BRANCH
 WEEK_DATE=$WEEK_DATE
 PREV_WEEK_DATE=$PREV_WEEK_DATE
-PLAN_PATH=$PLAN_PATH"
+PLAN_PATH=$PLAN_PATH
+
+Planner context (additive only; report anomalies even if they fall outside this direction):
+$PLAN_TEXT"
 
 run_agent_session monitor          "$MONITOR_ID"         "$MSG_MONITOR"  & PIDS+=($!)
 run_agent_session brand-voice      "$BRAND_VOICE_ID"     "$MSG_CRITIC"   & PIDS+=($!)
@@ -403,10 +418,16 @@ GENEALOGY_LOG="tmp/logs/genealogy.log"
 : > "$GENEALOGY_LOG"
 
 set +e
-bun scripts/critic-genealogy.ts \
-  --branch "$BRANCH" \
-  --week "$WEEK_DATE" \
-  --lp-target "$LP_TARGET" \
+GENEALOGY_ARGS=(
+  --branch "$BRANCH"
+  --week "$WEEK_DATE"
+  --lp-target "$LP_TARGET"
+)
+if [[ -s "$PLANNER_REQUEST_FILE" ]]; then
+  GENEALOGY_ARGS+=(--planner-request "$PLANNER_REQUEST_FILE")
+fi
+
+bun scripts/critic-genealogy.ts "${GENEALOGY_ARGS[@]}" \
   2>&1 | tee "$GENEALOGY_LOG"
 GENEALOGY_CODE=${PIPESTATUS[0]}
 set -e
@@ -442,7 +463,10 @@ Single synthesis call. Reads all findings on `$BRANCH`, commits `history/$WEEK_D
 ```bash
 MSG_REDESIGNER="BRANCH=$BRANCH
 WEEK_DATE=$WEEK_DATE
-PLAN_PATH=$PLAN_PATH"
+PLAN_PATH=$PLAN_PATH
+
+Planner context (additive only; use direction_hint as a weighting input, but critic vetoes and CRITICAL/HIGH evidence remain sovereign):
+$PLAN_TEXT"
 
 run_agent_session redesigner "$REDESIGNER_ID" "$MSG_REDESIGNER"
 REDESIGNER_RESULT=$?
