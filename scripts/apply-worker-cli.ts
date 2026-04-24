@@ -27,7 +27,8 @@ import {
   type ApplyLogJSON,
   type MutationResult,
   type ProposalIssue,
-  type SkipRow,
+  type SkipInputRow,
+  type SkipReasonInput,
   type ValidationResult,
 } from "./apply-worker";
 
@@ -100,10 +101,10 @@ function validationSkipReason(
 function buildSkipRow(
   week: string,
   expId: string,
-  reason: SkipRow["reason"],
+  reason: SkipReasonInput,
   details: Record<string, unknown>,
   issue: ProposalIssue,
-): SkipRow {
+): SkipInputRow {
   return {
     ts: new Date().toISOString(),
     week,

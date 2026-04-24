@@ -51,20 +51,35 @@ log() {
 }
 
 cleanup() {
-  rm -f "$LOCKFILE"
-  log "watcher exiting, lockfile cleaned"
+  if [ -r "$LOCKFILE" ] && [ "$(cat "$LOCKFILE")" = "$$" ]; then
+    rm -f "$LOCKFILE"
+    log "watcher exiting, lockfile cleaned"
+  fi
 }
 trap cleanup EXIT INT TERM
 
-if [ -r "$LOCKFILE" ]; then
-  existing_pid=$(cat "$LOCKFILE")
-  if [ -n "$existing_pid" ] && kill -0 "$existing_pid" 2>/dev/null; then
-    echo "watcher already running for this slug set (pid=$existing_pid, lockfile=$LOCKFILE)" >&2
+acquire_lock() {
+  if (set -C; echo "$$" > "$LOCKFILE") 2>/dev/null; then
+    return 0
+  fi
+
+  if [ -r "$LOCKFILE" ]; then
+    existing_pid=$(cat "$LOCKFILE")
+    if [ -n "$existing_pid" ] && kill -0 "$existing_pid" 2>/dev/null; then
+      echo "watcher already running for this slug set (pid=$existing_pid, lockfile=$LOCKFILE)" >&2
+      exit 1
+    fi
+    log "stale lockfile found (pid=$existing_pid), removing"
+    rm -f "$LOCKFILE"
+  fi
+
+  if ! (set -C; echo "$$" > "$LOCKFILE") 2>/dev/null; then
+    echo "watcher lock acquisition raced for this slug set (lockfile=$LOCKFILE)" >&2
     exit 1
   fi
-  log "stale lockfile found (pid=$existing_pid), overwriting"
-fi
-echo "$$" > "$LOCKFILE"
+}
+
+acquire_lock
 
 : > "$COMPLETED_FILE"
 : > "$WATCHER_LOG"
@@ -75,10 +90,18 @@ printf "%s\n" "$DISPATCHES" | while IFS='|' read -r slug feature branch; do
   log "  $slug ($feature) on $branch"
 done
 
+escape_osascript_string() {
+  printf "%s" "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
 notify_osx() {
   local title="$1"
   local body="$2"
-  osascript -e "display notification \"$body\" with title \"$title\"" 2>/dev/null || true
+  local escaped_title
+  local escaped_body
+  escaped_title=$(escape_osascript_string "$title")
+  escaped_body=$(escape_osascript_string "$body")
+  osascript -e "display notification \"$escaped_body\" with title \"$escaped_title\"" 2>/dev/null || true
 }
 
 ping_dispatcher() {

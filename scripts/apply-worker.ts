@@ -112,24 +112,31 @@ export interface ApplyLogJSON {
   preview_deployment?: PreviewDeployment;
 }
 
+export type StoredSkipReason = "apply-fail" | "critic-veto" | "visual-veto";
+
+export type SkipReasonInput =
+  | StoredSkipReason
+  | "string_mismatch"
+  | "lint_failure"
+  | "type_failure"
+  | "format_failure"
+  | "runtime_failure"
+  | "critic_veto"
+  | "visual_veto";
+
 export interface SkipRow {
   ts: string;
   week: string;
   actor: "apply-worker";
   event: "skip";
   exp_id: string;
-  reason:
-    | "apply-fail"
-    | "critic-veto"
-    | "visual-veto"
-    | "string_mismatch"
-    | "lint_failure"
-    | "type_failure"
-    | "format_failure"
-    | "runtime_failure"
-    | "critic_veto";
+  reason: StoredSkipReason;
   details: Record<string, unknown>;
   concern_ref: string;
+}
+
+export interface SkipInputRow extends Omit<SkipRow, "reason"> {
+  reason: SkipReasonInput;
 }
 
 export interface ValidationResult {
@@ -726,7 +733,7 @@ function appendJsonLine(filePath: string, row: unknown): void {
   writeFileSync(filePath, `${prefix}${JSON.stringify(row)}\n`);
 }
 
-function canonicalSkipReason(reason: string): SkipRow["reason"] {
+function canonicalSkipReason(reason: SkipReasonInput): StoredSkipReason {
   if (reason === "critic_veto") {
     return "critic-veto";
   }
@@ -736,7 +743,7 @@ function canonicalSkipReason(reason: string): SkipRow["reason"] {
   return "apply-fail";
 }
 
-export function emitSkip(weekDir: string, row: SkipRow): void {
+export function emitSkip(weekDir: string, row: SkipInputRow): void {
   const resolvedWeekDir = resolve(process.cwd(), weekDir);
   mkdirSync(resolvedWeekDir, { recursive: true });
   const canonicalRow = { ...row, reason: canonicalSkipReason(row.reason) };

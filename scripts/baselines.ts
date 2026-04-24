@@ -116,6 +116,6 @@ export function writeBaselinePromotionEvent(path: string, promotion: BaselinePro
   const prefix = existing.length === 0 || existing.endsWith("\n") ? existing : `${existing}\n`;
   writeFileSync(
     path,
-    `${prefix}${JSON.stringify({ ts: new Date(0).toISOString(), actor: "baseline-promoter", ...promotion })}\n`,
+    `${prefix}${JSON.stringify({ ts: new Date().toISOString(), actor: "baseline-promoter", ...promotion })}\n`,
   );
 }

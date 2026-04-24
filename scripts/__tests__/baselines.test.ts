@@ -73,6 +73,7 @@ describe("per-experiment baselines", () => {
         event: "promote",
         actor: "baseline-promoter",
       });
+      expect(new Date(promotionRow.ts).getTime()).toBeGreaterThan(0);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

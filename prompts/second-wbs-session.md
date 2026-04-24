@@ -635,7 +635,7 @@ EOF
 
 git add "$CKPT"
 git commit -m "docs(checkpoint): session 2 complete — council week $WEEK_DATE"
-git push origin main
+git push origin "$BRANCH"
 
 echo ""
 echo "══════════════════════════════════════════════════"
