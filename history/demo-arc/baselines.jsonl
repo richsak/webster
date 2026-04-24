@@ -2,3 +2,7 @@
 {"exp_id":"exp-02-hero-copy-v2","week":"demo-W2","status":"promoted","baseline_sha":"demo-baseline-exp-02"}
 {"exp_id":"exp-03-cta-button-component","week":"demo-W2","status":"promoted","baseline_sha":"demo-baseline-exp-03"}
 {"exp_id":"exp-04-trust-badge-image","week":"demo-W2","status":"promoted","baseline_sha":"demo-baseline-exp-04"}
+{"exp_id":"exp-05-mid-section-image-swap","week":"demo-W3","status":"archived-gate-fail","baseline_sha":"demo-baseline-exp-05"}
+{"exp_id":"exp-06-cta-color-shift","week":"demo-W3","status":"rolled-back","baseline_sha":"demo-baseline-exp-06"}
+{"exp_id":"exp-08-hero-safety-copy","week":"demo-W4","status":"promoted","baseline_sha":"demo-baseline-exp-08"}
+{"exp_id":"exp-09-cta-size-adjust","week":"demo-W4","status":"promoted","baseline_sha":"demo-baseline-exp-09"}

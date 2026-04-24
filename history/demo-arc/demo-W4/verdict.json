@@ -1,0 +1,37 @@
+{
+  "week": "demo-W4",
+  "experiments": [
+    {
+      "exp_id": "exp-08-hero-safety-copy",
+      "kind": "text",
+      "reward_delta_pct": 9,
+      "p_value": 0.01,
+      "gates": {
+        "brand_voice": "pass",
+        "bounce_rate": "pass",
+        "scroll_depth": "pass",
+        "time_on_page": "pass",
+        "token_efficiency": "pass",
+        "heatmap_sanity": "pass"
+      },
+      "classification": "improved",
+      "outcome": "promote-fast-track"
+    },
+    {
+      "exp_id": "exp-09-cta-size-adjust",
+      "kind": "css",
+      "reward_delta_pct": 6,
+      "p_value": 0.03,
+      "gates": {
+        "brand_voice": "pass",
+        "bounce_rate": "pass",
+        "scroll_depth": "pass",
+        "time_on_page": "pass",
+        "token_efficiency": "pass",
+        "heatmap_sanity": "pass"
+      },
+      "classification": "improved",
+      "outcome": "promote-fast-track"
+    }
+  ]
+}
