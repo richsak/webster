@@ -212,4 +212,33 @@ describe("apply-worker CLI integration", () => {
       removeFixtureRepo(repo);
     }
   });
+
+  test("blocks non-resolving booking CTAs in the runtime gate", () => {
+    const repo = createFixtureRepo(
+      "runtime-failure",
+      '<a href="#">BOOK YOUR FREE STRATEGY CALL</a>',
+    );
+
+    try {
+      const commitCountBefore = run(["git", "rev-list", "--count", "HEAD"], repo.root);
+      const cli = runCli(repo);
+      const commitCountAfter = run(["git", "rev-list", "--count", "HEAD"], repo.root);
+
+      expect(cli.exitCode).toBe(0);
+      expect(commitCountAfter).toBe(commitCountBefore);
+      expect(readFileSync(repo.targetFile, "utf8")).toBe("<h1>Old clinic headline</h1>\n");
+
+      const log = readApplyLog(repo);
+      expect(log.experiments[0]).toMatchObject({
+        exp_id: "exp-01-update-homepage-headline",
+        status: "skipped",
+        skip_reason: "runtime_failure",
+      });
+      expect(readFileSync(join(repo.weekDir, "skips.jsonl"), "utf8")).toContain(
+        "booking CTA has non-resolving href",
+      );
+    } finally {
+      removeFixtureRepo(repo);
+    }
+  });
 });

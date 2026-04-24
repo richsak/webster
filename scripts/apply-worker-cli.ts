@@ -10,6 +10,7 @@ import {
   emitSkip,
   parseDecision,
   parseProposal,
+  runRuntimeValidation,
   runValidation,
   writeApplyLog,
   type ApplyExperiment,
@@ -155,6 +156,27 @@ async function applyIssue(
     };
   }
 
+  const runtimeValidation = runRuntimeValidation(issue.files_touched);
+  if (!runtimeValidation.passed) {
+    restoreFiles(issue.files_touched);
+    const details = {
+      checks: runtimeValidation.checks,
+      errors: runtimeValidation.errors,
+    };
+    emitSkip(weekDir, buildSkipRow(week, expId, "runtime_failure", details, issue));
+    console.error(`skipped ${expId}: runtime_failure`);
+
+    return {
+      exp_id: expId,
+      severity: issue.severity,
+      title: issue.title,
+      status: "skipped",
+      mutations,
+      skip_reason: "runtime_failure",
+      skip_details: details,
+    };
+  }
+
   const message = buildCommitMessage(expId, issue.index, issue.title, issue.files_touched);
   const commitSha = commitExperiment(issue.files_touched, message);
   console.log(`committed ${expId}: ${commitSha}`);
@@ -186,6 +208,7 @@ async function main(): Promise<number> {
     lint_passed: true,
     type_check_passed: true,
     format_check_passed: true,
+    runtime_validation_passed: true,
   };
 
   for (const issue of issues) {
@@ -199,6 +222,9 @@ async function main(): Promise<number> {
     }
     if (experiment.skip_reason === "format_failure") {
       validationSummary.format_check_passed = false;
+    }
+    if (experiment.skip_reason === "runtime_failure") {
+      validationSummary.runtime_validation_passed = false;
     }
   }
 

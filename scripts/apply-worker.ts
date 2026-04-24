@@ -47,7 +47,12 @@ export interface ApplyExperiment {
   status: "applied" | "skipped";
   mutations: MutationResult[];
   commit_sha?: string;
-  skip_reason?: "string_mismatch" | "lint_failure" | "type_failure" | "format_failure";
+  skip_reason?:
+    | "string_mismatch"
+    | "lint_failure"
+    | "type_failure"
+    | "format_failure"
+    | "runtime_failure";
   skip_details?: Record<string, unknown>;
 }
 
@@ -59,6 +64,7 @@ export interface ApplyLogJSON {
     lint_passed: boolean;
     type_check_passed: boolean;
     format_check_passed: boolean;
+    runtime_validation_passed: boolean;
   };
 }
 
@@ -68,7 +74,13 @@ export interface SkipRow {
   actor: "apply-worker";
   event: "skip";
   exp_id: string;
-  reason: "apply-fail" | "string_mismatch" | "lint_failure" | "type_failure" | "format_failure";
+  reason:
+    | "apply-fail"
+    | "string_mismatch"
+    | "lint_failure"
+    | "type_failure"
+    | "format_failure"
+    | "runtime_failure";
   details: Record<string, unknown>;
   concern_ref: string;
 }
@@ -78,6 +90,16 @@ export interface ValidationResult {
   typeCheckPassed: boolean;
   formatCheckPassed: boolean;
   output: string;
+}
+
+export interface RuntimeValidationResult {
+  passed: boolean;
+  checks: {
+    ctasResolve: boolean;
+    noMissingLocalScripts: boolean;
+    noInlineScriptErrors: boolean;
+  };
+  errors: string[];
 }
 
 interface ParsedSection {
@@ -366,6 +388,88 @@ export function runValidation(): ValidationResult {
     typeCheckPassed: typeCheckResult.passed,
     formatCheckPassed: formatCheckResult.passed,
     output: [lintResult.output, typeCheckResult.output, formatCheckResult.output].join("\n\n"),
+  };
+}
+
+function extractAnchorTags(source: string): string[] {
+  return Array.from(
+    source.matchAll(/<a\b[^>]*>[\s\S]*?<\/a>|<a\b[^>]*>/gi),
+    (match) => match[0] ?? "",
+  );
+}
+
+function extractAttribute(tag: string, name: string): string | undefined {
+  const match = tag.match(new RegExp(`${name}\\s*=\\s*(["'])(.*?)\\1`, "i"));
+  return match?.[2];
+}
+
+function isBookingCta(tag: string): boolean {
+  return /book\s+(your\s+)?(free\s+)?(strategy\s+)?call/i.test(tag);
+}
+
+function validateCtasResolve(file: string, source: string): string[] {
+  return extractAnchorTags(source).flatMap((tag) => {
+    if (!isBookingCta(tag)) {
+      return [];
+    }
+
+    const href = extractAttribute(tag, "href");
+    if (!href || href === "#" || href.startsWith("javascript:")) {
+      return [`${file}: booking CTA has non-resolving href (${href ?? "missing"})`];
+    }
+
+    if (!/^https:\/\/app\.acuityscheduling\.com\/schedule\.php\?owner=\d+/.test(href)) {
+      return [`${file}: booking CTA does not resolve to the canonical Acuity booking URL`];
+    }
+
+    return [];
+  });
+}
+
+function validateLocalScripts(file: string, source: string): string[] {
+  return Array.from(source.matchAll(/<script\b[^>]*\bsrc\s*=\s*(["'])(.*?)\1[^>]*>/gi)).flatMap(
+    (match) => {
+      const src = match[2] ?? "";
+      if (/^(https?:)?\/\//i.test(src) || src.startsWith("data:")) {
+        return [];
+      }
+
+      const scriptPath = resolve(process.cwd(), src.startsWith("/") ? src.slice(1) : src);
+      return existsSync(scriptPath) ? [] : [`${file}: local script src is missing (${src})`];
+    },
+  );
+}
+
+function validateInlineScripts(file: string, source: string): string[] {
+  return Array.from(
+    source.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi),
+  ).flatMap((match) => {
+    const body = match[1] ?? "";
+    return /throw\s+new\s+Error|console\.error\s*\(/.test(body)
+      ? [`${file}: inline script contains an explicit runtime error path`]
+      : [];
+  });
+}
+
+export function runRuntimeValidation(files: string[]): RuntimeValidationResult {
+  const targetFiles = files.filter((file) => /\.(astro|html|tsx|jsx|ts|js)$/i.test(file));
+  const errors = targetFiles.flatMap((file) => {
+    const source = readFileSync(resolve(process.cwd(), file), "utf8");
+    return [
+      ...validateCtasResolve(file, source),
+      ...validateLocalScripts(file, source),
+      ...validateInlineScripts(file, source),
+    ];
+  });
+
+  return {
+    passed: errors.length === 0,
+    checks: {
+      ctasResolve: !errors.some((error) => error.includes("booking CTA")),
+      noMissingLocalScripts: !errors.some((error) => error.includes("local script")),
+      noInlineScriptErrors: !errors.some((error) => error.includes("inline script")),
+    },
+    errors,
   };
 }
 
