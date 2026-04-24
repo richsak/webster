@@ -73,9 +73,18 @@ export function parseProposalV2Issue(value: unknown): ProposalV2Issue {
     throw new Error("Proposal constraints.preserves must be an array");
   }
 
+  const id = typeof value.id === "string" ? value.id.trim() : "";
+  const title = typeof value.title === "string" ? value.title.trim() : "";
+  if (!id) {
+    throw new Error("Proposal issue id must be a non-empty string");
+  }
+  if (!title) {
+    throw new Error("Proposal issue title must be a non-empty string");
+  }
+
   return {
-    id: String(value.id ?? ""),
-    title: String(value.title ?? ""),
+    id,
+    title,
     kind: parseKind(value.kind),
     files_touched: value.files_touched.map(String),
     constraints: {

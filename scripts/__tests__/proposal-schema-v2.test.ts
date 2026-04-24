@@ -104,6 +104,35 @@ describe("proposal schema v2", () => {
     ]);
   });
 
+  test("rejects empty issue id and title", () => {
+    expect(() =>
+      parseProposalV2({
+        issues: [
+          {
+            id: " ",
+            title: "x",
+            kind: "text",
+            files_touched: [],
+            constraints: { preserves: [], within: {} },
+          },
+        ],
+      }),
+    ).toThrow("Proposal issue id must be a non-empty string");
+    expect(() =>
+      parseProposalV2({
+        issues: [
+          {
+            id: "x",
+            title: " ",
+            kind: "text",
+            files_touched: [],
+            constraints: { preserves: [], within: {} },
+          },
+        ],
+      }),
+    ).toThrow("Proposal issue title must be a non-empty string");
+  });
+
   test("rejects unknown kinds", () => {
     expect(() =>
       parseProposalV2({

@@ -53,5 +53,15 @@ describe("analytics ingestion", () => {
         source: "posthog",
       },
     ]);
+    expect(normalizeWebhookBody([{ sha: "ga4-v1", event: "conversion" }], "ga4")).toEqual([
+      {
+        version_sha: "ga4-v1",
+        metric: "conversion",
+        value: 1,
+        timestamp: "1970-01-01T00:00:00.000Z",
+        tier: "cvr",
+        source: "ga4",
+      },
+    ]);
   });
 });

@@ -105,6 +105,16 @@ export function verdictForExperiment(
       lane: "hold-weak-negative",
     };
   }
+  if (gatesPassed && gateStatus.some((gate) => (gate.delta ?? 0) !== 0)) {
+    return {
+      exp_id: expId,
+      verdict: "promote",
+      confidence,
+      reward_delta: rewardDelta,
+      gate_status: gateStatus,
+      lane: "gate-win",
+    };
+  }
   return {
     exp_id: expId,
     verdict: "hold",

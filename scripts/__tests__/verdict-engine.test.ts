@@ -64,6 +64,26 @@ describe("verdict engine", () => {
     ).toMatchObject({ verdict: "archive", lane: "archive-gate-fail" });
   });
 
+  test("promotes gate wins when reward is flat and gates improve", () => {
+    expect(
+      verdictForExperiment(
+        "exp-04",
+        [
+          event("page_view", 100),
+          event("cta_click", 4),
+          event("bounce_rate", 60),
+          event("scroll_depth", 50),
+        ],
+        [
+          event("page_view", 100),
+          event("cta_click", 4),
+          event("bounce_rate", 55),
+          event("scroll_depth", 55),
+        ],
+      ),
+    ).toMatchObject({ verdict: "promote", lane: "gate-win" });
+  });
+
   test("applies cross-experiment page CTR gate", () => {
     expect(
       crossExperimentPageCtrGate(

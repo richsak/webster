@@ -180,7 +180,7 @@ const BOUNCE_GUARD_AGENT_JSON = {
   name: "bounce-guard-critic",
   description:
     "Webster critic spawned from W4 genealogy to review bounce-risk regressions before promotion.",
-  model: "claude-sonnet-4-6-20260415",
+  model: "claude-sonnet-4-6",
   system:
     "You are Webster's bounce-guard critic. Review proposed landing-page experiments for patterns that can increase bounce rate even when reward metrics improve. Own bounce-rate guardrails only; defer brand, SEO, compliance, and broad conversion concerns to the standing council. Return concise findings with severity, evidence, and a promote/hold/block recommendation.",
   tools: [{ type: "agent_toolset_20260401" }],

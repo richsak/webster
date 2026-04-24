@@ -18,7 +18,8 @@
 set -eu
 set -o pipefail
 
-WEBSTER_ROOT="/Users/richiesakhon/Projects/webster"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WEBSTER_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DISPATCHER_SETTINGS="$WEBSTER_ROOT/.claude/dispatcher-settings.json"
 DISPATCHER_PROMPT="$WEBSTER_ROOT/.claude/dispatcher.md"
 LOG_DIR="$WEBSTER_ROOT/tmp/logs"

@@ -205,7 +205,7 @@ Marshals `history/memory.jsonl`, the two newest `history/<week>/verdict.json` fi
 
 This step is fail-closed. If context marshaling or planner invocation errors, the run halts with a non-zero exit status and the exact error is printed from `tmp/logs/planner.log`. Do not fan out critics without `history/$WEEK_DATE/plan.md`.
 
-```bash
+````bash
 echo "=== Step 3: planner ==="
 PLANNER_LOG="tmp/logs/planner.log"
 PLANNER_CONTEXT_FILE="tmp/planner-context-$WEEK_DATE.txt"
@@ -270,16 +270,26 @@ git commit -m "chore(planner): add plan for week $WEEK_DATE"
 git push origin "$BRANCH"
 
 PLAN_TEXT=$(cat "$PLAN_PATH")
+PLAN_JSON_FILE="tmp/planner-plan-$WEEK_DATE.json"
 PLANNER_REQUEST_FILE="tmp/planner-new-critic-request-$WEEK_DATE.json"
-if jq -e 'has("new_critic_request") and (.new_critic_request != null)' "$PLAN_PATH" >/dev/null; then
-  jq '.new_critic_request' "$PLAN_PATH" > "$PLANNER_REQUEST_FILE"
+python3 - "$PLAN_PATH" "$PLAN_JSON_FILE" <<'PY'
+import re
+import sys
+
+plan_text = open(sys.argv[1], encoding="utf-8").read()
+match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", plan_text, re.S)
+json_text = match.group(1) if match else plan_text
+open(sys.argv[2], "w", encoding="utf-8").write(json_text)
+PY
+if jq -e 'has("new_critic_request") and (.new_critic_request != null)' "$PLAN_JSON_FILE" >/dev/null; then
+  jq '.new_critic_request' "$PLAN_JSON_FILE" > "$PLANNER_REQUEST_FILE"
   echo "Planner requested possible new critic: $PLANNER_REQUEST_FILE"
 else
   rm -f "$PLANNER_REQUEST_FILE"
 fi
 
 echo "✓ Planner output ready for critics: $PLAN_PATH"
-```
+````
 
 Purpose: run monitor and the five critics in parallel against the same plan and branch.
 
