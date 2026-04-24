@@ -21,8 +21,8 @@
       "technicalNotes": "Modify agents/webster-planner.json. Mirror the spec shape in agents/webster-redesigner.json and agents/webster-monitor.json: name, description, model, system, tools, optional mcp_servers, metadata. Follow scripts/schemas/agent.schema.json constraints: required name/description/model/system/tools, no additional properties, model enum includes claude-opus-4-7, metadata.role must be one of critic/monitor/redesigner/orchestrator. Use metadata { role: \"orchestrator\", scope: \"planning\" } because the schema does not currently allow role \"planner\". Scope guard: do not edit prompts/second-wbs-session.md, scripts/memory.ts, or council fan-out code for runtime invocation.",
       "dependsOn": [],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented in iteration 1. Files: agents/webster-planner.json, .forge/ralph/planner-agent-spec-v5/prd.md."
     },
     {
       "id": "US-002",
@@ -37,7 +37,9 @@
         "bun test passes"
       ],
       "technicalNotes": "Add tests under scripts/__tests__ using the existing Bun style in scripts/__tests__/validate-agents.test.ts and scripts/__tests__/critic-genealogy.test.ts: import { describe, expect, test } from \"bun:test\", read JSON with readFileSync, and resolve ROOT via import.meta.dir. Keep tests focused on the agent spec contract; do not create runtime planner invocation helpers because feature #52 owns invocation.",
-      "dependsOn": ["US-001"],
+      "dependsOn": [
+        "US-001"
+      ],
       "priority": 2,
       "passes": false,
       "notes": ""
@@ -55,7 +57,10 @@
         "Do not implement scripts that call /v1/sessions or write history/<week>/plan.md; that remains feature #52."
       ],
       "technicalNotes": "Use the same AJV setup as scripts/__tests__/validate-agents.test.ts: Ajv2020 from ajv/dist/2020.js plus addFormats.default(ajv). Registration flow references should be grounded in scripts/critic-genealogy.ts:440-556, where registerAgent POSTs to /v1/agents, createSession POSTs to /v1/sessions, sendUserMessage POSTs to /sessions/{id}/events, and pollUntilIdle reads /sessions/{id}. This story should only test that the planner spec is compatible with that flow, not duplicate or export those helpers.",
-      "dependsOn": ["US-001", "US-002"],
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
       "priority": 3,
       "passes": false,
       "notes": ""
