@@ -44,8 +44,8 @@
         "US-001"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented in iteration 2. Files: scripts/planner-invoke.ts, scripts/__tests__/planner-invoke.test.ts."
     },
     {
       "id": "US-003",

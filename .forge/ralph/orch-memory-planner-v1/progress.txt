@@ -1,5 +1,10 @@
 ## Codebase Patterns
 
+### Planner invocation fails closed before disk writes
+- **Where**: `scripts/planner-invoke.ts`
+- **Pattern**: Parse and validate the final assistant JSON before creating `history/<week>/plan.md` or appending to `history/memory.jsonl`; failed planner output leaves no partial plan artifact.
+- **Example**: `const plan = parsePlanRecord(extractFinalAssistantText(snapshot));`
+
 ### Orchestrator memory helpers import the substrate directly
 - **Where**: `scripts/planner-context.ts`
 - **Pattern**: Higher-level orchestrator helpers should import `tailN` from `scripts/memory.ts` instead of re-reading JSONL lines.
@@ -27,5 +32,30 @@
 **Learnings**:
 - `scripts/memory.ts` exposes `tailN(n, logPath)`, so callers pass the count first and the memory path second.
 - No prior `progress.txt` existed for this PRD directory, so this iteration created it with the reusable pattern section.
+
+---
+
+## 2026-04-24 — US-002: Planner invocation + plan writer
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/planner-invoke.ts` — added `invokePlanner` with Managed Agent lookup/registration, session creation, context message send, idle polling, strict plan JSON parsing, plan markdown writing, and `verdict-ready` memory append.
+- `scripts/__tests__/planner-invoke.test.ts` — added Bun fetch-mock coverage for a valid planner response, malformed JSON rejection, unknown `next_action` rejection, and memory append side effects.
+
+**Acceptance criteria verified**:
+- [x] Add scripts/planner-invoke.ts exporting invokePlanner(opts: { contextText: string; week: string; historyDir: string; apiKey: string }): Promise<{ planPath: string; plan: PlanRecord }>.
+- [x] The function looks up or registers the webster-planner agent via POST /v1/agents, mirroring the find-or-register pattern in scripts/critic-genealogy.ts:440-556.
+- [x] The function creates a session via POST /v1/sessions, sends contextText as the user.message event, and polls until the session is idle.
+- [x] The function extracts the final assistant text and parses it as JSON with fields classification, next_action, direction_hint, optional new_critic_request, and rationale; next_action must be one of promote_and_experiment, hold_baseline, revert_and_retry, explore_broadly.
+- [x] The function writes history/<week>/plan.md as human-readable markdown that embeds the parsed JSON in a fenced code block and prints the parsed fields as a bulleted summary above the fence.
+- [x] The function appends one event row to history/memory.jsonl with event = 'verdict-ready' using the feature #51 appendEvent helper and includes refs.plan = relative path to the written plan.md.
+- [x] Invalid JSON, missing required fields, or unknown next_action values raise an Error with a descriptive message and do NOT write plan.md or append to memory.jsonl.
+- [x] Add a Bun test under scripts/__tests__/planner-invoke.test.ts that mocks fetch (global.fetch or bun:test mock) to exercise: happy path with a valid JSON response, malformed response rejection, and the memory.jsonl append side effect.
+- [x] bun run type-check, bun run lint --max-warnings 0, bun test, bun run format:check pass.
+
+**Learnings**:
+- `environments/webster-council-env.id` is available in this worktree, so planner session creation can mirror genealogy sessions by passing `environment_id` without expanding the public `invokePlanner` options.
+- `agents/webster-planner.json` is absent in this branch even though feature #50 is marked landed elsewhere; the helper supports registration when the spec exists and reuses an already-registered planner without reading the missing file.
+- `bun run cli` is not defined in this repo, so Ralph workflow event emissions failed harmlessly under the required `|| true` wrapper.
 
 ---
