@@ -63,8 +63,8 @@
         "US-002"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented in iteration 3. Files: package.json; verified scripts/seed-secondary-substrates.ts guarded main and owned output boundaries."
     },
     {
       "id": "US-004",
