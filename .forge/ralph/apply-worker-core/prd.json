@@ -60,8 +60,8 @@
       "technicalNotes": "Use `Bun.spawnSync` for all shell calls — matches `scripts/critic-genealogy.ts:~540` pattern. Capture stdout + stderr from each validation command for skip_details. Git commit SHA: parse from `git commit` stdout line matching `/\\[.+ ([0-9a-f]+)\\]/`. Slug generation: lowercase, replace non-alnum with `-`, collapse consecutive `-`, trim to 40 chars. File: `scripts/apply-worker.ts`.",
       "dependsOn": ["US-002"],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented in iteration 3. Files: scripts/apply-worker.ts. Added Bun.spawnSync validation runner, per-experiment commit message builder, and git commit SHA parsing helper."
     },
     {
       "id": "US-004",

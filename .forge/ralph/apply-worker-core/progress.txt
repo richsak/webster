@@ -1,5 +1,10 @@
 ## Codebase Patterns
 
+### Validation gate aggregator + experiment commit discipline
+- **Where**: `scripts/apply-worker.ts:356-426`
+- **Pattern**: Run lint, type-check, and format-check with `Bun.spawnSync` in sequence without short-circuiting, aggregate each command's stdout/stderr into one string for skip diagnostics, and validate `exp-NN-<slug>` against the issue index/title before building the commit message and parsing the resulting git SHA.
+- **Example**: `const lintResult = runCommand(["bun", "run", "lint", "--max-warnings", "0"]);`
+
 ### Exact text mutation helper
 - **Where**: `scripts/apply-worker.ts:278-299`
 - **Pattern**: Use `Bun.file(...).text()` + literal `includes`/`replace` so apply-worker mutations only touch the first exact string match, and return a typed `string_mismatch` result instead of throwing when the proposal no longer matches disk.
@@ -64,5 +69,29 @@
 **Learnings**:
 - A tiny temp-file Bun check is worth running for mutation helpers because compile-time validation alone will not prove "first match only" and "no write on mismatch" behavior.
 - Returning a typed mismatch result keeps later orchestration stories free to decide skip-vs-retry without hiding real file I/O errors.
+
+---
+
+## 2026-04-23 — US-003: Validation gate + commit discipline
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/apply-worker.ts` — added exported `ValidationResult`, `runValidation`, `buildCommitMessage`, and `commitExperiment` helpers with Bun.spawnSync execution, experiment-id validation, git add/commit handling, and commit SHA parsing
+
+**Acceptance criteria verified**:
+- [x] `runValidation(): ValidationResult` exported and shells out `bun run lint --max-warnings 0`, `bun run type-check`, and `bun run format:check` via `Bun.spawnSync`
+- [x] `runValidation` returns `{ lintPassed, typeCheckPassed, formatCheckPassed, output }` with combined command output for all three validation steps
+- [x] `buildCommitMessage(expId, index, title, files)` exported and returns a `feat(apply):` commit message with issue body, files touched line, and `Experiment-Id:` trailer
+- [x] Commit message includes a blank line before the `Experiment-Id:` footer trailer
+- [x] Experiment ids are validated against the required `exp-NN-<slug>` format with zero-padded index and 40-character kebab-case slug from the issue title
+- [x] `commitExperiment(files, message)` exported, runs `git add` + `git commit` via `Bun.spawnSync`, and parses the commit SHA from git output
+- [x] `runValidation` executes all three validation commands even when one fails because it runs them sequentially without short-circuiting
+- [x] `bun run type-check` passes with zero errors
+- [x] `bun run lint --max-warnings 0` passes with zero warnings
+
+**Learnings**:
+- Aggregating validation output into one string now gives later skip-emission/orchestration stories a ready-made payload for `skip_details` without rerunning commands.
+- Validating `expId` against the issue index + slug at commit-message-build time catches mismatched trailers before git history is mutated.
+- `bun run cli workflow event emit ...` is unavailable in this repo (`error: Script not found "cli"`), so Ralph event emission currently no-ops as instructed.
 
 ---
