@@ -257,7 +257,7 @@ function slugifyTitle(title: string): string {
   return slug.length > 0 ? slug : "experiment";
 }
 
-function buildExpectedExperimentId(index: number, title: string): string {
+export function buildExpectedExperimentId(index: number, title: string): string {
   return `exp-${index.toString().padStart(2, "0")}-${slugifyTitle(title)}`;
 }
 
