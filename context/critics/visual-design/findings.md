@@ -1,6 +1,6 @@
 # Findings — Week 2026-04-23
 
-## Issues identified
+## Issues
 
 - [CRITICAL] Hero background image (Pacific Northwest forest ferns, Unsplash `photo-1624616802182`) actively contradicts the clinical-team certification offer — a B2B visitor's first frame is wilderness nature photography, signalling lifestyle/wellness rather than clinical authority or team unity — rendered HTML: `![Lush dark green ferns in a Pacific Northwest forest](https://images.unsplash.com/photo-1624616802182-57737fa83971…)`
 

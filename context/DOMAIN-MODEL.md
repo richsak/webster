@@ -32,7 +32,7 @@ Webster becomes an **autonomous experiment agent**, not a blind weekly redesigne
 
 An experiment traverses these states during a week:
 
-```
+```text
 proposed   →  applied  →  running   →  measured   →  verdicted   →  final
   ↑             ↑            ↑            ↑              ↑             ↑
   │             │            │            │              │             │
@@ -86,7 +86,7 @@ All calls carry: `x-api-key`, `anthropic-version: 2023-06-01`, `anthropic-beta: 
 
 A week's council run + measurement window. `N` is the week being planned.
 
-```
+```text
 DAY 0 — MONDAY (council run day)
 
 00:00  Autoresearch verdict engine (L9 #44) runs
@@ -175,7 +175,7 @@ DAY 7 — NEXT MONDAY
 
 ## Data Flow (week-over-week)
 
-```
+```text
 ┌─ week N-1 ─────────────────────────────────────────────┐
 │  proposal.md → apply-log.json → visual-review.md → PR  │
 │                                                         │
@@ -360,6 +360,7 @@ Over 3 years: governor saves roughly 10M tokens.
 
 1. Skipped experiment is **terminal at the current week** — no commit on PR branch, no `baselines.jsonl` promoted row, no rollback needed (nothing shipped).
 2. Orchestrator emits a `memory.jsonl` row:
+
    ```json
    {
      "ts": "...",
@@ -372,6 +373,7 @@ Over 3 years: governor saves roughly 10M tokens.
      "concern_ref": "<the underlying concern the experiment was addressing>"
    }
    ```
+
 3. `baselines.jsonl` gets entry: `{exp_id, status: "skipped-<reason>", week, concern_ref}`.
 4. Week N+1 planner reads skip rows + base concern. Autonomously decides:
    - **Re-propose a variant** (different kind or framing addressing the skip reason)
@@ -385,7 +387,7 @@ Over 3 years: governor saves roughly 10M tokens.
 
 ## Dependency order (what builds on what)
 
-```
+```text
 L2 (critics + redesigner + monitor — shipped)
  └─ L3 (genealogy — shipped)
  └─ L1 (orchestrator — shipped)
@@ -444,15 +446,15 @@ Decisions needed before L11 (and some L9) can be implemented:
 
 5.1. **Genealogy governance** — 🔒 **LOCKED (Richie, 2026-04-23) as Option 5.1C (90/100)**: four-layer governor bounding 5C's spawn mechanism. See "Genealogy governance" section below for full spec. Prevents token-waste drift over 52-week operation without rigid per-period caps. Token math: ungoverned spawning adds ~50% annual run cost over 3 years; governor C steady-state adds ~25%.
 
-6. **Partial experiments (skip contract)** — 🔒 **LOCKED (Richie, 2026-04-23) as Option 6D (92/100)**: skip is terminal at the current week + feeds next-week planning as structured data. No mechanical roll-forward, no in-session retry loops. See "Skip contract" section below for full spec. Dominates prior options (roll-forward 75 creates infinite loops on systemic vetoes; retry-in-session 60 spirals; logging-only 85 doesn't answer "what next for the skipped experiment").
+- **6. Partial experiments (skip contract)** — 🔒 **LOCKED (Richie, 2026-04-23) as Option 6D (92/100)**: skip is terminal at the current week + feeds next-week planning as structured data. No mechanical roll-forward, no in-session retry loops. See "Skip contract" section below for full spec. Dominates prior options (roll-forward 75 creates infinite loops on systemic vetoes; retry-in-session 60 spirals; logging-only 85 doesn't answer "what next for the skipped experiment").
 
-7. **Secondary substrates (generalization proof)** — 🔒 **LOCKED (Richie, 2026-04-23) as Option 7C (90/100)**: onboard + 2 council cycles per secondary substrate. Each secondary runs `skills/onboard-smb`, week-1 proposal + apply + mocked verdict, week-2 plan consumes week-1 verdict. Shows planner closing the loop on a new substrate — the actual pitch being tested — without ongoing live-flow cost. **Substrate pair: Alpha** — SaaS (B2B software) + local service (B2C phone-first). Maximum vertical spread across the SMB market, stress-tests brand-voice-critic across formal/community register, conversion-critic across demo-signup/phone-call models, fh-compliance-critic's silent path (correctly does NOT fire for non-medical). Substrates are synthetic single-file HTMLs generated at seed time by `skills/onboard-smb`, not hotlinked public LPs. Dominates prior options (frozen 80 — shows one-shot output, not loop-closing; full-live-flow 40 — triples cost for minimal added signal).
+- **7. Secondary substrates (generalization proof)** — 🔒 **LOCKED (Richie, 2026-04-23) as Option 7C (90/100)**: onboard + 2 council cycles per secondary substrate. Each secondary runs `skills/onboard-smb`, week-1 proposal + apply + mocked verdict, week-2 plan consumes week-1 verdict. Shows planner closing the loop on a new substrate — the actual pitch being tested — without ongoing live-flow cost. **Substrate pair: Alpha** — SaaS (B2B software) + local service (B2C phone-first). Maximum vertical spread across the SMB market, stress-tests brand-voice-critic across formal/community register, conversion-critic across demo-signup/phone-call models, fh-compliance-critic's silent path (correctly does NOT fire for non-medical). Substrates are synthetic single-file HTMLs generated at seed time by `skills/onboard-smb`, not hotlinked public LPs. Dominates prior options (frozen 80 — shows one-shot output, not loop-closing; full-live-flow 40 — triples cost for minimal added signal).
 
-8. **Baseline reset granularity** — 🔒 **LOCKED (Richie, 2026-04-23) as Option 8B (90/100)**: per-experiment baseline reset. Each experiment becomes its own commit on the PR branch with `Experiment-Id:` trailer. `history/baselines.jsonl` tracks per-experiment entries. Rollback is `git revert <experiment-sha>`. Dominates full-page (55, incompatible with Q4 parallel) and section-level (70, requires synthetic metadata layer).
+- **8. Baseline reset granularity** — 🔒 **LOCKED (Richie, 2026-04-23) as Option 8B (90/100)**: per-experiment baseline reset. Each experiment becomes its own commit on the PR branch with `Experiment-Id:` trailer. `history/baselines.jsonl` tracks per-experiment entries. Rollback is `git revert <experiment-sha>`. Dominates full-page (55, incompatible with Q4 parallel) and section-level (70, requires synthetic metadata layer).
 
-9. **Demo arc (4-week mock)** — 🔒 **LOCKED (Richie, 2026-04-23)**: 9 experiments across 4 weeks, seeded via `scripts/seed-demo-arc.ts` (extends L5 seeder). See "Demo arc (4-week mock)" section above for the full table. Covers all 8 invariants and 6/7 Q4 outcomes. Includes a critic-genealogy spawn in W4.
+- **9. Demo arc (4-week mock)** — 🔒 **LOCKED (Richie, 2026-04-23)**: 9 experiments across 4 weeks, seeded via `scripts/seed-demo-arc.ts` (extends L5 seeder). See "Demo arc (4-week mock)" section above for the full table. Covers all 8 invariants and 6/7 Q4 outcomes. Includes a critic-genealogy spawn in W4.
 
-_(deprecated Q4 options, retained for audit trail: 1-week p<0.05 (70), 2-week p<0.05 (80, superseded by 4E), 4-week CVR (60).)_
+Deprecated Q4 options, retained for audit trail: 1-week p<0.05 (70), 2-week p<0.05 (80, superseded by 4E), 4-week CVR (60).
 
 Answer Q5, Q6, Q7 → I implement.
 

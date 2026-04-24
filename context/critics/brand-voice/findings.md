@@ -1,6 +1,6 @@
 # Findings — Week 2026-04-23
 
-## Issues identified
+## Issues
 
 - [CRITICAL] No "NOT a medical doctor" / DSocSci disclaimer adjacent to health outcome claims — hero bio reads "25 years reversing chronic disease. Cancer, diabetes, autoimmune, mental health." with zero non-MD disclaimer; business.md mandates this wherever health outcomes are discussed — `certified.richerhealth.ca` founder section (FOUNDER & MASTER CLINICIAN bio block)
 - [CRITICAL] DSocSci credential entirely absent from the page — Nicolette is identified only as "FOUNDER & MASTER CLINICIAN"; the credential "Dr. Nicolette Richer, DSocSci" never appears, violating the core identity display rule — `certified.richerhealth.ca` founder section byline

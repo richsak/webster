@@ -25,12 +25,12 @@ per-experiment commits, with no silent fallbacks.
 
 ### Success Metrics
 
-| Metric | Target | How Measured |
-|--------|--------|--------------|
-| `bun run validate` green | 100% pass | CI |
-| All acceptance-criteria paths covered by tests | 3/3 (parse, commit-message, skip-emit) | `bun test` |
-| Per-experiment commit discipline | Each commit has `Experiment-Id:` trailer | `git log --format=%B` |
-| No co-mingled experiments | 1 issue per commit, never batched | git history |
+| Metric                                         | Target                                   | How Measured          |
+| ---------------------------------------------- | ---------------------------------------- | --------------------- |
+| `bun run validate` green                       | 100% pass                                | CI                    |
+| All acceptance-criteria paths covered by tests | 3/3 (parse, commit-message, skip-emit)   | `bun test`            |
+| Per-experiment commit discipline               | Each commit has `Experiment-Id:` trailer | `git log --format=%B` |
+| No co-mingled experiments                      | 1 issue per commit, never batched        | git history           |
 
 ### Non-Goals (Out of Scope)
 
@@ -71,7 +71,7 @@ per-experiment commits, with no silent fallbacks.
 
 CLI script invoked by Forge workflow:
 
-```
+```bash
 bun scripts/apply-worker.ts --week 2026-04-23 [--dry-run]
 ```
 
@@ -80,15 +80,15 @@ bun scripts/apply-worker.ts --week 2026-04-23 [--dry-run]
 
 ### States to Handle
 
-| State | Description | Behavior |
-|-------|-------------|----------|
-| Missing input | `history/<week>/` dir or either JSON/MD file absent | Fatal error, non-zero exit, clear message |
-| No selected issues | `decision.json.selected_issues` is empty | Write empty `apply-log.json`, exit 0 |
-| Mutation applied | Before string found in target file | Apply, validate, commit with `Experiment-Id:` |
-| Mutation not found | Before string absent from target file | Emit skip row (`reason: "string_mismatch"`), continue |
-| Validation fail | lint / type / format fail post-mutation | Roll back file, emit skip row (`reason: "lint_failure"` / `"type_failure"` / `"format_failure"`), continue |
-| All skipped | Every experiment skipped | Write apply-log, exit 0 (not an error — #56 consumer decides) |
-| Dry run | `--dry-run` flag | Print mutation plan, skip writes, exit 0 |
+| State              | Description                                         | Behavior                                                                                                   |
+| ------------------ | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Missing input      | `history/<week>/` dir or either JSON/MD file absent | Fatal error, non-zero exit, clear message                                                                  |
+| No selected issues | `decision.json.selected_issues` is empty            | Write empty `apply-log.json`, exit 0                                                                       |
+| Mutation applied   | Before string found in target file                  | Apply, validate, commit with `Experiment-Id:`                                                              |
+| Mutation not found | Before string absent from target file               | Emit skip row (`reason: "string_mismatch"`), continue                                                      |
+| Validation fail    | lint / type / format fail post-mutation             | Roll back file, emit skip row (`reason: "lint_failure"` / `"type_failure"` / `"format_failure"`), continue |
+| All skipped        | Every experiment skipped                            | Write apply-log, exit 0 (not an error — #56 consumer decides)                                              |
+| Dry run            | `--dry-run` flag                                    | Print mutation plan, skip writes, exit 0                                                                   |
 
 ---
 
@@ -106,7 +106,7 @@ bun scripts/apply-worker.ts --week 2026-04-23 [--dry-run]
 
 ### Types & Interfaces
 
-```typescript
+````typescript
 // Decision file shape (history/<week>/decision.json)
 interface DecisionIssue {
   owner: string;
@@ -124,7 +124,7 @@ interface DecisionJSON {
 
 // Parsed from proposal.md (before/after blocks extracted per issue)
 interface ProposalIssue {
-  index: number;            // 1-based position in proposal (for exp-NN numbering)
+  index: number; // 1-based position in proposal (for exp-NN numbering)
   severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
   title: string;
   files_touched: string[];
@@ -132,9 +132,9 @@ interface ProposalIssue {
 }
 
 interface RawMutation {
-  file: string;             // from "Target file(s):" line — first file listed if ambiguous
-  before: string;           // content inside ```...``` "Before" block
-  after: string;            // content inside ```...``` "After" block
+  file: string; // from "Target file(s):" line — first file listed if ambiguous
+  before: string; // content inside ```...``` "Before" block
+  after: string; // content inside ```...``` "After" block
 }
 
 // Per-mutation result
@@ -147,7 +147,7 @@ interface MutationResult {
 
 // Per-experiment result (one issue = one experiment)
 interface ApplyExperiment {
-  exp_id: string;           // "exp-01-hero-h1-rewrite"
+  exp_id: string; // "exp-01-hero-h1-rewrite"
   severity: string;
   title: string;
   status: "applied" | "skipped";
@@ -160,7 +160,7 @@ interface ApplyExperiment {
 // history/<week>/apply-log.json
 interface ApplyLogJSON {
   week: string;
-  run_timestamp: string;    // ISO 8601
+  run_timestamp: string; // ISO 8601
   experiments: ApplyExperiment[];
   validation_summary: {
     lint_passed: boolean;
@@ -171,16 +171,16 @@ interface ApplyLogJSON {
 
 // Row appended to history/<week>/skips.jsonl and memory.jsonl on skip
 interface SkipRow {
-  ts: string;               // ISO 8601
-  week: string;             // "2026-W17"
+  ts: string; // ISO 8601
+  week: string; // "2026-W17"
   actor: "apply-worker";
   event: "skip";
   exp_id: string;
   reason: "apply-fail" | "string_mismatch" | "lint_failure" | "type_failure" | "format_failure";
   details: Record<string, unknown>;
-  concern_ref: string;      // issue title
+  concern_ref: string; // issue title
 }
-```
+````
 
 ### Architecture Notes
 
@@ -195,7 +195,8 @@ interface SkipRow {
 - **Git commit** shells out via `Bun.spawnSync("git", ["commit", "-m", message])` after
   `Bun.spawnSync("git", ["add", ...files])` — extracts SHA from stdout
 - **Commit message format** (per ADR-0002 + Q8):
-  ```
+
+  ```text
   feat(apply): <exp-slug>
 
   Redesigner proposal issue #N: <issue-title>
@@ -203,6 +204,7 @@ interface SkipRow {
 
   Experiment-Id: exp-NN-<slug>
   ```
+
 - **Exp slug**: kebab-case from issue title, max 40 chars, prefixed `exp-NN-` (zero-padded index)
 - **Skip files**: `history/<week>/skips.jsonl` (for #56 consumer) and `history/<week>/memory.jsonl`
   (for planner). Append one JSON line per skip. Both files may not exist yet — create on first write.
@@ -222,18 +224,18 @@ interface SkipRow {
 
 ### Story Overview
 
-| ID | Title | Priority | Dependencies |
-|----|-------|----------|--------------|
-| US-001 | Types, interfaces & proposal parser | 1 | — |
-| US-002 | Text mutation engine | 2 | US-001 |
-| US-003 | Validation gate + commit discipline | 3 | US-002 |
-| US-004 | Skip-row emission + apply-log writer | 4 | US-003 |
-| US-005 | CLI entrypoint + orchestration | 5 | US-001–US-004 |
-| US-006 | Unit tests: parse, commit-message, skip-emit | 6 | US-005 |
+| ID     | Title                                        | Priority | Dependencies  |
+| ------ | -------------------------------------------- | -------- | ------------- |
+| US-001 | Types, interfaces & proposal parser          | 1        | —             |
+| US-002 | Text mutation engine                         | 2        | US-001        |
+| US-003 | Validation gate + commit discipline          | 3        | US-002        |
+| US-004 | Skip-row emission + apply-log writer         | 4        | US-003        |
+| US-005 | CLI entrypoint + orchestration               | 5        | US-001–US-004 |
+| US-006 | Unit tests: parse, commit-message, skip-emit | 6        | US-005        |
 
 ### Dependency Graph
 
-```
+```text
 US-001 (types + parser)
     ↓
 US-002 (mutation engine)
@@ -252,6 +254,7 @@ US-006 (unit tests)
 ## Validation Requirements
 
 Every story must pass:
+
 - [ ] Type-check: `bun run type-check`
 - [ ] Lint: `bun run lint --max-warnings 0`
 - [ ] Tests: `bun run test`
@@ -260,4 +263,4 @@ Every story must pass:
 
 ---
 
-*Generated: 2026-04-23T00:00:00Z*
+Generated: 2026-04-23T00:00:00Z
