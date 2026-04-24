@@ -1,0 +1,124 @@
+## Codebase Patterns
+
+### JSONL skip sink append helper
+- **Where**: `scripts/apply-worker.ts:433-452`
+- **Pattern**: Resolve week artifact paths from `process.cwd()`, create the week directory once, then append verbatim JSON rows to both `skips.jsonl` and `memory.jsonl` while repairing a missing terminal newline before the new row.
+- **Example**: `const prefix = existing.length === 0 || existing.endsWith("\n") ? existing : `${existing}\n`;`
+
+### Validation gate aggregator + experiment commit discipline
+- **Where**: `scripts/apply-worker.ts:356-426`
+- **Pattern**: Run lint, type-check, and format-check with `Bun.spawnSync` in sequence without short-circuiting, aggregate each command's stdout/stderr into one string for skip diagnostics, and validate `exp-NN-<slug>` against the issue index/title before building the commit message and parsing the resulting git SHA.
+- **Example**: `const lintResult = runCommand(["bun", "run", "lint", "--max-warnings", "0"]);`
+
+### Exact text mutation helper
+- **Where**: `scripts/apply-worker.ts:278-299`
+- **Pattern**: Use `Bun.file(...).text()` + literal `includes`/`replace` so apply-worker mutations only touch the first exact string match, and return a typed `string_mismatch` result instead of throwing when the proposal no longer matches disk.
+- **Example**: `if (!original.includes(before)) { return { file: filePath, status: "string_mismatch", before, after }; }`
+
+### Decision-ordered proposal parsing
+- **Where**: `scripts/apply-worker.ts:142-275`
+- **Pattern**: Parse all H3 proposal sections first, index them by proposal number, then return issues in `decision.json.selected_issues` order so downstream apply steps follow the orchestrator's selected-issue order even when proposal headings include composite severities like `[CRITICAL+HIGH]`.
+- **Example**: `const sectionsByIndex = new Map(sections.map((section) => [section.index, section]));`
+
+### Mutation file heuristics
+- **Where**: `scripts/apply-worker.ts:171-230`
+- **Pattern**: Extract file paths only from backticked target-file entries that actually look like paths, then resolve ambiguous multi-file before/after pairs by scoring change labels against file names and falling back to positional order.
+- **Example**: `return filesTouched[pairIndex] ?? filesTouched[0] ?? "";`
+
+---
+
+## 2026-04-23 — US-001: Types, interfaces & proposal parser
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/apply-worker.ts` — added exported apply-worker types, strict `parseDecision`, and `parseProposal` for H3 issue sections, target files, and before/after mutation blocks
+- `context/critics/*/findings.md` — normalized `## Issues` headings so existing findings satisfy the repo validator
+- `context/DOMAIN-MODEL.md` — fixed pre-existing markdownlint failures blocking `bun run validate`
+- `context/FEATURES.md` — fixed pre-existing markdownlint heading syntax blocking `bun run validate`
+- `context/ROADMAP.md` — fixed pre-existing markdownlint ordered-list syntax blocking `bun run validate`
+- `context/v2-design.md` — fixed pre-existing markdownlint fenced-code language blocking `bun run validate`
+- `.forge/ralph/apply-worker-core/prd.md` — fixed pre-existing markdownlint issues blocking `bun run validate`
+
+**Acceptance criteria verified**:
+- [x] File `scripts/apply-worker.ts` created with all required exported types: `DecisionJSON`, `DecisionIssue`, `ProposalIssue`, `RawMutation`, `MutationResult`, `ApplyExperiment`, `ApplyLogJSON`, `SkipRow`
+- [x] `parseDecision(json: unknown): DecisionJSON` exported and validates required fields + severities
+- [x] `parseProposal(md: string, decision: DecisionJSON): ProposalIssue[]` exported and parses H3 issue sections plus before/after fenced blocks
+- [x] Returned proposal issues follow `decision.json.selected_issues` order
+- [x] Missing parseable before/after blocks return `mutations: []` because the parser collects zero pairs without throwing
+- [x] No `any` types were introduced
+- [x] Type-check passes with zero errors
+- [x] Lint passes with zero warnings
+
+**Learnings**:
+- Canonical proposal headings can include composite severities like `[CRITICAL+HIGH]`; the parser should treat the first severity token as the typed severity while preserving decision ordering.
+- `Target file(s)` lines can contain non-path backticked tokens like `<head>`; parser extraction must filter for path-like values before building `files_touched`.
+- Repo-wide validation was already blocked by findings heading drift and markdownlint debt, so story validation required a small cleanup pass outside `scripts/apply-worker.ts`.
+
+---
+
+## 2026-04-23 — US-002: Text mutation engine
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/apply-worker.ts` — added exported `applyMutation` helper that performs first-occurrence literal replacements and returns typed `applied` / `string_mismatch` results without regex fallbacks
+
+**Acceptance criteria verified**:
+- [x] `applyMutation(filePath: string, before: string, after: string)` exported from `scripts/apply-worker.ts`
+- [x] Matching `before` strings replace the first occurrence, write the file, and return `{ status: 'applied', ... }`
+- [x] Missing `before` strings leave the file untouched and return `{ status: 'string_mismatch', ... }`
+- [x] String mismatch path returns a result instead of throwing
+- [x] File reads/writes use Bun UTF-8 text APIs
+- [x] `bun run type-check` passes
+- [x] `bun run lint --max-warnings 0` passes
+
+**Learnings**:
+- A tiny temp-file Bun check is worth running for mutation helpers because compile-time validation alone will not prove "first match only" and "no write on mismatch" behavior.
+- Returning a typed mismatch result keeps later orchestration stories free to decide skip-vs-retry without hiding real file I/O errors.
+
+---
+
+## 2026-04-23 — US-003: Validation gate + commit discipline
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/apply-worker.ts` — added exported `ValidationResult`, `runValidation`, `buildCommitMessage`, and `commitExperiment` helpers with Bun.spawnSync execution, experiment-id validation, git add/commit handling, and commit SHA parsing
+
+**Acceptance criteria verified**:
+- [x] `runValidation(): ValidationResult` exported and shells out `bun run lint --max-warnings 0`, `bun run type-check`, and `bun run format:check` via `Bun.spawnSync`
+- [x] `runValidation` returns `{ lintPassed, typeCheckPassed, formatCheckPassed, output }` with combined command output for all three validation steps
+- [x] `buildCommitMessage(expId, index, title, files)` exported and returns a `feat(apply):` commit message with issue body, files touched line, and `Experiment-Id:` trailer
+- [x] Commit message includes a blank line before the `Experiment-Id:` footer trailer
+- [x] Experiment ids are validated against the required `exp-NN-<slug>` format with zero-padded index and 40-character kebab-case slug from the issue title
+- [x] `commitExperiment(files, message)` exported, runs `git add` + `git commit` via `Bun.spawnSync`, and parses the commit SHA from git output
+- [x] `runValidation` executes all three validation commands even when one fails because it runs them sequentially without short-circuiting
+- [x] `bun run type-check` passes with zero errors
+- [x] `bun run lint --max-warnings 0` passes with zero warnings
+
+**Learnings**:
+- Aggregating validation output into one string now gives later skip-emission/orchestration stories a ready-made payload for `skip_details` without rerunning commands.
+- Validating `expId` against the issue index + slug at commit-message-build time catches mismatched trailers before git history is mutated.
+- `bun run cli workflow event emit ...` is unavailable in this repo (`error: Script not found "cli"`), so Ralph event emission currently no-ops as instructed.
+
+---
+
+## 2026-04-23 — US-004: Skip-row emission + apply-log writer
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/apply-worker.ts` — added JSONL append helpers plus exported `emitSkip` and `writeApplyLog` for weekly skip + apply artifacts
+
+**Acceptance criteria verified**:
+- [x] `emitSkip(weekDir: string, row: SkipRow): void` appends one JSON line to both `<weekDir>/skips.jsonl` and `<weekDir>/memory.jsonl`
+- [x] Skip rows are written verbatim from the `SkipRow` object with no field remapping
+- [x] `writeApplyLog(weekDir: string, log: ApplyLogJSON): void` overwrites `<weekDir>/apply-log.json`
+- [x] `apply-log.json` preserves week, run timestamp, experiments, and final validation summary from the provided `ApplyLogJSON`
+- [x] JSONL append logic keeps newline-separated objects safe even when an existing file is missing a trailing newline
+- [x] `bun run type-check` passes with zero errors
+- [x] `bun run lint --max-warnings 0` passes with zero warnings
+
+**Learnings**:
+- A shared append helper is the safest way to keep `skips.jsonl` and `memory.jsonl` in lockstep for the later #56 skip-contract consumer.
+- Resolving `weekDir` from `process.cwd()` keeps apply-worker artifact writes aligned with the repo-relative `history/<week>/` contract while still supporting absolute temp dirs in smoke checks.
+- A tiny temp-dir smoke check is enough to verify JSONL append semantics before the dedicated unit-test story lands.
+
+---
