@@ -126,7 +126,7 @@ export function loadBrandContext(
   businessPath = "context/business.md",
   palettePath = "context/palette.json",
 ): Record<string, unknown> {
-  const business = readFileSync(businessPath, "utf8");
+  const business = existsSync(businessPath) ? readFileSync(businessPath, "utf8") : "";
   const palette = existsSync(palettePath)
     ? (JSON.parse(readFileSync(palettePath, "utf8")) as Record<string, unknown>)
     : {};

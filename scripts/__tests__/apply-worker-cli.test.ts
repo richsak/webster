@@ -278,6 +278,24 @@ describe("apply-worker CLI integration", () => {
     }
   });
 
+  test("keeps asset placeholder comments when image backend is unavailable", () => {
+    const repo = createFixtureRepo(
+      "asset-stub",
+      '<meta property="og:image" content="<!-- asset TBD: og_card | Richer Health OG card -->">',
+    );
+
+    try {
+      const cli = runCli(repo, { OPENAI_API_KEY: "" });
+
+      expect(cli.exitCode).toBe(0);
+      expect(readFileSync(repo.targetFile, "utf8")).toContain(
+        "<!-- asset TBD: og_card; missing-openai-api-key -->",
+      );
+    } finally {
+      removeFixtureRepo(repo);
+    }
+  });
+
   test("records CF Pages preview URL and noindex verification metadata", () => {
     const repo = createFixtureRepo(
       "preview-url",

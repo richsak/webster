@@ -3,6 +3,12 @@
 import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import {
+  generateVisualAsset,
+  loadBrandContext,
+  normalizeGenerateVisualAssetInput,
+  persistGeneratedVisualAsset,
+} from "./visual-assets";
+import {
   applyMutation,
   buildCommitMessage,
   buildExpectedExperimentId,
@@ -109,6 +115,45 @@ function buildSkipRow(
   };
 }
 
+function assetUrlFromPath(path: string): string {
+  const marker = "site/public";
+  const index = path.indexOf(marker);
+  return index >= 0 ? path.slice(index + marker.length) : path;
+}
+
+async function materializeAssetPlaceholders(
+  text: string,
+  week: string,
+  slug: string,
+): Promise<string> {
+  const regex = /<!--\s*asset TBD:\s*([a-z_]+)(?:\s*\|\s*([\s\S]*?))?\s*-->/g;
+  let output = "";
+  let lastIndex = 0;
+
+  for (const match of text.matchAll(regex)) {
+    output += text.slice(lastIndex, match.index);
+    const type = match[1] ?? "unknown";
+    const prompt = match[2]?.trim() || `Generate ${type} for Webster landing page.`;
+    const input = normalizeGenerateVisualAssetInput({
+      type,
+      brand_context: loadBrandContext(),
+      dims: type === "og_card" ? { width: 1200, height: 630 } : { width: 1024, height: 1024 },
+      prompt,
+    });
+    const generated = await generateVisualAsset(input);
+    if (generated.status === "generated") {
+      const persisted = persistGeneratedVisualAsset(generated, week, slug);
+      output += assetUrlFromPath(persisted.path);
+    } else {
+      output += generated.comment;
+    }
+    lastIndex = (match.index ?? 0) + match[0].length;
+  }
+
+  output += text.slice(lastIndex);
+  return output;
+}
+
 async function applyIssue(
   weekDir: string,
   week: string,
@@ -119,7 +164,8 @@ async function applyIssue(
 
   const mutations: MutationResult[] = [];
   for (const mutation of issue.mutations) {
-    mutations.push(await applyMutation(mutation.file, mutation.before, mutation.after));
+    const after = await materializeAssetPlaceholders(mutation.after, week, issue.title);
+    mutations.push(await applyMutation(mutation.file, mutation.before, after));
   }
 
   const mismatches = mutations.filter((mutation) => mutation.status === "string_mismatch");
