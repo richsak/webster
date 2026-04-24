@@ -70,6 +70,13 @@ export interface SkipRow {
   concern_ref: string;
 }
 
+export interface ValidationResult {
+  lintPassed: boolean;
+  typeCheckPassed: boolean;
+  formatCheckPassed: boolean;
+  output: string;
+}
+
 interface ParsedSection {
   index: number;
   severity: Severity;
@@ -78,6 +85,7 @@ interface ParsedSection {
 }
 
 const SEVERITIES: readonly Severity[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
+const EXPERIMENT_ID_PATTERN = /^exp-(\d{2})-([a-z0-9]+(?:-[a-z0-9]+)*)$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -230,6 +238,49 @@ function resolveMutationFile(filesTouched: string[], pairIndex: number, label: s
   return filesTouched[pairIndex] ?? filesTouched[0] ?? "";
 }
 
+function decodeOutput(output: Uint8Array<ArrayBufferLike>): string {
+  return new TextDecoder().decode(output).trim();
+}
+
+function slugifyTitle(title: string): string {
+  const slug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40)
+    .replace(/-+$/g, "");
+
+  return slug.length > 0 ? slug : "experiment";
+}
+
+function buildExpectedExperimentId(index: number, title: string): string {
+  return `exp-${index.toString().padStart(2, "0")}-${slugifyTitle(title)}`;
+}
+
+function runCommand(command: string[]): { passed: boolean; output: string } {
+  const result = Bun.spawnSync(command, {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const stdout = decodeOutput(result.stdout);
+  const stderr = decodeOutput(result.stderr);
+  const lines = [`$ ${command.join(" ")}`, `exitCode: ${result.exitCode}`];
+
+  if (stdout.length > 0) {
+    lines.push(`stdout:\n${stdout}`);
+  }
+
+  if (stderr.length > 0) {
+    lines.push(`stderr:\n${stderr}`);
+  }
+
+  return {
+    passed: result.exitCode === 0,
+    output: lines.join("\n"),
+  };
+}
+
 export function parseDecision(json: unknown): DecisionJSON {
   if (!isRecord(json)) {
     throw new Error("decision.json must be an object");
@@ -300,4 +351,77 @@ export async function applyMutation(
     before,
     after,
   };
+}
+
+export function runValidation(): ValidationResult {
+  const lintResult = runCommand(["bun", "run", "lint", "--max-warnings", "0"]);
+  const typeCheckResult = runCommand(["bun", "run", "type-check"]);
+  const formatCheckResult = runCommand(["bun", "run", "format:check"]);
+
+  return {
+    lintPassed: lintResult.passed,
+    typeCheckPassed: typeCheckResult.passed,
+    formatCheckPassed: formatCheckResult.passed,
+    output: [lintResult.output, typeCheckResult.output, formatCheckResult.output].join("\n\n"),
+  };
+}
+
+export function buildCommitMessage(
+  expId: string,
+  index: number,
+  title: string,
+  files: string[],
+): string {
+  const expectedExpId = buildExpectedExperimentId(index, title);
+  const expIdMatch = expId.match(EXPERIMENT_ID_PATTERN);
+
+  if (!expIdMatch || expId !== expectedExpId) {
+    throw new Error(`Invalid experiment id. Expected ${expectedExpId}, received ${expId}`);
+  }
+
+  return [
+    `feat(apply): ${slugifyTitle(title)}`,
+    "",
+    `Redesigner proposal issue #${index}: ${title}`,
+    `Files touched: ${files.join(", ")}`,
+    "",
+    `Experiment-Id: ${expId}`,
+  ].join("\n");
+}
+
+export function commitExperiment(files: string[], message: string): string {
+  if (files.length === 0) {
+    throw new Error("Cannot commit experiment with no files");
+  }
+
+  const addResult = Bun.spawnSync(["git", "add", ...files], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  if (addResult.exitCode !== 0) {
+    const addOutput = [decodeOutput(addResult.stdout), decodeOutput(addResult.stderr)]
+      .filter((part) => part.length > 0)
+      .join("\n");
+    throw new Error(`git add failed\n${addOutput}`.trim());
+  }
+
+  const commitResult = Bun.spawnSync(["git", "commit", "-m", message], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const commitOutput = [decodeOutput(commitResult.stdout), decodeOutput(commitResult.stderr)]
+    .filter((part) => part.length > 0)
+    .join("\n");
+
+  if (commitResult.exitCode !== 0) {
+    throw new Error(`git commit failed\n${commitOutput}`.trim());
+  }
+
+  const shaMatch = commitOutput.match(/\[[^\]]+ ([0-9a-f]+)\]/i);
+  if (!shaMatch || !shaMatch[1]) {
+    throw new Error(`Unable to parse commit SHA from git output\n${commitOutput}`.trim());
+  }
+
+  return shaMatch[1];
 }
