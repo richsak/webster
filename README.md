@@ -10,6 +10,20 @@ Small businesses pay marketing agencies $2K–$20K/month for landing-page optimi
 
 ## The hero moment — Critic Genealogy
 
+```text
+weekly trigger
+   │
+   ▼
+Planner ──► SEO / brand / compliance / conversion / copy / monitor
+   │                         │
+   │                         └── out-of-scope overlap found
+   ▼
+Critic Genealogy (Opus 4.7) ──► registers new specialist ──► reruns on council branch
+   │
+   ▼
+Redesigner ──► draft PR for human review
+```
+
 The 5 pre-registered critics (SEO, brand-voice, functional-health-compliance, conversion, copy) each cover one scope. They commit findings to a shared branch and flag cross-cutting issues in their `Out of scope` sections.
 
 When >=2 critics flag the same scope as unowned, [`scripts/critic-genealogy.ts`](scripts/critic-genealogy.ts) asks Opus 4.7 to (a) author a new critic spec, (b) register it live via `POST /v1/agents`, and (c) invoke it on the same council branch — all at runtime, no human in the loop.
@@ -60,6 +74,16 @@ bun scripts/critic-genealogy.ts --fixtures scripts/__tests__/fixtures/genealogy 
 **Why this composition wins**: Managed Agents give each critic a pre-registered scope + MCP tools + vault credentials. Runtime agent registration via `POST /v1/agents` lets the orchestrator spawn specialists mid-run — novel capability that `callable_agents` (research preview) would handicap by gating. Full detail in [`context/ARCHITECTURE.md`](context/ARCHITECTURE.md).
 
 **Honest scope note**: the `site/` fork of the demo substrate LP and the Claude Code Routine cron wiring are manual in this submission — the composition does not depend on either. The redesigner currently emits `proposal.md` (the PR body) instead of `proposal.diff`; diff mode becomes a one-file change once the site source lands.
+
+## For judges
+
+**30-second pitch:** Webster is an autonomous landing-page improvement council. Seven Claude Managed Agents plan, audit, monitor, synthesize, and package one weekly redesign proposal; the standout demo is Critic Genealogy, where Opus 4.7 detects an unowned audit gap and registers a new specialist at runtime.
+
+**Live-run evidence:** the full operator path is [`prompts/second-wbs-session.md`](prompts/second-wbs-session.md), registration IDs live in `environments/webster-council-env.id` and `context/*/id.txt`, and run artifacts are written under `history/<week>/` when the weekly prompt is executed.
+
+**Hero code:** [`scripts/critic-genealogy.ts`](scripts/critic-genealogy.ts) is the runtime specialist-spawn path; [`scripts/__tests__/critic-genealogy.test.ts`](scripts/__tests__/critic-genealogy.test.ts) and [`scripts/__tests__/fixtures/genealogy`](scripts/__tests__/fixtures/genealogy) are the fixture proof.
+
+**Validate locally:** run `bun install` once, then `bun run validate` for type-check, zero-warning lint, format, agent schemas, findings format, markdown, and tests.
 
 ## What's in the repo
 
