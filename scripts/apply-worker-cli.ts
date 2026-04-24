@@ -21,6 +21,7 @@ import {
   runCriticRerunGate,
   runRuntimeValidation,
   runValidation,
+  runVisualReviewGate,
   writeApplyLog,
   type ApplyExperiment,
   type ApplyLogJSON,
@@ -305,12 +306,29 @@ async function main(): Promise<number> {
     }
   }
 
+  const visualReview = runVisualReviewGate();
+  if (!visualReview.passed) {
+    console.error(
+      `visual review blocked PR emission: ${visualReview.criticalCount} critical finding(s)`,
+    );
+  }
+
   const log: ApplyLogJSON = {
     week: decision.week,
     run_timestamp: new Date().toISOString(),
     experiments,
     validation_summary: validationSummary,
-    pr_emission: buildPrEmissionPlan(experiments),
+    pr_emission: visualReview.passed
+      ? buildPrEmissionPlan(experiments)
+      : {
+          ...buildPrEmissionPlan(experiments),
+          clusters: buildPrEmissionPlan(experiments).clusters.map((cluster) => ({
+            ...cluster,
+            draft: true,
+            labels: Array.from(new Set([...cluster.labels, "partial"])),
+          })),
+        },
+    visual_review: visualReview,
     preview_deployment: buildPreviewDeployment(),
   };
   writeApplyLog(args.weekDir, log);

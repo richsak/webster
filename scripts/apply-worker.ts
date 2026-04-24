@@ -74,6 +74,15 @@ export interface PrEmissionPlan {
   skipped_experiment_ids: string[];
 }
 
+export interface VisualReviewGateResult {
+  passed: boolean;
+  configured: boolean;
+  iterations: number;
+  criticalCount: number;
+  findings: { severity: Severity; issue: string; evidence?: string }[];
+  output: string;
+}
+
 export interface PreviewDeployment {
   preview_url?: string;
   analytics_scrub: {
@@ -98,6 +107,7 @@ export interface ApplyLogJSON {
     critic_rerun_passed: boolean;
   };
   pr_emission?: PrEmissionPlan;
+  visual_review?: VisualReviewGateResult;
   preview_deployment?: PreviewDeployment;
 }
 
@@ -711,6 +721,89 @@ function isPreviewUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+function parseVisualReviewFindings(
+  output: string,
+): { severity: Severity; issue: string; evidence?: string }[] {
+  const jsonStart = output.indexOf("{");
+  if (jsonStart >= 0) {
+    const parsed = JSON.parse(output.slice(jsonStart)) as { findings?: unknown };
+    if (Array.isArray(parsed.findings)) {
+      return parsed.findings.flatMap((finding) => {
+        if (!isRecord(finding)) {
+          return [];
+        }
+        return [
+          {
+            severity: parseSeverity(finding.severity, "visual_review.finding.severity"),
+            issue: expectString(finding.issue, "visual_review.finding.issue"),
+            evidence: typeof finding.evidence === "string" ? finding.evidence : undefined,
+          },
+        ];
+      });
+    }
+  }
+
+  return Array.from(output.matchAll(/\[(CRITICAL|HIGH|MEDIUM|LOW)\]\s+([^\n]+)/g), (match) => ({
+    severity: match[1] as Severity,
+    issue: (match[2] ?? "").trim(),
+  }));
+}
+
+export function runVisualReviewGate(maxIterations = 3): VisualReviewGateResult {
+  const command = process.env.WEBSTER_VISUAL_REVIEW_CMD;
+  if (!command || command.trim().length === 0) {
+    return {
+      passed: true,
+      configured: false,
+      iterations: 0,
+      criticalCount: 0,
+      findings: [],
+      output: "WEBSTER_VISUAL_REVIEW_CMD not configured; visual-reviewer gate skipped locally.",
+    };
+  }
+
+  let output = "";
+  let findings: { severity: Severity; issue: string; evidence?: string }[] = [];
+  for (let iteration = 1; iteration <= maxIterations; iteration += 1) {
+    const result = Bun.spawnSync(["bash", "-lc", command], {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, WEBSTER_VISUAL_REVIEW_ITERATION: String(iteration) },
+    });
+    output = [decodeOutput(result.stdout), decodeOutput(result.stderr)]
+      .filter((part) => part.length > 0)
+      .join("\n");
+
+    if (result.exitCode !== 0) {
+      findings = [{ severity: "CRITICAL", issue: "Visual reviewer command exited non-zero." }];
+    } else {
+      findings = parseVisualReviewFindings(output);
+    }
+
+    const criticalCount = findings.filter((finding) => finding.severity === "CRITICAL").length;
+    if (criticalCount === 0) {
+      return {
+        passed: true,
+        configured: true,
+        iterations: iteration,
+        criticalCount,
+        findings,
+        output,
+      };
+    }
+  }
+
+  const criticalCount = findings.filter((finding) => finding.severity === "CRITICAL").length;
+  return {
+    passed: false,
+    configured: true,
+    iterations: maxIterations,
+    criticalCount,
+    findings,
+    output,
+  };
 }
 
 export function buildPreviewDeployment(

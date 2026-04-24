@@ -33,6 +33,11 @@ interface ApplyLogFixture {
     }[];
     skipped_experiment_ids: string[];
   };
+  visual_review?: {
+    passed: boolean;
+    criticalCount: number;
+    iterations: number;
+  };
   preview_deployment?: {
     preview_url?: string;
     analytics_scrub: { enabled: boolean; marker: string };
@@ -291,6 +296,30 @@ describe("apply-worker CLI integration", () => {
       expect(readFileSync(repo.targetFile, "utf8")).toContain(
         "<!-- asset TBD: og_card; missing-openai-api-key -->",
       );
+    } finally {
+      removeFixtureRepo(repo);
+    }
+  });
+
+  test("blocks PR emission metadata on critical visual review regressions", () => {
+    const repo = createFixtureRepo(
+      "visual-review-block",
+      "<h1>Clinic directors get one clear protocol</h1>",
+    );
+
+    try {
+      const cli = runCli(repo, {
+        WEBSTER_VISUAL_REVIEW_CMD:
+          'printf \'{"findings":[{"severity":"CRITICAL","issue":"Hero text clipped on mobile"}]}\'',
+      });
+
+      expect(cli.exitCode).toBe(0);
+      const log = readApplyLog(repo);
+      expect(log.visual_review).toMatchObject({ passed: false, criticalCount: 1, iterations: 3 });
+      expect(log.pr_emission?.clusters[0]).toMatchObject({
+        labels: ["webster-apply", "partial"],
+        draft: true,
+      });
     } finally {
       removeFixtureRepo(repo);
     }
