@@ -21,8 +21,8 @@
       "technicalNotes": "Build on `scripts/seed-demo-arc.ts` only. Reuse existing W3 entries in `EXPERIMENT_SPECS` at `scripts/seed-demo-arc.ts:240-291`; mirror `writeW1`/`writeW2` at `scripts/seed-demo-arc.ts:459-476` with a `writeW3`. Update shared baseline/memory helpers at `scripts/seed-demo-arc.ts:437-457` if needed so lane-specific statuses/events are represented correctly. Preserve `initDemoArcDir()` isolation under `history/demo-arc/` from `scripts/seed-demo-arc.ts:340-351`. Follow the locked W3 narrative in `context/DOMAIN-MODEL.md:415-420` and feature #57 scope in `context/FEATURES.md:172`.",
       "dependsOn": [],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented in iteration 1. Files: scripts/seed-demo-arc.ts, history/demo-arc/demo-W3/proposal.md, history/demo-arc/demo-W3/decision.json, history/demo-arc/demo-W3/verdict.json, history/demo-arc/baselines.jsonl, history/demo-arc/memory.jsonl."
     },
     {
       "id": "US-004",
