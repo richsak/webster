@@ -42,8 +42,8 @@
       "technicalNotes": "Depends on US-003's lane-correct baseline and memory helper behavior. Reuse existing W4 entries in `EXPERIMENT_SPECS` at `scripts/seed-demo-arc.ts:292-338`; mirror the existing week writer pattern at `scripts/seed-demo-arc.ts:459-476` with `writeW4`. Use the existing `AgentJSON` and `NewCriticSpec` interfaces from `scripts/seed-demo-arc.ts:68-87` for deterministic genealogy JSON files. `initDemoArcDir()` already creates `history/demo-arc/demo-W4/genealogy` at `scripts/seed-demo-arc.ts:348`; write artifacts there. Follow the W4 table row and Git-state expectations in `context/DOMAIN-MODEL.md:421-429`. Do not call real Managed Agent APIs or alter `agents/` live specs.",
       "dependsOn": ["US-003"],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented in iteration 2. Files: scripts/seed-demo-arc.ts, history/demo-arc/demo-W4/proposal.md, history/demo-arc/demo-W4/decision.json, history/demo-arc/demo-W4/verdict.json, history/demo-arc/demo-W4/genealogy/new-critic-spec.json, history/demo-arc/demo-W4/genealogy/agent-registration.json, history/demo-arc/baselines.jsonl, history/demo-arc/memory.jsonl, context/FEATURES.md."
     }
   ]
 }
