@@ -21,8 +21,8 @@
       "technicalNotes": "Model file structure on `scripts/critic-genealogy.ts:1-80` — named exports, no side-effects at module scope. Proposal sections are H3 headings (`### N. [SEVERITY] title`). Before/after blocks are fenced code immediately following 'Before' / 'After' labels. 'Target file(s):' line gives files_touched. See `history/2026-04-23/proposal.md` and `history/2026-04-23/decision.json` for the canonical format.",
       "dependsOn": [],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented in iteration 1. Files: scripts/apply-worker.ts; validation cleanup in context/critics/*/findings.md and markdown docs to restore bun run validate."
     },
     {
       "id": "US-002",
@@ -40,8 +40,8 @@
       "technicalNotes": "Use `Bun.file(filePath).text()` to read, `Bun.write(filePath, mutated)` to write. Exact string match via `String.prototype.includes` + `String.prototype.replace` (first occurrence only). No regex — the before string is literal HTML/Astro. File: `scripts/apply-worker.ts`.",
       "dependsOn": ["US-001"],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented in iteration 2. Files: scripts/apply-worker.ts. Verified literal first-match replacement and string_mismatch no-write behavior with a temp-file Bun check."
     },
     {
       "id": "US-003",

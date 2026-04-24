@@ -274,3 +274,30 @@ export function parseProposal(md: string, decision: DecisionJSON): ProposalIssue
     };
   });
 }
+
+export async function applyMutation(
+  filePath: string,
+  before: string,
+  after: string,
+): Promise<MutationResult> {
+  const original = await Bun.file(filePath).text();
+
+  if (!original.includes(before)) {
+    return {
+      file: filePath,
+      status: "string_mismatch",
+      before,
+      after,
+    };
+  }
+
+  const mutated = original.replace(before, after);
+  await Bun.write(filePath, mutated);
+
+  return {
+    file: filePath,
+    status: "applied",
+    before,
+    after,
+  };
+}
