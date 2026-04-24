@@ -1,0 +1,81 @@
+## Codebase Patterns
+
+### Planner invocation fails closed before disk writes
+- **Where**: `scripts/planner-invoke.ts`
+- **Pattern**: Parse and validate the final assistant JSON before creating `history/<week>/plan.md` or appending to `history/memory.jsonl`; failed planner output leaves no partial plan artifact.
+- **Example**: `const plan = parsePlanRecord(extractFinalAssistantText(snapshot));`
+
+### Orchestrator memory helpers import the substrate directly
+- **Where**: `scripts/planner-context.ts`
+- **Pattern**: Higher-level orchestrator helpers should import `tailN` from `scripts/memory.ts` instead of re-reading JSONL lines.
+- **Example**: `const memoryEvents = readMemoryTail(opts.tailN ?? DEFAULT_TAIL_N, opts.memoryPath);`
+
+---
+
+## 2026-04-24 — US-001: Memory marshaling helper
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/planner-context.ts` — added `marshalPlannerContext` with memory tail, recent verdict, monitor anomaly, and cold-start sections.
+- `scripts/__tests__/planner-context.test.ts` — added Bun coverage for tailN wiring, verdict ordering, missing-file skips, and cold-start labeling.
+
+**Acceptance criteria verified**:
+- [x] Add scripts/planner-context.ts exporting marshalPlannerContext(opts: { memoryPath: string; verdictDir: string; monitorPath: string; tailN?: number }): string.
+- [x] The function uses the feature #51 tailN helper from src/memory (or scripts/memory) to read the last N=50 events from memoryPath; it does not re-implement tail logic.
+- [x] The function reads the two most recent history/<week>/verdict.json files under verdictDir sorted by week slug descending; missing verdict files are skipped without throwing.
+- [x] The function reads the monitor anomaly report text file at monitorPath; a missing monitor file is skipped without throwing.
+- [x] The returned string begins with a MEMORY_TAIL section, then a RECENT_VERDICTS section, then a MONITOR_ANOMALIES section, each delimited by a stable header the test file can match.
+- [x] When all three inputs are empty or missing, the function returns a string that explicitly labels the cold-start state rather than an empty string.
+- [x] Add a Bun test under scripts/__tests__/planner-context.test.ts with fixtures under tmp paths verifying: tailN wiring, two-verdict ordering, missing-file skips, and cold-start labeling.
+- [x] bun run type-check, bun run lint --max-warnings 0, bun test, bun run format:check pass.
+
+**Learnings**:
+- `scripts/memory.ts` exposes `tailN(n, logPath)`, so callers pass the count first and the memory path second.
+- No prior `progress.txt` existed for this PRD directory, so this iteration created it with the reusable pattern section.
+
+---
+
+## 2026-04-24 — US-002: Planner invocation + plan writer
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/planner-invoke.ts` — added `invokePlanner` with Managed Agent lookup/registration, session creation, context message send, idle polling, strict plan JSON parsing, plan markdown writing, and `verdict-ready` memory append.
+- `scripts/__tests__/planner-invoke.test.ts` — added Bun fetch-mock coverage for a valid planner response, malformed JSON rejection, unknown `next_action` rejection, and memory append side effects.
+
+**Acceptance criteria verified**:
+- [x] Add scripts/planner-invoke.ts exporting invokePlanner(opts: { contextText: string; week: string; historyDir: string; apiKey: string }): Promise<{ planPath: string; plan: PlanRecord }>.
+- [x] The function looks up or registers the webster-planner agent via POST /v1/agents, mirroring the find-or-register pattern in scripts/critic-genealogy.ts:440-556.
+- [x] The function creates a session via POST /v1/sessions, sends contextText as the user.message event, and polls until the session is idle.
+- [x] The function extracts the final assistant text and parses it as JSON with fields classification, next_action, direction_hint, optional new_critic_request, and rationale; next_action must be one of promote_and_experiment, hold_baseline, revert_and_retry, explore_broadly.
+- [x] The function writes history/<week>/plan.md as human-readable markdown that embeds the parsed JSON in a fenced code block and prints the parsed fields as a bulleted summary above the fence.
+- [x] The function appends one event row to history/memory.jsonl with event = 'verdict-ready' using the feature #51 appendEvent helper and includes refs.plan = relative path to the written plan.md.
+- [x] Invalid JSON, missing required fields, or unknown next_action values raise an Error with a descriptive message and do NOT write plan.md or append to memory.jsonl.
+- [x] Add a Bun test under scripts/__tests__/planner-invoke.test.ts that mocks fetch (global.fetch or bun:test mock) to exercise: happy path with a valid JSON response, malformed response rejection, and the memory.jsonl append side effect.
+- [x] bun run type-check, bun run lint --max-warnings 0, bun test, bun run format:check pass.
+
+**Learnings**:
+- `environments/webster-council-env.id` is available in this worktree, so planner session creation can mirror genealogy sessions by passing `environment_id` without expanding the public `invokePlanner` options.
+- `agents/webster-planner.json` is absent in this branch even though feature #50 is marked landed elsewhere; the helper supports registration when the spec exists and reuses an already-registered planner without reading the missing file.
+- `bun run cli` is not defined in this repo, so Ralph workflow event emissions failed harmlessly under the required `|| true` wrapper.
+
+---
+## 2026-04-24 — US-003: Orchestrator step in prompts/second-wbs-session.md
+
+**Status**: PASSED
+**Files changed**:
+- `prompts/second-wbs-session.md` — added fail-closed Step 3 planner orchestration before critic fan-out, marshaling context through `scripts/planner-context.ts`, invoking `scripts/planner-invoke.ts`, committing `history/<week>/plan.md` + `history/memory.jsonl`, and passing `PLAN_PATH` to downstream agents.
+- `README.md` — updated architecture diagram, weekly-flow step count, runtime estimate, and weekly-run summary to include the planner step.
+
+**Acceptance criteria verified**:
+- [x] Edit prompts/second-wbs-session.md to add a new numbered step titled 'Run planner' placed BEFORE the critic fan-out step.
+- [x] The step shows the bash/bun invocation that marshals context via scripts/planner-context.ts and invokes the planner via scripts/planner-invoke.ts, with the week argument set to the current ISO week folder name under history/.
+- [x] The step specifies that on planner error the run halts with a non-zero exit status and a pointer to the error message.
+- [x] The step references history/<week>/plan.md as the output artifact consumed by later steps.
+- [x] Update README.md or an adjacent doc section if the prior council flow explicitly enumerated the steps, so the step count remains accurate.
+- [x] bun run validate passes.
+
+**Learnings**:
+- The weekly runner uses `WEEK_DATE=$(date -u +%Y-%m-%d)` as its history folder slug, so the planner step reuses that existing ISO-8601 UTC folder naming pattern instead of introducing a second week format.
+- `bun --eval` receives user arguments at `process.argv.slice(1)`, which keeps the prompt-only invocation small without adding CLI code to the helper modules.
+
+---

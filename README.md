@@ -28,6 +28,10 @@ bun scripts/critic-genealogy.ts --fixtures scripts/__tests__/fixtures/genealogy 
                               ▼
           Claude Code orchestrator session (Opus 4.7)
                               │
+                              ▼
+                      Planner (Opus 4.7)
+                 memory + verdicts → plan.md
+                              │
                fans out 6 sessions in parallel ─┐
                                                 │
   ┌───────┬──────────┬──────────┬────────┬──────┴─┐
@@ -78,12 +82,13 @@ The live council runner is a bash-in-markdown prompt: [`prompts/second-wbs-sessi
 
 1. Seeds 10 weeks of mock analytics on first run (monitor needs baselines to diff).
 2. Prepares a shared `council/YYYY-MM-DD` branch.
-3. Fans out 6 Managed Agent sessions (monitor + 5 critics) — each commits `context/critics/<scope>/findings.md` via GitHub MCP.
-4. Validates findings via `bun scripts/validate-findings.ts`.
-5. Runs the redesigner — commits `history/YYYY-MM-DD/proposal.md` + `decision.json`.
-6. Opens a draft PR.
+3. Runs the planner — marshals `history/memory.jsonl`, recent verdicts, and monitor anomalies; writes `history/YYYY-MM-DD/plan.md`.
+4. Fans out 6 Managed Agent sessions (monitor + 5 critics) — each commits `context/critics/<scope>/findings.md` via GitHub MCP.
+5. Validates findings via `bun scripts/validate-findings.ts`.
+6. Runs the redesigner — commits `history/YYYY-MM-DD/proposal.md` + `decision.json`.
+7. Opens a draft PR.
 
-Expected wall-clock: 25–35 min. Expected API cost: ~$0.10–0.15 per run.
+Expected wall-clock: 30–50 min. Expected API cost: ~$0.16–0.25 per run.
 
 **Submission note**: all 7 agent specs are registered against the live Anthropic API (IDs in `environments/webster-council-env.id` + `context/*/id.txt`), the genealogy hero is live-validated (~$0.03 Opus 4.7 dry-run documented above), and the full orchestration prompt is committed. The end-to-end 6-agent fan-out that produces `history/YYYY-MM-DD/` artifacts is the operator-triggered weekly run — `history/` is empty at submission time by design. Loop has been exercised component-by-component.
 
@@ -128,7 +133,7 @@ Registers the single environment + 7 agents against the Anthropic API. Runs an S
 wbs @prompts/second-wbs-session.md
 ```
 
-Runs the full fan-out + redesigner + draft PR described above.
+Runs the full planner + fan-out + redesigner + draft PR described above.
 
 ### Spawn a genealogy critic manually
 
