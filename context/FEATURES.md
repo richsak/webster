@@ -12,8 +12,8 @@
 
 ## Current submission state (2026-04-23)
 
-- **Done**: 26 (incl. #38 site/ fork shipped session 4, #50 planner agent spec, and #51 memory substrate shipped)
-- **In-progress**: 1 (live run artifacts in `history/` — session 3 produced real artifacts; row update pending separate reconciliation)
+- **Done**: 27 (incl. #5 live run artifacts, #38 site/ fork shipped session 4, #50 planner agent spec, and #51 memory substrate shipped)
+- **In-progress**: 0
 - **Blocked**: 5 (demo video — Richie voice)
 - **Cut**: 7 (out of submission scope; rationale inline)
 - **Todo**: 29 (1 submission form + 9 Layer 8 + 9 Layer 9 + 3 Layer 10 + 7 Layer 11; all pre-submission per session-4 Phase 7 scope update + Q1–Q9 locks)
@@ -28,14 +28,14 @@ See `AGENTS.md` for stream → operator mapping.
 
 ## Layer 1: Routine + Orchestrator (Stream 1 — Claude Code Opus 4.7)
 
-| #   | Status      | Feature                                                                                                             | Hours |
-| --- | ----------- | ------------------------------------------------------------------------------------------------------------------- | ----- |
-| 1   | cut         | `routines/weekly-lp-improve.yaml` — Claude Code Routine with weekly cron. Submission uses manual `wbs @prompts/...` | 2     |
-| 2   | done        | Orchestrator — shipped as `prompts/second-wbs-session.md` (bash-in-markdown, not `.ts`). Functionally equivalent    | 4     |
-| 3   | done        | Shared critic skill — shipped as `skills/webster-lp-audit/SKILL.md` (renamed from `critic-flow`)                    | 2     |
-| 4   | done        | Per-critic context pattern: `context/critics/{name}/findings.md` (5 critics + monitor seeded)                       | 1     |
-| 5   | in-progress | Run-artifact pattern: `history/YYYY-MM-DD/` — schema defined in prompt; no live-run artifacts yet                   | 2     |
-| 6   | done        | Branch + PR automation via `gh pr create` — wired in Step 6 of `second-wbs-session.md`                              | 2     |
+| #   | Status | Feature                                                                                                                                                         | Hours |
+| --- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| 1   | cut    | `routines/weekly-lp-improve.yaml` — Claude Code Routine with weekly cron. Submission uses manual `wbs @prompts/...`                                             | 2     |
+| 2   | done   | Orchestrator — shipped as `prompts/second-wbs-session.md` (bash-in-markdown, not `.ts`). Functionally equivalent                                                | 4     |
+| 3   | done   | Shared critic skill — shipped as `skills/webster-lp-audit/SKILL.md` (renamed from `critic-flow`)                                                                | 2     |
+| 4   | done   | Per-critic context pattern: `context/critics/{name}/findings.md` (5 critics + monitor seeded)                                                                   | 1     |
+| 5   | done   | Run-artifact pattern: `history/YYYY-MM-DD/` — live `history/2026-04-23/` artifacts include analytics, proposal, decision, operator decision, and genealogy logs | 2     |
+| 6   | done   | Branch + PR automation via `gh pr create` — wired in Step 6 of `second-wbs-session.md`                                                                          | 2     |
 
 ## Layer 2: Managed Agent Critics (Stream 2 — Codex heartbeat)
 
