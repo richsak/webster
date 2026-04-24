@@ -20,7 +20,7 @@ const ENV_SCHEMA = JSON.parse(
 );
 
 const ajv = new Ajv2020({ allErrors: true, strict: true });
-addFormats.default(ajv);
+addFormats(ajv);
 
 const validateAgent = ajv.compile(AGENT_SCHEMA);
 const validateEnv = ajv.compile(ENV_SCHEMA);

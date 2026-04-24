@@ -14,7 +14,7 @@ const ENV_SCHEMA = JSON.parse(
 
 function buildAjv() {
   const ajv = new Ajv2020({ allErrors: true, strict: true });
-  addFormats.default(ajv);
+  addFormats(ajv);
   return ajv;
 }
 
