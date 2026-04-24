@@ -1,0 +1,53 @@
+{
+  "week": "demo-W2",
+  "experiments": [
+    {
+      "exp_id": "exp-02-hero-copy-v2",
+      "kind": "text",
+      "reward_delta_pct": 8,
+      "p_value": 0.02,
+      "gates": {
+        "brand_voice": "pass",
+        "bounce_rate": "pass",
+        "scroll_depth": "pass",
+        "time_on_page": "pass",
+        "token_efficiency": "pass",
+        "heatmap_sanity": "pass"
+      },
+      "classification": "improved",
+      "outcome": "promote-fallback"
+    },
+    {
+      "exp_id": "exp-03-cta-button-component",
+      "kind": "component",
+      "reward_delta_pct": 12,
+      "p_value": 0.006,
+      "gates": {
+        "brand_voice": "pass",
+        "bounce_rate": "pass",
+        "scroll_depth": "pass",
+        "time_on_page": "pass",
+        "token_efficiency": "pass",
+        "heatmap_sanity": "pass"
+      },
+      "classification": "improved",
+      "outcome": "promote-fast-track"
+    },
+    {
+      "exp_id": "exp-04-trust-badge-image",
+      "kind": "asset",
+      "reward_delta_pct": 0,
+      "p_value": 1,
+      "gates": {
+        "brand_voice": "improved",
+        "bounce_rate": "pass",
+        "scroll_depth": "pass",
+        "time_on_page": "pass",
+        "token_efficiency": "pass",
+        "heatmap_sanity": "pass"
+      },
+      "classification": "neutral",
+      "outcome": "promote-gate-win"
+    }
+  ]
+}

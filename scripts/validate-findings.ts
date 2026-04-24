@@ -4,7 +4,7 @@
  *
  * Contract (per skills/webster-lp-audit/SKILL.md):
  *   - H1 header starting with "# Findings"
- *   - "## Issues" section (required; may be empty for "no runs yet" stubs)
+ *   - "## Issues" or "## Issues identified" section (required; may be empty for "no runs yet" stubs)
  *   - Each issue entry tagged [CRITICAL] | [HIGH] | [MEDIUM] | [LOW]
  *   - "## Out of scope" section (required; may be empty)
  *
@@ -38,8 +38,8 @@ function validateFindingsFile(file: string): CheckResult {
     return { file, ok: errors.length === 0, errors };
   }
 
-  if (!/^## Issues\s*$/m.test(raw)) {
-    errors.push("  missing '## Issues' section");
+  if (!/^## Issues(?: identified)?\s*$/m.test(raw)) {
+    errors.push("  missing '## Issues' or '## Issues identified' section");
   }
 
   if (!/^## Out of scope\s*$/m.test(raw)) {

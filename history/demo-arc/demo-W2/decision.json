@@ -1,0 +1,35 @@
+{
+  "week": "demo-W2",
+  "selected_issues": [
+    {
+      "exp_id": "exp-02-hero-copy-v2",
+      "kind": "text",
+      "target_files": [
+        "site/src/components/Hero.astro"
+      ],
+      "proposed_change": "Iterate the promoted hero copy with a tighter operator-facing benefit line while preserving the W1 message structure.",
+      "expected_outcome_lane": "promote-fallback"
+    },
+    {
+      "exp_id": "exp-03-cta-button-component",
+      "kind": "component",
+      "target_files": [
+        "site/src/components/Nav.astro",
+        "site/src/components/FinalCTA.astro"
+      ],
+      "proposed_change": "Refactor the shared CTA button component so primary actions are more visually obvious across nav and closing sections.",
+      "expected_outcome_lane": "promote-fast-track"
+    },
+    {
+      "exp_id": "exp-04-trust-badge-image",
+      "kind": "asset",
+      "target_files": [
+        "site/public/assets/trust-badges/demo-trust-strip.png"
+      ],
+      "proposed_change": "Swap in a cleaner trust-badge strip that makes the credibility layer feel more on-brand without changing layout or copy.",
+      "expected_outcome_lane": "promote-gate-win"
+    }
+  ],
+  "reasoning": "Week 1's hero win justified a broader fan-out across text, component, and asset kinds while still keeping the experiments in independent page regions.",
+  "monitor_signal": "Hero engagement improved after W1, but trust and CTA interaction remained the next clean surfaces to test in parallel."
+}
