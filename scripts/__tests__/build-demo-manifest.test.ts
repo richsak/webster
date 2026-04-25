@@ -89,6 +89,8 @@ describe("buildDemoManifest", () => {
     );
     expect(sheetGeometry).toBe("2200x1036");
     expect(DEMO_MANIFEST_SCHEMA.properties.schema_version.const).toBe(1);
+    expect(DEMO_MANIFEST_SCHEMA.properties.weeks.contains.properties.week.const).toBe("week-00");
+    expect(DEMO_MANIFEST_SCHEMA.properties.weeks.items.xWeekIndexMatchesLabel).toBe(true);
     expect(DEMO_MANIFEST_SCHEMA.properties.weeks.items.properties.history.required).toEqual([
       "analytics",
       "reasoning",
@@ -109,6 +111,8 @@ describe("buildDemoManifest", () => {
     expect(isAbsolute(manifest.weeks[0]?.councilArtifacts["history/decision.json"] ?? "")).toBe(
       true,
     );
+    expect(isAbsolute(manifest.weeks[0]?.summary ?? "")).toBe(true);
+    expect(isAbsolute(manifest.weeks[0]?.history.reasoning ?? "")).toBe(true);
     expect(manifest.weeks[0]?.genealogyEvents).toHaveLength(2);
     expect(manifest.weeks[0]?.genealogyEvents.every((path) => isAbsolute(path))).toBe(true);
     expect(
@@ -147,6 +151,25 @@ describe("buildDemoManifest", () => {
     });
   });
 
+  test("rejects mismatched week labels and indexes", () => {
+    requireMagick();
+    const outDir = mkdtempSync(join(tmpdir(), "webster-demo-manifest-bad-index-"));
+    seedWeek(outDir, "week-00", "#1f2937");
+    const manifest = buildDemoManifest({
+      substrate: "lp",
+      outputDir: outDir,
+      memoryStoresPath: "missing.json",
+    });
+    const firstWeek = manifest.weeks[0];
+    expect(firstWeek).toBeDefined();
+    if (!firstWeek) {
+      throw new Error("missing seeded week");
+    }
+    manifest.weeks[0] = { ...firstWeek, index: 999 };
+
+    expect(() => validateDemoManifest(manifest)).toThrow("invalid week entry week-00");
+  });
+
   test("requires week-00 as the final-sheet baseline", () => {
     requireMagick();
     const outDir = mkdtempSync(join(tmpdir(), "webster-demo-manifest-no-week-zero-"));
@@ -154,7 +177,7 @@ describe("buildDemoManifest", () => {
 
     expect(() =>
       buildDemoManifest({ substrate: "lp", outputDir: outDir, memoryStoresPath: "missing.json" }),
-    ).toThrow("final sheet requires week-00");
+    ).toThrow("manifest must include week-00 baseline");
   });
 
   test("fails when final desktop screenshots are missing", () => {

@@ -54,12 +54,18 @@ export const DEMO_MANIFEST_SCHEMA = {
     output_dir: { type: "string", path: "absolute" },
     manifest_path: { type: "string", path: "absolute" },
     final_sheet: { type: "string", path: "absolute" },
-    memory_stores: { type: "object", additionalProperties: { type: "string" } },
+    memory_stores: {
+      type: "object",
+      description: "Substrate-scoped Managed Memory Store ids keyed by council role.",
+      additionalProperties: { type: "string", minLength: 1 },
+    },
     weeks: {
       type: "array",
       minItems: 1,
+      contains: { properties: { week: { const: "week-00" }, index: { const: 0 } } },
       items: {
         type: "object",
+        xWeekIndexMatchesLabel: true,
         required: [
           "week",
           "index",
@@ -234,12 +240,34 @@ export function validateDemoManifest(manifest: DemoManifest): void {
   if (manifest.weeks.length === 0) {
     throw new Error("manifest must include at least one week");
   }
+  for (const [role, storeId] of Object.entries(manifest.memory_stores)) {
+    if (!role || !storeId) {
+      throw new Error("memory store references must be keyed by role with non-empty ids");
+    }
+  }
   for (const week of manifest.weeks) {
-    if (!Number.isInteger(week.index) || !isAbsolute(week.path)) {
+    const expectedWeek = `week-${String(week.index).padStart(2, "0")}`;
+    if (!Number.isInteger(week.index) || week.week !== expectedWeek || !isAbsolute(week.path)) {
       throw new Error(`invalid week entry ${week.week}`);
+    }
+    if (week.summary && !isAbsolute(week.summary)) {
+      throw new Error(`week ${week.week} summary path must be absolute`);
     }
     if (week.history.analytics && !isAbsolute(week.history.analytics)) {
       throw new Error(`week ${week.week} analytics path must be absolute`);
+    }
+    if (week.history.reasoning && !isAbsolute(week.history.reasoning)) {
+      throw new Error(`week ${week.week} reasoning path must be absolute`);
+    }
+    for (const path of Object.values(week.councilArtifacts)) {
+      if (!isAbsolute(path)) {
+        throw new Error(`week ${week.week} council artifact path must be absolute`);
+      }
+    }
+    for (const path of week.genealogyEvents) {
+      if (!isAbsolute(path)) {
+        throw new Error(`week ${week.week} genealogy event path must be absolute`);
+      }
     }
     for (const page of Object.values(week.screenshots)) {
       for (const path of Object.values(page)) {
@@ -248,6 +276,9 @@ export function validateDemoManifest(manifest: DemoManifest): void {
         }
       }
     }
+  }
+  if (!manifest.weeks.some((week) => week.week === "week-00" && week.index === 0)) {
+    throw new Error("manifest must include week-00 baseline");
   }
 }
 
