@@ -2,6 +2,21 @@
 
 > Topologically ordered. Implement in sequence. Do NOT skip T0. Read `context/VISION.md` before each task and re-read it before marking any task done.
 
+## Session start protocol
+
+When a new session starts on this repo with a prompt like "Go" or "start" or "continue":
+
+1. **Read the first-actions list in `AGENTS.md`** in full (including `context/VISION.md` and this file) before writing any code
+2. **Start T0 immediately** — no confirmation needed to begin work
+3. **Stop after T0 completes** (validate green + committed). Report completion to Richie in 3–5 lines: what changed, test results, commit hash. Wait for his green-light before starting T1.
+4. **From T1 onward, proceed task-by-task without waiting for approval** BUT before starting each new task, post a 2-line announcement:
+   - Line 1: `Starting T<n>: <one-line-summary>`
+   - Line 2: `Files I'll touch: <comma-separated-paths>`
+
+   This gives Richie visibility to interrupt if the approach is drifting without blocking the default path.
+
+5. **At any point**, if ambiguity exceeds what VISION.md + this file answer: stop and surface `[STUCK]` with a concrete question. Do not compose around it.
+
 ## Per-task loop
 
 1. Re-read the task's acceptance criteria here
