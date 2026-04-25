@@ -1,0 +1,24 @@
+{
+  "webster-lp-sim": {
+    "brand-voice-critic": "agent_011CaPk5Kn5kMtZjwL3bK4mw",
+    "conversion-critic": "agent_011CaPk5MHNSAVB63iR3kxve",
+    "copy-critic": "agent_011CaPk5NxKcTwqSH7AqwFSC",
+    "fh-compliance-critic": "agent_011CaPk5R3ape9fFZJzCFEDw",
+    "monitor": "agent_011CaPk5SqUyan2eUEXeSJtL",
+    "planner": "agent_011CaPk5UWSTWgvXqZnC3jMZ",
+    "redesigner": "agent_011CaPk5WQYT46qS6wT13a82",
+    "seo-critic": "agent_011CaPk5YGAQtG2xfWkehWr1",
+    "visual-reviewer": "agent_011CaPk5aeHZMxTgTwCB3DSp"
+  },
+  "webster-site-sim": {
+    "brand-voice-critic": "agent_011CaPk5cNiecAPJrhQKBCF5",
+    "conversion-critic": "agent_011CaPk5e8tWxRpg4sWQBsLf",
+    "copy-critic": "agent_011CaPk5g7Cpz7NFDi3cYjY4",
+    "licensing-and-warranty-critic": "agent_011CaPk5ht7GynWjHNFnojdi",
+    "monitor": "agent_011CaPwnsH5n2e5nqEsuZFPQ",
+    "planner": "agent_011CaPwnudxtYXZjVCWacdpU",
+    "redesigner": "agent_011CaPwnx1bTTyhm1kgp7S7m",
+    "seo-critic": "agent_011CaPwnzQxkueQ7Sy2DKCDa",
+    "visual-reviewer": "agent_011CaPwo3yX2ducrnTEL1i3e"
+  }
+}

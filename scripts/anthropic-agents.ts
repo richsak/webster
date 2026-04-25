@@ -1,5 +1,6 @@
 const API_BASE = process.env.ANTHROPIC_API_BASE ?? "https://api.anthropic.com";
-const API = `${API_BASE.replace(/\/$/, "")}/v1`;
+const API_ROOT = API_BASE.replace(/\/$/, "");
+const API = `${API_ROOT}/v1`;
 const BETA = "managed-agents-2026-04-01";
 const VERSION = "2023-06-01";
 
@@ -32,7 +33,15 @@ export async function findAgentByName(apiKey: string, name: string): Promise<str
     }
 
     if (data.next_page) {
-      url = data.next_page.startsWith("http") ? data.next_page : `${API}${data.next_page}`;
+      if (data.next_page.startsWith("http")) {
+        url = data.next_page;
+      } else if (data.next_page.startsWith("/")) {
+        url = `${API_ROOT}${data.next_page}`;
+      } else {
+        const nextUrl = new URL(`${API}/agents`);
+        nextUrl.searchParams.set("page", data.next_page);
+        url = nextUrl.toString();
+      }
     } else if (data.has_more && data.last_id) {
       const nextUrl = new URL(url);
       nextUrl.searchParams.set("after_id", data.last_id);
