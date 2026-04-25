@@ -63,6 +63,24 @@ function substrateHistoryName(substrate: "lp" | "site"): string {
   return `${substrate}-demo`;
 }
 
+function maybeEmitCaptureTrigger(substrate: "lp" | "site", week: number): void {
+  if (week !== 1 && week !== 5 && week !== 10) {
+    return;
+  }
+  const consoleUrl =
+    process.env.WEBSTER_MEMORY_STORES_CONSOLE_URL ??
+    "https://console.anthropic.com/settings/memory-stores";
+  console.log(
+    JSON.stringify({
+      event: "CAPTURE_TRIGGER",
+      substrate,
+      week,
+      output: `assets/memory-stores-screenshots/${substrate}/week-${week}.png`,
+      console_url: consoleUrl,
+    }),
+  );
+}
+
 function defaultRunCommand(
   command: string[],
   options?: { cwd?: string; env?: Record<string, string> },
@@ -279,6 +297,7 @@ export async function runSimulation(
       requiredScreenshotPages,
     );
     await writeMemorySummary(config, week, analyticsOutput.analytics);
+    maybeEmitCaptureTrigger(config.substrate, week);
     copyArtifacts(historyDir, join(outputWeekDir, "history"));
     writeFileSync(
       join(outputWeekDir, "week-summary.json"),

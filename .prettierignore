@@ -14,6 +14,7 @@ context/critics/*/findings.md
 context/monitor/alerts.md
 history
 site
+demo-output
 
 # Symlinks (CLAUDE.md → AGENTS.md)
 CLAUDE.md

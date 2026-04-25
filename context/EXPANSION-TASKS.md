@@ -391,3 +391,81 @@ Before moving to the next task, verify:
 - Re-read VISION.md. The vision is the real contract.
 - Surface the block to Richie. Don't produce composed-looking workarounds.
 - Visible struggle > invisible corner-cutting.
+
+---
+
+## Tier 2 implementation tasks (case-study + auto-capture support)
+
+> Added 2026-04-25. These tasks support the Tier 2 demo asset (Empire Asphalt onboarding case study video + automated Anthropic Console screenshot capture for Beat 5). Specced in `context/ONBOARDING-CASE-STUDY.md` and `prompts/sim-runner.md`. T11 is **blocking** T8/T10 because the sim must emit capture triggers and the bridge must consume them; T12 and T13 are case-study-only and can run parallel to T8–T10.
+
+## T11 — Auto-capture infrastructure
+
+**Depends on**: T7 (sim wrapper)
+**Blocks**: T8 (sim invocations should emit capture triggers from the start), T10 handoff (Memory Stores screenshots are part of the deliverable)
+
+Wire capture-trigger emission into the sim wrapper, build the bridge process that reads triggers and spawns captures, and build the capture script that drives the `browser-use` CLI.
+
+**Before writing any T11 code (5-min pre-flight):** manually drive `browser-use` once against the real Anthropic Console memory stores page and capture the actual selectors:
+
+```bash
+browser-use --profile "Default" open https://console.anthropic.com  # navigate to memory stores via the UI
+browser-use state                                                    # dump real selectors and URL
+```
+
+Copy the real list-page URL and a real container selector from the `state` output into `scripts/capture-mem-stores.ts`. The `[data-testid='memory-stores-list']` selector and `/settings/memory-stores` path used in design docs are intuition, not verified — replacing them with what `browser-use state` actually returns prevents a silent hang in the capture script.
+
+**Code:**
+
+- Modify `scripts/simulation-core.ts` to emit `CAPTURE_TRIGGER` JSON lines on stdout at weeks 1, 5, and 10 (exact format spec in `prompts/sim-runner.md` "Trigger protocol")
+- Add `scripts/capture-mem-stores.ts` — accepts `{substrate, week, output}` from a trigger payload, shells out to `browser-use --profile "Default"` for navigation + screenshot, verifies the captured PNG is not a login page (size + text heuristic), exits 0 on success or non-zero with `AUTH_EXPIRED` on stderr if logged out
+- Add `scripts/sim-capture-bridge.ts` — reads stdin line-by-line, passes through unchanged to its own stdout, parses lines that match `{"event":"CAPTURE_TRIGGER",...}`, spawns the capture script for each, halts the pipe on capture failure
+- Add `bun run sim:preflight` script — checks: 18 sim agents registered, 12 memory stores provisioned, `console.anthropic.com` reachable via `browser-use`, `bun run` for sim scripts compiles
+- Add `bun run sim:emit-manifest` script — at end of sim, walks `assets/memory-stores-screenshots/` and writes `manifest.json` consolidating the 6 PNG paths and per-week sizes
+
+**Accept:**
+
+- `bun run sim:preflight` returns 0 against a fully-provisioned environment
+- A 1-week dry run (force `CAPTURE_TRIGGER` at week 1) writes a real authenticated Anthropic Console screenshot to `assets/memory-stores-screenshots/lp/week-1.png` — file > 100KB, visibly contains the memory stores list page (not a login screen)
+- An auth-expired dry run (intentionally signed out of Console) makes the capture script exit non-zero with `AUTH_EXPIRED` on stderr, and the bridge halts the pipe rather than silently continuing
+- Trigger protocol JSON format exactly matches `prompts/sim-runner.md` "Trigger protocol" section
+
+## T12 — `webster-onboarding` v2 skill + verify-all script
+
+**Depends on**: T1 (memory provisioning script), T2 (production agent specs already registered)
+**Blocks**: case-study video recording
+
+Rewrite the onboarding skill from the b3fd05f baseline to fit the v2 phase model and v2 stack. Build the rollup verify script the skill drives at P3/P4 gates.
+
+**Code:**
+
+- `skills/webster-onboarding/SKILL.md` — phase model (P0–P5), status file at `context/onboarding-status.json`, dynamic Q&A in P1, key-safety disclaimer at P2, machine-checked gates at each phase boundary, resume-from-status-file at startup. Full spec in `context/ONBOARDING-CASE-STUDY.md` "Skill design — webster-onboarding v2"
+- `scripts/onboarding/verify-env.ts` — reads `.env.local`, hits each provider's verify endpoint, returns ok/fail without echoing key values
+- `scripts/onboarding/verify-all.ts` — runs all P3 + P4 checks (env + repo + memory stores + agents) as a single rollup; supports `--phase {p3,p4}` flag
+- `scripts/onboarding/scaffold-repo.ts` — creates a fresh GitHub repo under the user's account, scaffolds an Astro starter using brand identity from `context/business.yaml`
+
+**Accept:**
+
+- `bun run onboarding:verify-all` exits 0 only when all of: `.env.local` has the 3 keys verified live, target GitHub repo is reachable via the user's PAT, `GET /v1/agents` returns ≥9 production agents, `GET /v1/memory_stores` returns ≥6 stores
+- Skill, run twice on a fresh environment, produces identical state (idempotent)
+- A test run on a clean environment, with all gates failing intentionally, reports the specific failing check + remediation hint, persists the status file, and resumes correctly when re-run after fixes
+- No key values appear in stdout, stderr, or any committed file at any point
+
+## T13 — Empire Asphalt Paving substrate prep
+
+**Depends on**: dad consent (logged at `assets/onboarding-case-study/dad-consent.txt`)
+**Blocks**: case-study video recording
+
+Hand-craft the ugly v0 of dad's site, fill the brand corpus, and create a fresh GitHub repo for the case study install to land into.
+
+**Code + assets:**
+
+- `context/brand-corpus/` populated with: logo.png, business-card.jpg, past-jobs/{1..3}.jpg, service-list.md, reviews.md, voice-notes.md (full spec in `context/ONBOARDING-CASE-STUDY.md` "Brand corpus")
+- Fresh GitHub repo `richsak/empire-paving-demo` (private) containing a hand-crafted ugly v0 — single Astro page with the brand colors (`#1B47A1` royal blue, `#F9D71C` yellow), bad layout, missing trust signals, no responsive breakpoints. Acceptable to piggyback on T4's ugly-site fork script if it generalizes cleanly.
+- `assets/onboarding-case-study/dad-consent.txt` — one-line acknowledgment confirming dad has agreed to use of business name, logo, and paraphrased quotes in the submission video. Do not commit a PII-heavy version.
+
+**Accept:**
+
+- `git clone richsak/empire-paving-demo` succeeds and the cloned site builds (`bun run build`) without errors
+- The ugly v0 visibly uses the Empire palette and identity (not generic gray)
+- Dad consent artifact exists in `assets/onboarding-case-study/`
+- Brand corpus directory contains all 6 corpus categories, with at least placeholder contents for any items dad doesn't have real assets for (e.g. reviews paraphrased from real reviews if Google reviews are sparse)

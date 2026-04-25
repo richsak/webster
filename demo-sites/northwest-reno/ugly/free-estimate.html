@@ -3,27 +3,83 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Free Estimate</title>
-    <link rel="stylesheet" href="style.css" />
+    <title>Free Estimate | Northwest Home Renovations</title>
+    <link rel="stylesheet" href="style.css?v=3" />
   </head>
   <body>
-    <header>
-      <h1>Free Estimate Form</h1>
-      <nav>
-        <a href="index.html">Home Page</a>
-        <a href="services.html">List</a>
+    <header class="site-header">
+      <a class="brand" href="index.html">
+        <span class="mark">NHR</span>
+        <span>Northwest Home Renovations</span>
+      </a>
+      <nav aria-label="Main navigation">
+        <a href="index.html">Home</a>
+        <a href="services.html">Services</a>
+        <a href="free-estimate.html">Free Estimate</a>
       </nav>
+      <a class="phone" href="tel:+15035550138">(503) 555-0138</a>
     </header>
 
     <main>
-      <p>Fill this out and maybe someone will get back to you.</p>
-      <form>
-        <input type="text" />
-        <input type="text" />
-        <input type="email" />
-        <textarea></textarea>
-        <button type="submit">Send</button>
-      </form>
+      <section class="estimate-layout">
+        <div class="estimate-copy">
+          <p class="eyebrow">Free estimate</p>
+          <h1>Tell us what you want to improve.</h1>
+          <p>
+            Share the basics and owner Sam Reyes will follow up within two business days. Northwest
+            Home Renovations is licensed under WA-CONTR-NWR-2024 and carries $2M liability
+            insurance.
+          </p>
+          <div class="contact-card">
+            <h2>Before you request an estimate</h2>
+            <ul class="check-list">
+              <li>Project type and rough timeline</li>
+              <li>City or neighborhood</li>
+              <li>Photos if you already have them</li>
+              <li>Budget range if known</li>
+              <li>Warranty expectation: 5-year workmanship and 10-year structural</li>
+            </ul>
+          </div>
+        </div>
+
+        <form class="estimate-form">
+          <label>
+            Full name
+            <input type="text" name="name" autocomplete="name" />
+          </label>
+          <label>
+            Email
+            <input type="email" name="email" autocomplete="email" />
+          </label>
+          <label>
+            Phone
+            <input type="tel" name="phone" autocomplete="tel" />
+          </label>
+          <label>
+            Project type
+            <select name="project-type">
+              <option>Kitchen remodel</option>
+              <option>Bathroom remodel</option>
+              <option>Deck or outdoor living</option>
+              <option>Addition or interior update</option>
+              <option>Not sure yet</option>
+            </select>
+          </label>
+          <label>
+            Project details
+            <textarea name="details" rows="6"></textarea>
+          </label>
+          <button type="submit">Send Estimate Request</button>
+          <p class="form-note">
+            This demo form does not submit yet. Please call for live scheduling.
+          </p>
+        </form>
+      </section>
     </main>
+
+    <footer>
+      <span>Northwest Home Renovations</span>
+      <span>Sam Reyes • WA-CONTR-NWR-2024 • $2M liability insurance</span>
+    </footer>
   </body>
 </html>

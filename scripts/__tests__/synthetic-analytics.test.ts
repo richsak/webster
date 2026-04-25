@@ -27,9 +27,9 @@ describe("synthetic analytics", () => {
 
     expect(second).toEqual(first);
     expect(first.sessions).toBe(4995);
-    expect(first.site_signature).toBe("b5471ead");
-    expect(first.bounce_rate).toBe(0.665);
-    expect(first.cta_clicks.discovery_call).toBe(126);
+    expect(first.site_signature).toBe("f3987cbe");
+    expect(first.bounce_rate).toBe(0.55);
+    expect(first.cta_clicks.discovery_call).toBe(239);
   });
 
   test("unchanged week-1 site stays within ±5% per metric", () => {
@@ -55,7 +55,7 @@ describe("synthetic analytics", () => {
     const dir = mkdtempSync(join(tmpdir(), "webster-synth-site-"));
     writeFileSync(
       join(dir, "index.html"),
-      `<h1>Book a Discovery Call for N&D Certification</h1><section><p>Dr. Nicolette Richer, DSocSci, helps clinic teams reduce patient churn with credible food-as-medicine training.</p><a>Book a Discovery Call</a><p>testimonial proof</p></section>`,
+      `<h1>Book a Discovery Call for N&D Certification</h1><section><h2>Licensed clinic training with written scope</h2><p>Dr. Nicolette Richer, dssci, helps clinic teams reduce patient churn with credible food-as-medicine training.</p><p>Owner-led schedule, insured facilitation, warranty-backed implementation support, and testimonial proof.</p><a>Book a Discovery Call</a></section><section><h2>Patient churn proof</h2><p>Discovery call, N&D roadmap, written scope, and schedule clarity.</p></section>`,
     );
     const week0 = generateSyntheticAnalytics(baseInput()).analytics;
     const improved = generateSyntheticAnalytics({
