@@ -1,0 +1,77 @@
+[
+  {
+    "id": "first-time-homeowner-anxious",
+    "name": "First-Time Homeowner Anxious",
+    "archetype": "New homeowner worried about being scammed or talked down to",
+    "goals": [
+      "Understand what happens after requesting an estimate",
+      "See license, insurance, warranty, and owner accountability before calling",
+      "Feel safe asking basic renovation questions"
+    ],
+    "anxieties": [
+      "Hiring an unlicensed or unreliable contractor",
+      "Hidden costs after work begins",
+      "Being embarrassed for not knowing renovation terminology"
+    ],
+    "conversion_triggers": [
+      "Visible WA-CONTR-NWR-2024 license number",
+      "Clear estimate process and response-time expectation",
+      "Plain-language reassurance from owner Sam Reyes"
+    ],
+    "behavior_hints": [
+      "Reads trust blocks before service details",
+      "Needs labels, phone option, and low-pressure language",
+      "Bounces on vague bragging or missing proof"
+    ]
+  },
+  {
+    "id": "price-comparing-pragmatist",
+    "name": "Price-Comparing Pragmatist",
+    "archetype": "Homeowner collecting three quotes and looking for scope clarity",
+    "goals": [
+      "Compare services and expected scope quickly",
+      "Avoid contractors who dodge timeline or warranty questions",
+      "Find enough detail to decide whether to request a quote"
+    ],
+    "anxieties": [
+      "Receiving a lowball quote that grows later",
+      "Wasting time with a contractor outside the service area",
+      "Unclear forms that do not capture the project accurately"
+    ],
+    "conversion_triggers": [
+      "Specific kitchen, bath, and deck service descriptions",
+      "Written-scope language and warranty terms",
+      "CTA that promises a clear next step, not a sales trap"
+    ],
+    "behavior_hints": [
+      "Scans services page before home page copy",
+      "Looks for pricing signals, process, and what is included",
+      "Responds to direct CTAs like 'Request a written estimate'"
+    ]
+  },
+  {
+    "id": "warranty-conscious-veteran",
+    "name": "Warranty-Conscious Veteran",
+    "archetype": "Homeowner burned by a previous contractor and focused on accountability",
+    "goals": [
+      "Verify warranty terms before contacting anyone",
+      "Find proof the contractor is insured and locally accountable",
+      "Understand who owns mistakes if something goes wrong"
+    ],
+    "anxieties": [
+      "A contractor disappearing after payment",
+      "Warranty exclusions hidden until after signing",
+      "Poor cleanup, schedule drift, and vague communication"
+    ],
+    "conversion_triggers": [
+      "5-year workmanship and 10-year structural warranty language",
+      "$2M liability insurance claim stated plainly",
+      "Owner-led accountability and documented scope promises"
+    ],
+    "behavior_hints": [
+      "Reads footer and trust sections carefully",
+      "Needs warranty and insurance near every major CTA",
+      "Will distrust superlatives without concrete proof"
+    ]
+  }
+]

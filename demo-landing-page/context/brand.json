@@ -1,0 +1,35 @@
+{
+  "voice": "Warm-authoritative with deliberate edge: trusted mentor, not vendor; clinically credible without sounding sterile.",
+  "tone": ["confident", "direct", "personable", "evidence-aware", "professionally provocative"],
+  "palette": {
+    "deep_teal": "#0F4C5C",
+    "warm_cream": "#F7F1E8",
+    "leaf_green": "#3F7D58",
+    "charcoal": "#243034",
+    "soft_gold": "#C8A96A"
+  },
+  "typography": {
+    "heading": "Editorial serif such as Cormorant Garamond or Playfair Display",
+    "body": "Readable humanist sans such as Inter or Source Sans 3",
+    "utility": "Condensed sans for labels and credentials"
+  },
+  "signature_phrases": [
+    "Your body's ability to heal is greater than anyone has permitted you to believe.",
+    "N&D certification",
+    "I've been in the trenches",
+    "food-as-medicine",
+    "trusted mentor, not vendor"
+  ],
+  "do_not_use": [
+    "MN&D",
+    "medical doctor",
+    "cure",
+    "miracle",
+    "guaranteed results",
+    "wellness guru",
+    "quick fix",
+    "detox cleanse",
+    "world-class",
+    "revolutionary"
+  ]
+}

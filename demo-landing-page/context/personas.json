@@ -1,0 +1,77 @@
+[
+  {
+    "id": "credentials-conscious-executive",
+    "name": "Credentials-Conscious Executive",
+    "archetype": "Clinic owner who needs proof before changing team protocols",
+    "goals": [
+      "Reduce preventable patient churn with a credible nutrition and detoxification system",
+      "Train staff without adding operational chaos",
+      "See Nicolette's credentials, lineage, and business relevance quickly"
+    ],
+    "anxieties": [
+      "Being sold wellness fluff that will not survive clinical scrutiny",
+      "Confusing staff with another half-adopted protocol",
+      "Health claims creating reputation or compliance risk"
+    ],
+    "conversion_triggers": [
+      "DSocSci credential and clear non-medical-doctor disclaimer",
+      "Charlotte Gerson, T. Colin Campbell, and Neal Barnard lineage",
+      "Specific team certification outcomes and implementation path"
+    ],
+    "behavior_hints": [
+      "Skims the hero, credentials, and CTA before reading details",
+      "Looks for business outcomes before philosophical claims",
+      "Responds to confident but bounded authority"
+    ]
+  },
+  {
+    "id": "curious-self-starter",
+    "name": "Curious Self-Starter",
+    "archetype": "Warm lead already interested in food-as-medicine and ready for a practical next step",
+    "goals": [
+      "Find a structured path from curiosity into action",
+      "Understand what the N&D certification teaches",
+      "Feel personally invited rather than processed through a generic funnel"
+    ],
+    "anxieties": [
+      "Getting overwhelmed by dense scientific language",
+      "Feeling judged for not knowing enough yet",
+      "Signing up for something too advanced or too salesy"
+    ],
+    "conversion_triggers": [
+      "Warm-authoritative first-person copy",
+      "Plain-language explanation of what changes after certification",
+      "Signature belief that the body's ability to heal is greater than permitted"
+    ],
+    "behavior_hints": [
+      "Reads story-driven sections and testimonial proof",
+      "Clicks when CTA language promises a low-pressure discovery step",
+      "Needs hierarchy and scannable sections to stay oriented"
+    ]
+  },
+  {
+    "id": "skeptical-researcher",
+    "name": "Skeptical Researcher",
+    "archetype": "Evidence-seeking evaluator comparing Nicolette against other wellness educators",
+    "goals": [
+      "Separate credible training from generic wellness marketing",
+      "Find citations, lineage, and precise claims",
+      "Verify that the program respects boundaries around medical advice"
+    ],
+    "anxieties": [
+      "Unsubstantiated reversal or cure claims",
+      "Vague testimonials replacing evidence",
+      "Brand voice becoming too edgy for a professional clinic context"
+    ],
+    "conversion_triggers": [
+      "Careful claim language and visible disclaimers",
+      "Specific credential chain and named influences",
+      "Concrete curriculum outcomes instead of hype"
+    ],
+    "behavior_hints": [
+      "Searches for credentials and claim boundaries before trusting CTA copy",
+      "Reads footnotes, disclaimers, and proof blocks",
+      "Will bounce if the page sounds like miracle-cure marketing"
+    ]
+  }
+]

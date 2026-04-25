@@ -1,0 +1,35 @@
+{
+  "voice": "Competent, direct, trust-heavy contractor voice: local owner accountability, clear scope, no hype.",
+  "tone": ["plain-spoken", "practical", "calm", "accountable", "specific"],
+  "palette": {
+    "forest_green": "#234F3A",
+    "warm_cream": "#F4EBDD",
+    "brass": "#B8893B",
+    "charcoal": "#2B2F32",
+    "white": "#FFFFFF"
+  },
+  "typography": {
+    "heading": "Clear sturdy sans such as Inter Tight or Source Sans 3",
+    "body": "Readable sans such as Inter or system-ui",
+    "utility": "Monospace or compact sans for license, warranty, and estimate labels"
+  },
+  "signature_phrases": [
+    "Written scope before work starts",
+    "Owner-led renovation work",
+    "Licensed, insured, and warranty-backed",
+    "Clean jobsite, clear next step",
+    "5-year workmanship, 10-year structural"
+  ],
+  "do_not_use": [
+    "world-class",
+    "best in the business",
+    "top quality",
+    "dream home overnight",
+    "cheap",
+    "luxury for less",
+    "we do it all",
+    "no job too big or small",
+    "guaranteed cheapest",
+    "perfect craftsmanship"
+  ]
+}
