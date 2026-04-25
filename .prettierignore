@@ -14,3 +14,8 @@ context/critics/*/findings.md
 context/monitor/alerts.md
 history
 site
+
+# Symlinks (CLAUDE.md → AGENTS.md)
+CLAUDE.md
+agents/CLAUDE.md
+history/CLAUDE.md

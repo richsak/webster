@@ -1,38 +1,45 @@
 # AGENTS.md — Webster Operator Guide
 
-> Read this before starting any task in this repo.
+> Canonical operator guide for this repo. Read before starting any task.
 
 Webster is operated by two agent classes:
 
-1. **Implementation operators** — Claude Code (Opus 4.7) and Codex (GPT-5.4) driving Forge for parallel-worktree builds.
-2. **Runtime critics** — 7 Claude Managed Agents (defined in `agents/*.yaml`) that run the weekly LP audit loop.
+1. **Implementation operators** — Claude Code (Opus 4.7), Codex/Pi (via Forge). Drive parallel-worktree builds.
+2. **Runtime critics** — Claude Managed Agents (specs in `agents/*.json`) that run the weekly LP council.
 
-This file is for implementation operators. See `skills/critic-flow/SKILL.md` for runtime critic guidance.
+This file is for implementation operators. See `skills/webster-lp-audit/SKILL.md` for runtime critic guidance.
 
 ## Mission
 
-Ship the Webster submission for the Anthropic × Cerebral Valley "Built with Opus 4.7" hackathon by **Sunday April 26 2026 8PM EST**. Optimize for composite prize-lane value, not grand alone.
+Two active workstreams:
 
-## Read before starting
+- **Production Webster** — Nicolette's weekly landing-page improvement council runs on `main` via `prompts/second-wbs-session.md`. This is live for her business; do not break it.
+- **Hackathon expansion** — Dual-substrate demo (Richer Health LP + Northwest Home Renovations 3-page site) with a simulation runner producing timelapse assets. Deadline **2026-04-28**. Working branch: `dev/`. See `context/VISION.md` for canonical north-star.
 
-1. `README.md` — public pitch + architecture summary
-2. `context/ARCHITECTURE.md` — full system design
-3. `context/FEATURES.md` — feature list with status; pick one in your stream
-4. `context/QUALITY-GATES.md` — validation rules (mirror Forge pattern)
-5. `~/Vault/Projects/webster/webster-decision-log.md` — all architectural decisions with rationale
-6. `~/Vault/Projects/webster/webster-forge-guide.md` — how Forge should operate on this repo
+## First actions every session
 
-## Stream allocation (parallel worktrees)
+1. `AGENTS.md` (this file)
+2. `context/ARCHITECTURE.md` — current system design
+3. `context/FEATURES.md` — shipped state + stream allocation
+4. `context/VISION.md` — canonical north-star for the active hackathon expansion. If about to code or make an architectural call, this doc tells you whether you're drifting.
+5. `context/EXPANSION-TASKS.md` — topologically ordered tasks with acceptance criteria
+6. `context/QUALITY-GATES.md` — validation rules (mirror Forge pattern)
+7. `~/Vault/Projects/webster/webster-decision-log.md` — architectural decisions with rationale
 
-| Stream | Operator             | Worktree    | Features                                                |
-| ------ | -------------------- | ----------- | ------------------------------------------------------- |
-| 1      | Claude Code Opus 4.7 | `main`      | Orchestrator + Critic Genealogy + Routine config        |
-| 2      | Codex heartbeat      | `agents`    | 7 Managed Agent YAMLs + environment config              |
-| 3      | Codex heartbeat      | `skill`     | Onboarding skill + Claude Design .zip parser            |
-| 4      | Claude Code or Forge | `video`     | Remotion comps + animations                             |
-| 5      | Claude Code          | `substrate` | LP fork + analytics pixel + 10-week mock history seeder |
+## Communication with Richie
 
-Merge cadence: Thursday EOD, Friday EOD, Saturday noon.
+- Lead with recommendations rated X/100. Never present options without scores.
+- Layman's terms, real-world analogies, not code.
+- Challenge directly. No caveats, no permission-asking, no enthusiasm-padding.
+- If stuck, say so — don't produce a polished workaround that hides the difficulty.
+- Visible struggle > invisible corner-cutting.
+
+## Branch strategy
+
+- `main` — production Webster. Nicolette's live council runs here. Stable.
+- `dev/` — hackathon expansion work merges here. Eventually rolled up into main as a single batch once the submission ships.
+- Feature branches / worktrees → merge into `dev/`, not directly to `main`.
+- Never force-push to `main` or `dev/`.
 
 ## Operating rules
 
@@ -48,11 +55,18 @@ Merge cadence: Thursday EOD, Friday EOD, Saturday noon.
 ### Don't
 
 - Import Forge code. Webster is standalone.
+- Write comments that explain what code does (well-named identifiers do that). Only write comments when the WHY is non-obvious.
+- Create documentation files unless explicitly requested.
+- Use emojis unless explicitly requested.
+- Add backwards-compatibility hacks (no unused `_` vars, no re-export stubs, no `// removed` comments).
+- Expand scope beyond the feature at hand (no drive-by refactors).
 - Introduce frameworks beyond the locked stack (Astro 6, Claude API, Managed Agents, Remotion, Cloudflare Workers)
 - Invent architecture without updating `webster-decision-log` in vault
 - Bypass validation (`--no-verify`, `--no-gpg-sign`, `--force`)
 - Fabricate analytics numbers or business stats
 - Silently catch errors to make things look green
+- Touch the existing 9 production `webster-*` agents during hackathon expansion — they run Nicolette's real council. Sim agents are additive (`webster-lp-sim-*`, `webster-site-sim-*`).
+- Touch `prompts/second-wbs-session.md` — it's the production orchestrator. Sim orchestrator is a fork at `prompts/sim-council.md`.
 
 ## Quality gates
 
@@ -63,21 +77,50 @@ bun run validate
 # = type-check + lint --max-warnings 0 + format:check + test
 ```
 
-## Feature pickup protocol
+## Task pickup protocol (hackathon expansion)
 
-1. Check `context/FEATURES.md` — find next feature with status `todo`
-2. Read feature description + referenced architecture section
-3. Mark feature `in-progress` (commit this change first)
-4. Implement on your stream's worktree
-5. Run `bun run validate`
-6. Commit with `feat:` message including feature number
-7. Mark feature `done` in `context/FEATURES.md` (or leave `in-progress` with progress note)
-8. Merge to main per stream cadence
+1. Check `context/EXPANSION-TASKS.md` — pick next unblocked task in topological order. Do NOT skip T0.
+2. Re-read the task's acceptance criteria
+3. Read every file the task touches before editing
+4. Implement minimally — no scope expansion, no drive-by refactors
+5. Write the tests listed in acceptance criteria
+6. `bun run validate` — must be green
+7. Conventional commit (one task = one commit or a small series)
+8. Before marking done: re-read `context/VISION.md` "what's locked" section, verify no drift
+
+## Handling the task list
+
+Use `TaskCreate` / `TaskUpdate` for multi-step work within a single session. Tasks are session-scoped; long-term project state lives in `context/` + vault `webster-*.md` files.
+
+## Git hygiene
+
+- Conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`)
+- Never force-push to `main` or `dev/`
+- Never use `--no-verify` or `--no-gpg-sign`
+- If pre-commit hook fails, fix the issue and create a new commit (not `--amend`)
+- If you're stuck on a hook failure, surface it — don't bypass
+
+## Skill invocation (Claude Code)
+
+Webster ships two runtime-critic skills:
+
+- `skills/webster-lp-audit/SKILL.md` — shared council run flow (referenced by production critics)
+- `skills/webster-onboarding/SKILL.md` — end-user onboarding flow (universal, demo placeholder)
+
+If your work modifies either skill, test with a sample invocation before committing.
+
+## Parallel stream etiquette
+
+- Your worktree is yours. Don't touch other worktrees.
+- If you need to coordinate with another stream, leave a `[COORDINATE: stream-N]` note in your session output.
+- Daily merge checkpoints resolve conflicts.
 
 ## When requirements conflict
 
-State the conflict. Don't paper over it. Pre-committed cut order in `webster-open-loops` vault file if Friday 6PM behind pace.
+State the conflict. Don't paper over it.
 
-## Questions for the human operator
+## When in doubt
 
-If you need direction that's not covered here or in the vault, leave a `[QUESTION]` prefix in your session output. Don't assume.
+Consult `~/Vault/Projects/webster/webster-decision-log.md` — every locked decision with rationale.
+
+If a path isn't clear and VISION.md / EXPANSION-TASKS.md don't answer, leave a `[STUCK]` or `[QUESTION]` prefix in your session output. Don't compose around it.
