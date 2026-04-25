@@ -23,6 +23,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join, resolve } from "node:path";
+import { findAgentByName } from "./anthropic-agents.ts";
 
 const API = "https://api.anthropic.com/v1";
 const BETA = "managed-agents-2026-04-01";
@@ -764,22 +765,6 @@ export function spliceNewSpec(template: AgentJSON, spec: NewCriticSpec): AgentJS
   };
 }
 
-async function findAgentByName(apiKey: string, name: string): Promise<string | null> {
-  const res = await fetch(`${API}/agents`, {
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": VERSION,
-      "anthropic-beta": BETA,
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`agent list failed (${res.status}): ${await res.text()}`);
-  }
-  const data = (await res.json()) as { data?: { id: string; name: string }[] };
-  const match = data.data?.find((a) => a.name === name);
-  return match?.id ?? null;
-}
-
 async function registerAgent(apiKey: string, spec: AgentJSON): Promise<string> {
   const existing = await findAgentByName(apiKey, spec.name);
   if (existing) {
@@ -920,6 +905,46 @@ function commitArtifacts(paths: string[], message: string): void {
   execFileSync("git", ["commit", "-m", message], { stdio: "inherit" });
 }
 
+interface FetchAndPersistSpawnArtifactsOptions {
+  apiKey: string;
+  sessionId: string;
+  agentId: string;
+  weekDate: string;
+  spec: AgentJSON;
+  rationale: string;
+  commitMsg: string;
+  commitFn?: (paths: string[], message: string) => void;
+}
+
+async function fetchAndPersistSpawnArtifacts({
+  apiKey,
+  sessionId,
+  agentId,
+  weekDate,
+  spec,
+  rationale,
+  commitMsg,
+  commitFn = commitArtifacts,
+}: FetchAndPersistSpawnArtifactsOptions): Promise<{
+  paths: { specPath: string; agentPath: string; logPath: string; dir: string };
+  snapshotError?: string;
+}> {
+  let snapshot: unknown;
+  let snapshotError: string | undefined;
+  try {
+    snapshot = await fetchSessionSnapshot(apiKey, sessionId);
+  } catch (err) {
+    snapshotError = (err as Error).message;
+    snapshot = { error: snapshotError, agent_id: agentId, session_id: sessionId };
+  }
+  const paths = writeArtifacts(weekDate, spec, snapshot, rationale);
+  commitFn(
+    [paths.specPath, paths.agentPath, paths.logPath, join(paths.dir, "rationale.md")],
+    commitMsg,
+  );
+  return { paths, snapshotError };
+}
+
 async function main(): Promise<number> {
   const args = parseArgs(Bun.argv.slice(2));
   const apiKey = getAPIKey();
@@ -1032,9 +1057,6 @@ LP_TARGET=${args.lpTarget}`;
   const finalStatus = await pollUntilIdle(apiKey, sessionId);
   console.log(`session final status: ${finalStatus}`);
 
-  const snapshot = await fetchSessionSnapshot(apiKey, sessionId);
-  const paths = writeArtifacts(args.weekDate, spec, snapshot, newSpec.rationale);
-
   const commitMsg = `feat(genealogy): spawn ${spec.name} — week ${args.weekDate}
 
 ${newSpec.rationale}
@@ -1042,10 +1064,19 @@ ${newSpec.rationale}
 Agent ID: ${agentId}
 Session ID: ${sessionId}
 Final status: ${finalStatus}`;
-  commitArtifacts(
-    [paths.specPath, paths.agentPath, paths.logPath, join(paths.dir, "rationale.md")],
+  const { paths, snapshotError } = await fetchAndPersistSpawnArtifacts({
+    apiKey,
+    sessionId,
+    agentId,
+    weekDate: args.weekDate,
+    spec,
+    rationale: newSpec.rationale,
     commitMsg,
-  );
+  });
+  if (snapshotError) {
+    console.error(`FAIL: snapshot fetch failed but artifacts persisted: ${snapshotError}`);
+    return 1;
+  }
   console.log(`committed: ${paths.specPath}, ${paths.agentPath}, ${paths.logPath}`);
   console.log(`genealogy complete: ${spec.name} — history/${args.weekDate}/genealogy/`);
   return 0;
@@ -1081,6 +1112,7 @@ export {
   countRecentGenealogySpawns,
   evaluateCriticDedup,
   evaluateQuarterlyCap,
+  fetchAndPersistSpawnArtifacts,
   loadExistingCritics,
   loadPromotedFindingOwners,
   loadSpawnedCritics,

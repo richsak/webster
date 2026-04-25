@@ -139,7 +139,7 @@ async function materializeAssetPlaceholders(
     const input = normalizeGenerateVisualAssetInput({
       type,
       brand_context: loadBrandContext(),
-      dims: type === "og_card" ? { width: 1200, height: 630 } : { width: 1024, height: 1024 },
+      dims: type === "og_card" ? { width: 1536, height: 1024 } : { width: 1024, height: 1024 },
       prompt,
     });
     const generated = await generateVisualAsset(input);

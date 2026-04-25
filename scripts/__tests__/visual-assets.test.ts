@@ -29,12 +29,12 @@ describe("visual asset tool schema", () => {
       normalizeGenerateVisualAssetInput({
         type: "og_card",
         brand_context: { palette: ["#80A8A7"] },
-        dims: { width: 1200, height: 630 },
+        dims: { width: 1536, height: 1024 },
         prompt: "Create an OG card for Richer Health.",
       }),
     ).toMatchObject({
       type: "og_card",
-      dims: { width: 1200, height: 630 },
+      dims: { width: 1536, height: 1024 },
       prompt: "Create an OG card for Richer Health.",
     });
   });
@@ -67,7 +67,7 @@ describe("visual asset tool schema", () => {
     const input = normalizeGenerateVisualAssetInput({
       type: "og_card",
       brand_context: {},
-      dims: { width: 1200, height: 630 },
+      dims: { width: 1536, height: 1024 },
       prompt: "OG card",
     });
 
@@ -191,7 +191,7 @@ describe("visual asset tool schema", () => {
     const input = normalizeGenerateVisualAssetInput({
       type: "og_card",
       brand_context: {},
-      dims: { width: 1200, height: 630 },
+      dims: { width: 1111, height: 777 },
       prompt: "OG card",
     });
     let calls = 0;

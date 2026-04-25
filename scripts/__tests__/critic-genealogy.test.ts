@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import {
@@ -12,6 +12,7 @@ import {
   countRecentGenealogySpawns,
   evaluateCriticDedup,
   evaluateQuarterlyCap,
+  fetchAndPersistSpawnArtifacts,
   loadExistingCritics,
   loadPromotedFindingOwners,
   loadSpawnedCritics,
@@ -436,5 +437,43 @@ describe("spliceNewSpec", () => {
     const spec = spliceNewSpec(template, SAMPLE_SPEC);
     (spec.tools as Record<string, unknown>[])[0] = { type: "mutated" };
     expect(template.tools).toEqual(templateToolsBefore);
+  });
+
+  test("persists genealogy artifacts when snapshot fetch fails", async () => {
+    const originalFetch = globalThis.fetch;
+    const weekDate = "2099-01-critic-genealogy-test";
+    const spec = {
+      ...spliceNewSpec(LOAD_TEMPLATE(), SAMPLE_SPEC),
+      name: "snapshot-failure-test-critic",
+    };
+    const committed: { paths: string[]; message: string }[] = [];
+    globalThis.fetch = (async () =>
+      new Response("upstream down", { status: 503 })) as unknown as typeof fetch;
+
+    try {
+      const result = await fetchAndPersistSpawnArtifacts({
+        apiKey: "test-key",
+        sessionId: "session-test",
+        agentId: "agent-test",
+        weekDate,
+        spec,
+        rationale: SAMPLE_SPEC.rationale,
+        commitMsg: "test commit",
+        commitFn: (paths, message) => committed.push({ paths, message }),
+      });
+
+      expect(result.snapshotError).toContain("session snapshot fetch failed 503");
+      expect(existsSync(join(ROOT, "history", weekDate, "genealogy", "spec.json"))).toBe(true);
+      expect(JSON.parse(readFileSync(result.paths.logPath, "utf8"))).toEqual({
+        error: result.snapshotError,
+        agent_id: "agent-test",
+        session_id: "session-test",
+      });
+      expect(committed[0]?.paths).toContain(result.paths.specPath);
+    } finally {
+      globalThis.fetch = originalFetch;
+      rmSync(join(ROOT, "history", weekDate), { recursive: true, force: true });
+      rmSync(join(ROOT, "agents", `${spec.name}.json`), { force: true });
+    }
   });
 });

@@ -737,7 +737,7 @@ function canonicalSkipReason(reason: SkipReasonInput): StoredSkipReason {
   if (reason === "critic_veto") {
     return "critic-veto";
   }
-  if (reason === "visual_veto" || reason === "runtime_failure") {
+  if (reason === "visual_veto") {
     return "visual-veto";
   }
   return "apply-fail";

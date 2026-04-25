@@ -13,7 +13,7 @@ staged_prettier_files=$(mktemp)
 trap 'rm -f "$staged_prettier_files"' EXIT
 
 git diff --cached --name-only -z --diff-filter=ACMR \
-  | perl -0ne 'print if /\.(ts|js|json|md|jsonc)$/;' \
+  | perl -0ne 'chomp; print "$_\0" if /\.(ts|js|json|md|jsonc)$/;' \
   > "$staged_prettier_files"
 
 if [ -s "$staged_prettier_files" ]; then

@@ -275,9 +275,9 @@ describe("apply-worker CLI integration", () => {
         status: "skipped",
         skip_reason: "runtime_failure",
       });
-      expect(readFileSync(join(repo.weekDir, "skips.jsonl"), "utf8")).toContain(
-        "booking CTA has non-resolving href",
-      );
+      const skipRows = readFileSync(join(repo.weekDir, "skips.jsonl"), "utf8");
+      expect(skipRows).toContain('"reason":"apply-fail"');
+      expect(skipRows).toContain("booking CTA has non-resolving href");
     } finally {
       removeFixtureRepo(repo);
     }
