@@ -49,20 +49,20 @@ redesigner    apply       merged     7-day        verdict        planner
 
 ## Agent Roster (9 base + dynamic genealogy)
 
-| #   | Agent                         | Model                  | Role                                                       | Shipped |
-| --- | ----------------------------- | ---------------------- | ---------------------------------------------------------- | ------- |
-| 1   | `webster-monitor`             | Haiku 4.5              | Analytics anomaly detection                                | ✅ L2   |
-| 2   | **`webster-planner`**         | **Opus 4.7**           | **NEW — reads verdict, decides experiment direction**      | 📋 L11  |
-| 3   | `seo-critic`                  | Sonnet 4.6             | SEO findings                                               | ✅ L2   |
-| 4   | `brand-voice-critic`          | Sonnet 4.6             | Brand-voice consistency                                    | ✅ L2   |
-| 5   | `fh-compliance-critic`        | Sonnet 4.6             | Functional-health medical-claims audit                     | ✅ L2   |
-| 6   | `conversion-critic`           | Sonnet 4.6             | Conversion-path + CTA audit                                | ✅ L2   |
-| 7   | `copy-critic`                 | Sonnet 4.6             | Copy quality + voice                                       | ✅ L2   |
-| 8   | `visual-design-critic`        | Sonnet 4.6             | Visual rhythm, hierarchy, imagery relevance (pre-proposal) | ✅ L2   |
-| 9   | `webster-redesigner`          | Opus 4.7               | Synthesizes findings + plan → proposal                     | ✅ L2   |
-| 10  | **`webster-apply-worker`**    | **Pi / Codex gpt-5.4** | **Executes proposal against Site**                         | 📋 L8   |
-| 11  | **`webster-visual-reviewer`** | **Opus 4.7**           | **Browser-based post-apply verification**                  | 📋 L9   |
-| —   | Genealogy critics             | Sonnet 4.6             | Runtime-created when Opus detects gap                      | ✅ L3   |
+| #   | Agent                         | Model                  | Role                                                       | Shipped     |
+| --- | ----------------------------- | ---------------------- | ---------------------------------------------------------- | ----------- |
+| 1   | `webster-monitor`             | Haiku 4.5              | Analytics anomaly detection                                | Shipped L2  |
+| 2   | **`webster-planner`**         | **Opus 4.7**           | **NEW — reads verdict, decides experiment direction**      | Planned L11 |
+| 3   | `seo-critic`                  | Sonnet 4.6             | SEO findings                                               | Shipped L2  |
+| 4   | `brand-voice-critic`          | Sonnet 4.6             | Brand-voice consistency                                    | Shipped L2  |
+| 5   | `fh-compliance-critic`        | Sonnet 4.6             | Functional-health medical-claims audit                     | Shipped L2  |
+| 6   | `conversion-critic`           | Sonnet 4.6             | Conversion-path + CTA audit                                | Shipped L2  |
+| 7   | `copy-critic`                 | Sonnet 4.6             | Copy quality + voice                                       | Shipped L2  |
+| 8   | `visual-design-critic`        | Sonnet 4.6             | Visual rhythm, hierarchy, imagery relevance (pre-proposal) | Shipped L2  |
+| 9   | `webster-redesigner`          | Opus 4.7               | Synthesizes findings + plan → proposal                     | Shipped L2  |
+| 10  | **`webster-apply-worker`**    | **Pi / Codex gpt-5.4** | **Executes proposal against Site**                         | Planned L8  |
+| 11  | **`webster-visual-reviewer`** | **Opus 4.7**           | **Browser-based post-apply verification**                  | Planned L9  |
+| —   | Genealogy critics             | Sonnet 4.6             | Runtime-created when Opus detects gap                      | Shipped L3  |
 
 Planner is new (L11). Apply worker + visual-reviewer are planned (L8 / L9). Note: `visual-design-critic` (#8, shipped L2, pre-proposal audit) is a distinct agent from `webster-visual-reviewer` (#11, planned L9, post-apply verification) — different stages, different concerns.
 

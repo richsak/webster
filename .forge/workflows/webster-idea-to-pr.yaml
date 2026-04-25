@@ -9,8 +9,8 @@ description: |
   Output: PR ready for merge with comprehensive review completed
 
   Differences vs forge-idea-to-pr:
-  - create-plan / plan-setup / confirm-plan / docs-fetch-plan → pi-planning-operator (gpt-5.5 high)
-  - implement-tasks → pi-implement-heavy (gpt-5.5 high), no Claude Opus
+  - create-plan / plan-setup / confirm-plan / docs-fetch-plan → pi-planning-operator (gpt-5.5 low)
+  - implement-tasks → pi-implement-heavy (gpt-5.5 medium), no Claude Opus
   - validate → pi-fix-operator (gpt-5.4-mini medium)
   - finalize-pr / sync / workflow-summary → pi-light (gpt-5.4-mini medium)
   - review agents + synthesize → pi-review-operator (gpt-5.4-mini medium)

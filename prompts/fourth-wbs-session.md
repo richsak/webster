@@ -302,7 +302,7 @@ EOF
 echo "Checkpoint: $CKPT"
 ```
 
-Checkpoints are gitignored by policy — do NOT git-add this file.
+Checkpoints are gitignored by policy — do not add or commit this checkpoint file.
 
 ```bash
 echo ""

@@ -4,7 +4,7 @@ description: |
   Triggers: "webster ralph", "run webster ralph".
 
   Webster-local fork of forge-ralph-dag. Identical DAG structure, but the `implement`
-  node uses the `pi-ralph-implement` profile (Pi/Codex gpt-5.4 high reasoning) instead
+  node uses the `pi-ralph-implement` profile (Pi/Codex gpt-5.5 medium reasoning) instead
   of claude-opus-4-6[1m]. Saves Claude subscription for the dispatcher session.
 
   DAG workflow that:

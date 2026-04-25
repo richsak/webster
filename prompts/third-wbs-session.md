@@ -269,7 +269,11 @@ Operator review of council week $WEEK_DATE PR. Decision: **$DECISION_CHOICE**. R
 
 ## Next tick
 
-- Next council run: week ending $(date -u -v+7d +%Y-%m-%d).
+- Next council run: week ending $(python3 - <<'PY'
+from datetime import datetime, timedelta, timezone
+print((datetime.now(timezone.utc) + timedelta(days=7)).strftime('%Y-%m-%d'))
+PY
+).
 - Next week's monitor should pick up \`$OPERATOR_DECISION\` and factor the rationale
   into its WoW anomaly framing (e.g., if rejected, the previous week's proposed
   change did not ship — baseline is unchanged).
