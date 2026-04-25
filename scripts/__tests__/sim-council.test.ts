@@ -43,6 +43,7 @@ describe("sim-council prompt", () => {
     expect(body).toContain("resources:$resources");
     expect(body).toContain("memory_resource planner read_write");
     expect(body).toContain("memory_resource council read_only");
+    expect(body).toContain("roles with durable");
     expect(body).toContain("memory_resource redesigner read_write");
   });
 
@@ -57,6 +58,8 @@ describe("sim-council prompt", () => {
     expect(body).toContain("agent_id planner");
     expect(body).toContain("agent_id redesigner");
     expect(body).toContain("agent_id visual-reviewer");
+    expect(body).toContain("failed_roles=()");
+    expect(body).toContain("ABORT: failed sim sessions");
     expect(body).not.toContain("MONITOR_ID=$(cat context/monitor/id.txt)");
     expect(body).not.toContain("context/critics/seo/id.txt");
   });

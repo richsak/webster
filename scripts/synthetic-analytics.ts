@@ -38,6 +38,7 @@ export interface PersonaMetric {
 
 export interface AnalyticsJson {
   version_sha: string;
+  site_signature: string;
   substrate: "lp" | "site";
   week: number;
   weekDate: string;
@@ -144,16 +145,25 @@ function scoreSiteState(siteText: string, substrate: "lp" | "site"): number {
 }
 
 function applyContinuity(
-  previous: AnalyticsJson | undefined,
-  key: keyof Pick<AnalyticsJson, "bounce_rate" | "avg_time_s">,
+  previousValue: number | undefined,
   target: number,
   maxDelta: number,
 ): number {
-  if (!previous) {
+  if (previousValue === undefined) {
     return target;
   }
-  const prior = previous[key];
-  return clamp(target, prior - maxDelta, prior + maxDelta);
+  return clamp(target, previousValue - maxDelta, previousValue + maxDelta);
+}
+
+function continuityDelta(
+  previousValue: number | undefined,
+  fallback: number,
+  unchanged: boolean,
+): number {
+  if (previousValue === undefined) {
+    return fallback;
+  }
+  return unchanged ? Math.abs(previousValue) * 0.05 : fallback;
 }
 
 function metricEvents(analytics: Omit<AnalyticsJson, "events">): AnalyticsJson["events"] {
@@ -182,19 +192,39 @@ export function generateSyntheticAnalytics(
   }
 
   const siteText = readSiteText(input.sitePath);
+  const siteSignature = hashString(siteText).toString(16);
+  const unchangedSite = input.previousAnalytics?.site_signature === siteSignature;
   const personas = loadPersonas(input.contextPath);
   const score = scoreSiteState(siteText, input.substrate);
   const stableNoise =
     (seededUnit(`${input.seed}:${input.weekDate}:${siteText.length}`) - 0.5) * 0.02;
-  const sessions = Math.round(
+  const targetSessions = Math.round(
     5000 * (0.98 + seededUnit(`${input.seed}:sessions:${input.week}`) * 0.04),
+  );
+  const sessions = Math.round(
+    applyContinuity(
+      input.previousAnalytics?.sessions,
+      targetSessions,
+      continuityDelta(input.previousAnalytics?.sessions, 750, unchangedSite),
+    ),
   );
   const targetBounce = round(clamp(0.82 - score * 0.52 + stableNoise, 0.24, 0.78));
   const bounceRate = round(
-    applyContinuity(input.previousAnalytics, "bounce_rate", targetBounce, 0.15),
+    applyContinuity(
+      input.previousAnalytics?.bounce_rate,
+      targetBounce,
+      continuityDelta(input.previousAnalytics?.bounce_rate, 0.15, unchangedSite),
+    ),
   );
   const targetTime = round(clamp(42 + score * 145 + stableNoise * 100, 35, 180), 1);
-  const avgTime = round(applyContinuity(input.previousAnalytics, "avg_time_s", targetTime, 22), 1);
+  const avgTime = round(
+    applyContinuity(
+      input.previousAnalytics?.avg_time_s,
+      targetTime,
+      continuityDelta(input.previousAnalytics?.avg_time_s, 22, unchangedSite),
+    ),
+    1,
+  );
   const ctaRate = clamp(0.012 + score * 0.095 - bounceRate * 0.025, 0.006, 0.12);
   const primaryCta = input.substrate === "lp" ? "discovery_call" : "free_estimate";
   const totalClicks = Math.round(sessions * ctaRate);
@@ -205,6 +235,7 @@ export function generateSyntheticAnalytics(
     )
       .toString(16)
       .slice(0, 8)}`,
+    site_signature: siteSignature,
     substrate: input.substrate,
     week: input.week,
     weekDate: input.weekDate,
@@ -314,11 +345,20 @@ export async function requestOpusReview(
       messages: [
         {
           role: "user",
-          content: JSON.stringify({
-            input,
-            analytics: output.analytics,
-            reasoning: output.reasoning,
-          }),
+          content: [
+            {
+              type: "text",
+              text: [
+                "Review these generated Webster synthetic analytics for plausibility.",
+                "Return only concise concerns; return 'No concerns' if the metrics respect the 5000-user panel, persona movement, and continuity guardrails.",
+                JSON.stringify(
+                  { input, analytics: output.analytics, reasoning: output.reasoning },
+                  null,
+                  2,
+                ),
+              ].join("\n\n"),
+            },
+          ],
         },
       ],
     }),

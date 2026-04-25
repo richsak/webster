@@ -185,20 +185,47 @@ else
   roles+=(licensing-and-warranty-critic)
 fi
 
+pids=()
 for role in "${roles[@]}"; do
   agent=$(agent_id "$role")
   case "$role" in
     conversion-critic)
       resource=$(memory_resource conversion-critic read_write "Conversion critic memory for this substrate simulation.") ;;
     *)
+      # Monitor, SEO, brand-voice, copy, and substrate-specific legal/trust critics
+      # intentionally read the shared council memory store; only roles with durable
+      # role-specific memory get read_write stores.
       resource=$(memory_resource council read_only "Shared council memory for this substrate simulation.") ;;
   esac
   session=$(create_session "$role" "$agent" "$resource")
   send_message "$session" "$(base_message)"
   printf '%s\n' "$session" > "tmp/sim-sessions/${SUBSTRATE}-${WEEK_DATE}-${role}.txt"
-  poll_idle "$session" "$role" >"tmp/logs/${SUBSTRATE}-${WEEK_DATE}-${role}.log" 2>&1 &
+  (
+    poll_idle "$session" "$role"
+    printf '%s\n' "$?" > "tmp/sim-sessions/${SUBSTRATE}-${WEEK_DATE}-${role}.status"
+  ) >"tmp/logs/${SUBSTRATE}-${WEEK_DATE}-${role}.log" 2>&1 &
+  pids+=("$!")
 done
-wait
+
+for pid in "${pids[@]}"; do
+  wait "$pid" || true
+done
+
+failed_roles=()
+for role in "${roles[@]}"; do
+  status=$(cat "tmp/sim-sessions/${SUBSTRATE}-${WEEK_DATE}-${role}.status" 2>/dev/null || echo 1)
+  if [[ "$status" != "0" ]]; then
+    failed_roles+=("$role")
+  fi
+done
+if (( ${#failed_roles[@]} > 0 )); then
+  echo "ABORT: failed sim sessions: ${failed_roles[*]}" >&2
+  for role in "${failed_roles[@]}"; do
+    echo "--- $role log ---" >&2
+    tail -60 "tmp/logs/${SUBSTRATE}-${WEEK_DATE}-${role}.log" >&2
+  done
+  exit 1
+fi
 ```
 
 ## Step 4 — genealogy probe

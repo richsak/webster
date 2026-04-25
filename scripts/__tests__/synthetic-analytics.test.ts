@@ -27,6 +27,7 @@ describe("synthetic analytics", () => {
 
     expect(second).toEqual(first);
     expect(first.sessions).toBe(4995);
+    expect(first.site_signature).toBe("b5471ead");
     expect(first.bounce_rate).toBe(0.665);
     expect(first.cta_clicks.discovery_call).toBe(126);
   });
@@ -40,7 +41,11 @@ describe("synthetic analytics", () => {
       previousAnalytics: week0,
     }).analytics;
 
-    expect(Math.abs(week1.bounce_rate - week0.bounce_rate)).toBeLessThanOrEqual(0.05);
+    expect(week1.site_signature).toBe(week0.site_signature);
+    expect(Math.abs(week1.sessions - week0.sessions)).toBeLessThanOrEqual(week0.sessions * 0.05);
+    expect(Math.abs(week1.bounce_rate - week0.bounce_rate)).toBeLessThanOrEqual(
+      week0.bounce_rate * 0.05,
+    );
     expect(Math.abs(week1.avg_time_s - week0.avg_time_s)).toBeLessThanOrEqual(
       week0.avg_time_s * 0.05,
     );
