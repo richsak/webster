@@ -326,8 +326,11 @@ export async function requestOpusReview(
   input: SyntheticAnalyticsInput,
   output: SyntheticAnalyticsOutput,
 ): Promise<void> {
+  if (process.env.WEBSTER_SYNTHETIC_ANALYTICS_REVIEW === "0") {
+    return;
+  }
   const apiKey = getAPIKey();
-  if (!apiKey || process.env.WEBSTER_SYNTHETIC_ANALYTICS_REVIEW === "0") {
+  if (!apiKey) {
     return;
   }
   await fetch(`${API}/messages`, {
