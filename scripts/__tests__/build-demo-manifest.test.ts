@@ -82,6 +82,12 @@ describe("buildDemoManifest", () => {
     expect(readFileSync(join(outDir, "final-sheet.png")).subarray(0, 8).toString("hex")).toBe(
       "89504e470d0a1a0a",
     );
+    const sheetGeometry = execFileSync(
+      "magick",
+      ["identify", "-format", "%wx%h", join(outDir, "final-sheet.png")],
+      { encoding: "utf8" },
+    );
+    expect(sheetGeometry).toBe("2200x1036");
     expect(DEMO_MANIFEST_SCHEMA.properties.schema_version.const).toBe(1);
     expect(DEMO_MANIFEST_SCHEMA.properties.weeks.items.properties.history.required).toEqual([
       "analytics",
@@ -104,6 +110,10 @@ describe("buildDemoManifest", () => {
       true,
     );
     expect(manifest.weeks[0]?.genealogyEvents).toHaveLength(2);
+    expect(manifest.weeks[0]?.genealogyEvents.every((path) => isAbsolute(path))).toBe(true);
+    expect(
+      Object.values(manifest.weeks[0]?.councilArtifacts ?? {}).every((path) => isAbsolute(path)),
+    ).toBe(true);
     validateDemoManifest(manifest);
 
     const written = JSON.parse(
@@ -154,6 +164,6 @@ describe("buildDemoManifest", () => {
 
     expect(() =>
       buildDemoManifest({ substrate: "site", outputDir: outDir, memoryStoresPath: "missing.json" }),
-    ).toThrow("final sheet requires week-0 and final desktop screenshots");
+    ).toThrow("final sheet requires week-00 and final desktop screenshots");
   });
 });

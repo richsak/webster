@@ -71,7 +71,7 @@ export const DEMO_MANIFEST_SCHEMA = {
           "genealogyEvents",
         ],
         properties: {
-          week: { type: "string", pattern: "^week-\\d+$" },
+          week: { type: "string", pattern: "^week-\\d{2}$" },
           index: { type: "integer", minimum: 0 },
           path: { type: "string", path: "absolute" },
           summary: { anyOf: [{ type: "string", path: "absolute" }, { type: "null" }] },
@@ -167,7 +167,13 @@ function loadMemoryStores(path: string, substrate: string): Record<string, strin
 
 function buildWeek(weekDir: string): DemoManifestWeek {
   const week = basename(weekDir);
+  if (!/^week-\d{2}$/.test(week)) {
+    throw new Error(`invalid week directory name: ${week}`);
+  }
   const index = Number.parseInt(week.replace(/^week-/, ""), 10);
+  if (!Number.isInteger(index) || week !== `week-${String(index).padStart(2, "0")}`) {
+    throw new Error(`invalid week index for directory: ${week}`);
+  }
   const files = listFilesRecursive(weekDir);
   const screenshots: Record<string, Record<string, string>> = {};
   const councilArtifacts: Record<string, string> = {};
@@ -274,23 +280,11 @@ function buildFinalSheet(manifest: DemoManifest): void {
   const firstDesktop = findDesktopHero(first);
   const lastDesktop = findDesktopHero(last);
   if (!firstDesktop || !lastDesktop) {
-    throw new Error("final sheet requires week-0 and final desktop screenshots");
+    throw new Error("final sheet requires week-00 and final desktop screenshots");
   }
   mkdirSync(dirname(manifest.final_sheet), { recursive: true });
   const title = `${manifest.substrate.toUpperCase()} Webster simulation: Week 0 to ${last.week}`;
   execFileSync("magick", [
-    "-size",
-    "2200x120",
-    "xc:#111827",
-    "-gravity",
-    "center",
-    "-fill",
-    "#ffffff",
-    "-pointsize",
-    "42",
-    "-annotate",
-    "0",
-    title,
     "(",
     firstDesktop,
     "-resize",
@@ -320,6 +314,21 @@ function buildFinalSheet(manifest: DemoManifest): void {
     "8",
     ")",
     "+append",
+    "(",
+    "-size",
+    "2200x120",
+    "xc:#111827",
+    "-gravity",
+    "center",
+    "-fill",
+    "#ffffff",
+    "-pointsize",
+    "42",
+    "-annotate",
+    "0",
+    title,
+    ")",
+    "+swap",
     "-append",
     manifest.final_sheet,
   ]);
@@ -329,7 +338,7 @@ function buildFinalSheet(manifest: DemoManifest): void {
 export function buildDemoManifest(args: Args): DemoManifest {
   const outputDir = absolute(args.outputDir);
   const weekDirs = readdirSync(outputDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && /^week-\d+$/.test(entry.name))
+    .filter((entry) => entry.isDirectory() && /^week-\d{2}$/.test(entry.name))
     .map((entry) => join(outputDir, entry.name))
     .sort();
   const manifest: DemoManifest = {
