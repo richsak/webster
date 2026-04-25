@@ -68,6 +68,20 @@ describe("findAgentByName", () => {
     ]);
   });
 
+  test("stops safely when has_more lacks a last_id cursor", async () => {
+    const urls: string[] = [];
+    globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
+      urls.push(String(input));
+      return jsonResponse({
+        data: [{ id: "agent-1", name: "first-agent" }],
+        has_more: true,
+      });
+    }) as typeof fetch;
+
+    await expect(findAgentByName("test-key", "missing-agent")).resolves.toBeNull();
+    expect(urls).toEqual(["https://api.anthropic.com/v1/agents"]);
+  });
+
   test("walks opaque next_page tokens using the page query parameter", async () => {
     const urls: string[] = [];
     const responses = [

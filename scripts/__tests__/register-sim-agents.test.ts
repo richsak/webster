@@ -80,6 +80,11 @@ describe("sim agent specs", () => {
     expect(Object.values(manifest["webster-site-sim"]).every((id) => id.startsWith("agent_"))).toBe(
       true,
     );
+    const ids = [
+      ...Object.values(manifest["webster-lp-sim"]),
+      ...Object.values(manifest["webster-site-sim"]),
+    ];
+    expect(new Set(ids).size).toBe(18);
   });
 
   test("site set includes licensing-and-warranty instead of fh-compliance", () => {
