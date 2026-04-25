@@ -66,10 +66,79 @@ describe("runSimulation", () => {
       WEEK_DATE: "2026-02-01",
       BRANCH: "demo-sim-lp/w00",
       AGENT_SET: "webster-lp-sim",
+      CONTEXT_PATH: "demo-landing-page/context",
+      SITE_PATH: "demo-landing-page/ugly",
+      MEMORY_STORES_JSON: "context/memory-stores.json",
+      SIM_AGENTS_JSON: "context/sim-agents.json",
     });
     expect(councilCalls[1]?.BRANCH).toBe("demo-sim-lp/w01");
-    expect(existsSync(join(outDirA, "week-00/history/analytics.json"))).toBe(true);
-    expect(existsSync(join(outDirA, "week-01/week-summary.json"))).toBe(true);
+    for (const week of ["00", "01"]) {
+      expect(existsSync(join(outDirA, `week-${week}/history/analytics.json`))).toBe(true);
+      expect(existsSync(join(outDirA, `week-${week}/history/analytics-reasoning.md`))).toBe(true);
+      expect(existsSync(join(outDirA, `week-${week}/screenshots/mock-screenshot.txt`))).toBe(true);
+      expect(existsSync(join(outDirA, `week-${week}/week-summary.json`))).toBe(true);
+    }
+  });
+
+  test("writes role-specific memory summaries for council, planner, and redesigner", async () => {
+    const outDir = mkdtempSync(join(tmpdir(), "webster-run-sim-memory-"));
+    const memoryPath = join(outDir, "memory-stores.json");
+    writeFileSync(
+      memoryPath,
+      JSON.stringify({
+        lp: { council: "mem_council", planner: "mem_planner", redesigner: "mem_redesigner" },
+      }),
+    );
+    const originalKey = process.env.ANTHROPIC_API_KEY;
+    const originalReview = process.env.WEBSTER_SYNTHETIC_ANALYTICS_REVIEW;
+    const originalFetch = globalThis.fetch;
+    const bodies: { text: string; metadata: { role: string } }[] = [];
+    process.env.ANTHROPIC_API_KEY = "test-key";
+    process.env.WEBSTER_SYNTHETIC_ANALYTICS_REVIEW = "0";
+    globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)) as { text: string; metadata: { role: string } });
+      return new Response(JSON.stringify({ id: "doc" }), { status: 200 });
+    }) as typeof fetch;
+
+    try {
+      await runSimulation(
+        {
+          ...config(outDir),
+          weekCount: 0,
+          memoryStoresPath: memoryPath,
+          skipMemorySummaries: false,
+        },
+        {
+          runCouncil: () => {
+            bodies.length += 0;
+          },
+          captureScreenshots: async (_siteDir, shotDir) => {
+            mkdirSync(shotDir, { recursive: true });
+            return [shotDir];
+          },
+        },
+      );
+      expect(bodies.map((body) => body.metadata.role)).toEqual([
+        "council",
+        "planner",
+        "redesigner",
+      ]);
+      expect(bodies[0]?.text).toContain("council memory");
+      expect(bodies[1]?.text).toContain("planner memory");
+      expect(bodies[2]?.text).toContain("redesigner memory");
+    } finally {
+      globalThis.fetch = originalFetch;
+      if (originalKey === undefined) {
+        delete process.env.ANTHROPIC_API_KEY;
+      } else {
+        process.env.ANTHROPIC_API_KEY = originalKey;
+      }
+      if (originalReview === undefined) {
+        delete process.env.WEBSTER_SYNTHETIC_ANALYTICS_REVIEW;
+      } else {
+        process.env.WEBSTER_SYNTHETIC_ANALYTICS_REVIEW = originalReview;
+      }
+    }
   });
 
   test("screenshot capture writes browser-audit artifacts for file URLs or fallback summary", async () => {
