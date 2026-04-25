@@ -141,6 +141,39 @@ describe("runSimulation", () => {
     }
   });
 
+  test("site screenshot capture covers all three Northwest Reno pages", async () => {
+    const outDir = mkdtempSync(join(tmpdir(), "webster-run-sim-site-shots-"));
+    const originalDisable = process.env.WEBSTER_BROWSER_AUDIT_DISABLE_PLAYWRIGHT;
+    process.env.WEBSTER_BROWSER_AUDIT_DISABLE_PLAYWRIGHT = "1";
+
+    let dirs: string[];
+    try {
+      dirs = await captureLocalScreenshots("demo-sites/northwest-reno/ugly", outDir);
+    } finally {
+      if (originalDisable === undefined) {
+        delete process.env.WEBSTER_BROWSER_AUDIT_DISABLE_PLAYWRIGHT;
+      } else {
+        process.env.WEBSTER_BROWSER_AUDIT_DISABLE_PLAYWRIGHT = originalDisable;
+      }
+    }
+
+    expect(dirs).toEqual([
+      join(outDir, "index"),
+      join(outDir, "services"),
+      join(outDir, "free-estimate"),
+    ]);
+    for (const dir of dirs) {
+      expect(existsSync(join(dir, "summary.json"))).toBe(true);
+      const summary = JSON.parse(readFileSync(join(dir, "summary.json"), "utf8")) as {
+        url: string;
+        breakpoints: unknown[];
+      };
+      expect(summary.url).toContain("file://");
+      expect(summary.breakpoints).toHaveLength(3);
+      expect(existsSync(join(dir, "a11y-text.txt"))).toBe(true);
+    }
+  });
+
   test("screenshot capture writes browser-audit artifacts for file URLs or fallback summary", async () => {
     const outDir = mkdtempSync(join(tmpdir(), "webster-run-sim-shots-"));
 

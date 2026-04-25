@@ -98,6 +98,7 @@ export async function captureLocalScreenshots(siteDir: string, outDir: string): 
       {
         stdout: "pipe",
         stderr: "pipe",
+        env: { ...process.env },
       },
     );
     if (result.exitCode !== 0) {
