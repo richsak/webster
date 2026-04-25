@@ -82,9 +82,14 @@ function fileUrl(path: string): string {
 }
 
 function pagesForSite(siteDir: string): string[] {
-  return ["index.html", "services.html", "free-estimate.html"]
-    .map((file) => join(siteDir, file))
-    .filter((file) => existsSync(file));
+  const expectedPages = ["index.html", "services.html", "free-estimate.html"];
+  const pagePaths = expectedPages.map((file) => join(siteDir, file));
+  const existingPages = pagePaths.filter((file) => existsSync(file));
+  if (existingPages.length > 1 && existingPages.length !== expectedPages.length) {
+    const missingPages = pagePaths.filter((file) => !existsSync(file));
+    throw new Error(`site substrate is missing required pages: ${missingPages.join(", ")}`);
+  }
+  return existingPages;
 }
 
 export async function captureLocalScreenshots(siteDir: string, outDir: string): Promise<string[]> {

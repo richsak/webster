@@ -174,6 +174,17 @@ describe("runSimulation", () => {
     }
   });
 
+  test("site screenshot capture fails loudly when a multi-page substrate is incomplete", async () => {
+    const siteDir = mkdtempSync(join(tmpdir(), "webster-run-sim-incomplete-site-"));
+    const outDir = mkdtempSync(join(tmpdir(), "webster-run-sim-incomplete-shots-"));
+    writeFileSync(join(siteDir, "index.html"), "<main>Home</main>");
+    writeFileSync(join(siteDir, "services.html"), "<main>Services</main>");
+
+    await expect(captureLocalScreenshots(siteDir, outDir)).rejects.toThrow(
+      "site substrate is missing required pages",
+    );
+  });
+
   test("screenshot capture writes browser-audit artifacts for file URLs or fallback summary", async () => {
     const outDir = mkdtempSync(join(tmpdir(), "webster-run-sim-shots-"));
 

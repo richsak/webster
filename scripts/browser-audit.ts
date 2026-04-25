@@ -52,7 +52,16 @@ async function main(): Promise<void> {
     };
   } catch (error) {
     const playwrightError = error instanceof Error ? error.stack || error.message : String(error);
-    const unavailableReason = "Playwright import failed; Screenshot capture unavailable.";
+    const explicitDisable = process.env.WEBSTER_BROWSER_AUDIT_DISABLE_PLAYWRIGHT === "1";
+    const missingDependency = /Cannot find (?:package|module) ['"]?playwright/.test(
+      playwrightError,
+    );
+    if (!explicitDisable && !missingDependency) {
+      throw error;
+    }
+    const unavailableReason = explicitDisable
+      ? "Playwright disabled; Screenshot capture unavailable."
+      : "Playwright import failed; Screenshot capture unavailable.";
     const summary = {
       url: args.url,
       screenshot_capture_unavailable: unavailableReason,
