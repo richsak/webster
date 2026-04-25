@@ -56,6 +56,32 @@ describe("sim agent specs", () => {
     }
   });
 
+  test("committed sim-agent manifest has exactly the registered 9/9 role shape", () => {
+    const manifest = JSON.parse(readFileSync(join(ROOT, "context/sim-agents.json"), "utf8")) as {
+      "webster-lp-sim": Record<string, string>;
+      "webster-site-sim": Record<string, string>;
+    };
+    const expected = { "webster-lp-sim": new Set<string>(), "webster-site-sim": new Set<string>() };
+    for (const spec of loadSimAgentSpecs()) {
+      const set = spec.name.startsWith("webster-lp-sim-") ? "webster-lp-sim" : "webster-site-sim";
+      expected[set].add(spec.name.replace(/^webster-(lp|site)-sim-/, ""));
+    }
+
+    expect(Object.keys(manifest).sort()).toEqual(["webster-lp-sim", "webster-site-sim"]);
+    expect(Object.keys(manifest["webster-lp-sim"]).sort()).toEqual(
+      [...expected["webster-lp-sim"]].sort(),
+    );
+    expect(Object.keys(manifest["webster-site-sim"]).sort()).toEqual(
+      [...expected["webster-site-sim"]].sort(),
+    );
+    expect(Object.values(manifest["webster-lp-sim"]).every((id) => id.startsWith("agent_"))).toBe(
+      true,
+    );
+    expect(Object.values(manifest["webster-site-sim"]).every((id) => id.startsWith("agent_"))).toBe(
+      true,
+    );
+  });
+
   test("site set includes licensing-and-warranty instead of fh-compliance", () => {
     const names = loadSimAgentSpecs().map((spec) => spec.name);
     expect(names).toContain("webster-site-sim-licensing-and-warranty-critic");
