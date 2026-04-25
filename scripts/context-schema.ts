@@ -101,20 +101,51 @@ export function validateBrandContext(value: unknown): string[] {
   return errors;
 }
 
+function markdownHeadings(markdown: string): string[] {
+  return markdown
+    .split("\n")
+    .filter((line) => /^#{1,3}\s+\S/.test(line))
+    .map((line) =>
+      line
+        .replace(/^#{1,3}\s+/, "")
+        .trim()
+        .toLowerCase(),
+    );
+}
+
 export function validateBusinessMarkdown(markdown: string): string[] {
   const errors: string[] = [];
   if (!markdown.trim().startsWith("#")) {
     errors.push("business.md must start with a heading");
   }
+
+  const headings = markdownHeadings(markdown);
   const lower = markdown.toLowerCase();
-  if (!lower.includes("business")) {
-    errors.push("business.md must mention Business");
+  const hasIdentityHeading = headings.some((heading) =>
+    ["quick identity", "identity", "business context"].some((expected) =>
+      heading.includes(expected),
+    ),
+  );
+  const hasOfferHeading = headings.some((heading) =>
+    ["services", "certification", "positioning"].some((expected) => heading.includes(expected)),
+  );
+  const hasVoiceHeading = headings.some((heading) =>
+    ["voice", "brand voice", "tone"].some((expected) => heading.includes(expected)),
+  );
+
+  if (!hasIdentityHeading) {
+    errors.push("business.md must include an identity section heading");
   }
-  if (!lower.includes("services") && !lower.includes("certification")) {
-    errors.push("business.md must mention services or certification");
+  if (!hasOfferHeading) {
+    errors.push(
+      "business.md must include a services, certification, or positioning section heading",
+    );
   }
-  if (!lower.includes("tone") && !lower.includes("voice")) {
-    errors.push("business.md must mention tone or voice");
+  if (!hasVoiceHeading) {
+    errors.push("business.md must include a voice or tone section heading");
+  }
+  if (!lower.includes("business") && !lower.includes("operator") && !lower.includes("owner")) {
+    errors.push("business.md must identify the business/operator/owner");
   }
   return errors;
 }

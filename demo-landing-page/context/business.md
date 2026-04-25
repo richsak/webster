@@ -16,7 +16,7 @@ Primary reference: `.claude/skills/nicolette-richer/references/brand-bible.md` (
 | Booking system       | app.acuityscheduling.com/schedule.php?owner=16697295       |
 | Current campaign     | B2B Team N&D Certification for US clinic owners            |
 
-## Brand voice (one-liner)
+## Voice
 
 Warm-authoritative with deliberate edge. Trusted mentor, not vendor. Calibrate to funnel stage — warm-curious audience on the LP (reward curiosity, show personality, stay professional).
 

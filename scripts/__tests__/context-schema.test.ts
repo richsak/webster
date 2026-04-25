@@ -66,13 +66,17 @@ describe("demo context schema", () => {
     expect(siteContext).not.toContain("Nicolette");
   });
 
-  test("business markdown requires heading and business/service/tone context", () => {
+  test("business markdown requires structured identity, offer, and voice sections", () => {
     expect(validateBusinessMarkdown("plain text")).toContain(
       "business.md must start with a heading",
     );
-    expect(validateBusinessMarkdown("# Business\n\nServices and tone are clear.")).toEqual([]);
-    expect(validateBusinessMarkdown("# Business\n\nCertification and voice are clear.")).toEqual(
-      [],
+    expect(validateBusinessMarkdown("# Business\n\nServices and tone are clear.")).toContain(
+      "business.md must include an identity section heading",
     );
+    expect(
+      validateBusinessMarkdown(
+        "# Business context\n\n## Quick identity\nOperator: Example\n\n## Certification\nN&D\n\n## Voice\nDirect.",
+      ),
+    ).toEqual([]);
   });
 });
