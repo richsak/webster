@@ -1,91 +1,91 @@
 {
-  "version_sha": "synthetic-lp-w01-31a8c1eb",
+  "version_sha": "synthetic-lp-w01-e63e4ae0",
   "site_signature": "f3987cbe",
   "substrate": "lp",
   "week": 1,
   "weekDate": "2026-02-08",
-  "sessions": 5044,
-  "bounce_rate": 0.556,
-  "avg_time_s": 118.5,
-  "scroll_depth_25": 0.8,
-  "scroll_depth_50": 0.631,
-  "scroll_depth_75": 0.426,
-  "scroll_depth_100": 0.204,
+  "sessions": 5034,
+  "bounce_rate": 0.544,
+  "avg_time_s": 117.2,
+  "scroll_depth_25": 0.802,
+  "scroll_depth_50": 0.633,
+  "scroll_depth_75": 0.427,
+  "scroll_depth_100": 0.205,
   "cta_clicks": {
-    "discovery_call": 241
+    "discovery_call": 242
   },
   "persona_metrics": [
     {
       "persona_id": "credentials-conscious-executive",
-      "sessions": 1866,
-      "bounce_rate": 0.538,
+      "sessions": 1863,
+      "bounce_rate": 0.526,
       "cta_clicks": 91,
-      "avg_time_s": 120.6
+      "avg_time_s": 119.3
     },
     {
       "persona_id": "curious-self-starter",
-      "sessions": 1715,
-      "bounce_rate": 0.556,
+      "sessions": 1712,
+      "bounce_rate": 0.544,
       "cta_clicks": 82,
-      "avg_time_s": 118.5
+      "avg_time_s": 117.2
     },
     {
       "persona_id": "skeptical-researcher",
-      "sessions": 1463,
-      "bounce_rate": 0.574,
+      "sessions": 1460,
+      "bounce_rate": 0.562,
       "cta_clicks": 69,
-      "avg_time_s": 116.4
+      "avg_time_s": 115.1
     }
   ],
   "section_engagement": [
     {
       "section": "hero",
-      "views": 5044,
-      "avg_time_s": 28.4,
-      "dropoff_rate": 0.556
+      "views": 5034,
+      "avg_time_s": 28.1,
+      "dropoff_rate": 0.544
     },
     {
       "section": "proof",
-      "views": 3025,
-      "avg_time_s": 42.7,
-      "dropoff_rate": 0.4
+      "views": 3062,
+      "avg_time_s": 42.2,
+      "dropoff_rate": 0.392
     },
     {
       "section": "cta",
-      "views": 1523,
-      "avg_time_s": 21.3,
-      "dropoff_rate": 0.809
+      "views": 1561,
+      "avg_time_s": 21.1,
+      "dropoff_rate": 0.808
     }
   ],
   "events": [
     {
-      "version_sha": "synthetic-lp-w01-31a8c1eb",
+      "version_sha": "synthetic-lp-w01-e63e4ae0",
       "metric": "sessions",
-      "value": 5044,
+      "value": 5034,
       "timestamp": "2026-02-08T12:00:00.000Z"
     },
     {
-      "version_sha": "synthetic-lp-w01-31a8c1eb",
+      "version_sha": "synthetic-lp-w01-e63e4ae0",
       "metric": "bounce_rate",
-      "value": 0.556,
+      "value": 0.544,
       "timestamp": "2026-02-08T12:00:00.000Z"
     },
     {
-      "version_sha": "synthetic-lp-w01-31a8c1eb",
+      "version_sha": "synthetic-lp-w01-e63e4ae0",
       "metric": "avg_time_s",
-      "value": 118.5,
+      "value": 117.2,
       "timestamp": "2026-02-08T12:00:00.000Z"
     },
     {
-      "version_sha": "synthetic-lp-w01-31a8c1eb",
+      "version_sha": "synthetic-lp-w01-e63e4ae0",
       "metric": "scroll_depth_75",
-      "value": 0.426,
+      "value": 0.427,
       "timestamp": "2026-02-08T12:00:00.000Z"
     },
     {
-      "version_sha": "synthetic-lp-w01-31a8c1eb",
+      "version_sha": "synthetic-lp-w01-e63e4ae0",
       "metric": "cta_click",
-      "value": 241,
+      "value": 242,
       "timestamp": "2026-02-08T12:00:00.000Z"
     }
   ]

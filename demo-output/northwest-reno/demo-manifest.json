@@ -1,0 +1,337 @@
+{
+  "schema_version": 1,
+  "substrate": "site",
+  "generated_at": "2026-04-25T08:38:55.645Z",
+  "output_dir": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno",
+  "manifest_path": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/demo-manifest.json",
+  "final_sheet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/final-sheet.png",
+  "memory_stores": {
+    "council": "memstore_0157JFZEhKzFfJowRkWwLCqS",
+    "planner": "memstore_01TY8ZwSs3FMb35G8aiA3vDJ",
+    "redesigner": "memstore_01BPy8JUR6AeyhXgAXM62rsJ",
+    "genealogy": "memstore_01JSwDtY4wVLtKiNS1M1SJ9E",
+    "conversion-critic": "memstore_01Aa1dWtui6K3NcfLEJVtHCx",
+    "visual-reviewer": "memstore_016QX1spnGjJfoXefKAniD85"
+  },
+  "weeks": [
+    {
+      "week": "week-00",
+      "index": 0,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-00",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-00/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-00/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-00/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-00/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-00/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-00/screenshots/index/mobile.png"
+        },
+        "services": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-00/screenshots/services/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-00/screenshots/services/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-00/screenshots/services/mobile.png"
+        },
+        "free-estimate": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-00/screenshots/free-estimate/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-00/screenshots/free-estimate/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-00/screenshots/free-estimate/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-01",
+      "index": 1,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-01",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-01/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-01/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-01/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-01/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-01/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-01/screenshots/index/mobile.png"
+        },
+        "services": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-01/screenshots/services/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-01/screenshots/services/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-01/screenshots/services/mobile.png"
+        },
+        "free-estimate": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-01/screenshots/free-estimate/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-01/screenshots/free-estimate/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-01/screenshots/free-estimate/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-02",
+      "index": 2,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-02",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-02/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-02/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-02/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-02/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-02/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-02/screenshots/index/mobile.png"
+        },
+        "services": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-02/screenshots/services/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-02/screenshots/services/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-02/screenshots/services/mobile.png"
+        },
+        "free-estimate": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-02/screenshots/free-estimate/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-02/screenshots/free-estimate/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-02/screenshots/free-estimate/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-03",
+      "index": 3,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-03",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-03/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-03/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-03/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-03/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-03/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-03/screenshots/index/mobile.png"
+        },
+        "services": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-03/screenshots/services/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-03/screenshots/services/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-03/screenshots/services/mobile.png"
+        },
+        "free-estimate": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-03/screenshots/free-estimate/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-03/screenshots/free-estimate/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-03/screenshots/free-estimate/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-04",
+      "index": 4,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-04",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-04/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-04/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-04/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-04/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-04/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-04/screenshots/index/mobile.png"
+        },
+        "services": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-04/screenshots/services/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-04/screenshots/services/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-04/screenshots/services/mobile.png"
+        },
+        "free-estimate": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-04/screenshots/free-estimate/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-04/screenshots/free-estimate/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-04/screenshots/free-estimate/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-05",
+      "index": 5,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-05",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-05/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-05/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-05/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-05/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-05/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-05/screenshots/index/mobile.png"
+        },
+        "services": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-05/screenshots/services/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-05/screenshots/services/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-05/screenshots/services/mobile.png"
+        },
+        "free-estimate": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-05/screenshots/free-estimate/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-05/screenshots/free-estimate/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-05/screenshots/free-estimate/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-06",
+      "index": 6,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-06",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-06/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-06/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-06/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-06/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-06/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-06/screenshots/index/mobile.png"
+        },
+        "services": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-06/screenshots/services/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-06/screenshots/services/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-06/screenshots/services/mobile.png"
+        },
+        "free-estimate": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-06/screenshots/free-estimate/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-06/screenshots/free-estimate/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-06/screenshots/free-estimate/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-07",
+      "index": 7,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-07",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-07/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-07/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-07/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-07/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-07/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-07/screenshots/index/mobile.png"
+        },
+        "services": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-07/screenshots/services/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-07/screenshots/services/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-07/screenshots/services/mobile.png"
+        },
+        "free-estimate": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-07/screenshots/free-estimate/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-07/screenshots/free-estimate/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-07/screenshots/free-estimate/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-08",
+      "index": 8,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-08",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-08/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-08/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-08/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-08/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-08/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-08/screenshots/index/mobile.png"
+        },
+        "services": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-08/screenshots/services/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-08/screenshots/services/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-08/screenshots/services/mobile.png"
+        },
+        "free-estimate": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-08/screenshots/free-estimate/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-08/screenshots/free-estimate/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-08/screenshots/free-estimate/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-09",
+      "index": 9,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-09",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-09/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-09/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-09/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-09/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-09/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-09/screenshots/index/mobile.png"
+        },
+        "services": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-09/screenshots/services/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-09/screenshots/services/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-09/screenshots/services/mobile.png"
+        },
+        "free-estimate": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-09/screenshots/free-estimate/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-09/screenshots/free-estimate/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-09/screenshots/free-estimate/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-10",
+      "index": 10,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-10",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-10/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-10/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-10/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-10/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-10/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-10/screenshots/index/mobile.png"
+        },
+        "services": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-10/screenshots/services/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-10/screenshots/services/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-10/screenshots/services/mobile.png"
+        },
+        "free-estimate": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-10/screenshots/free-estimate/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-10/screenshots/free-estimate/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/northwest-reno/week-10/screenshots/free-estimate/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    }
+  ]
+}

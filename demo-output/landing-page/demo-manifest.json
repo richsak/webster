@@ -1,0 +1,227 @@
+{
+  "schema_version": 1,
+  "substrate": "lp",
+  "generated_at": "2026-04-25T08:38:54.310Z",
+  "output_dir": "/Users/richiesakhon/Projects/webster/demo-output/landing-page",
+  "manifest_path": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/demo-manifest.json",
+  "final_sheet": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/final-sheet.png",
+  "memory_stores": {
+    "council": "memstore_019FRQvVBANSM5AQZCxu5xmP",
+    "planner": "memstore_01Ubp9VSNBugJGe47ZHMTQ2R",
+    "redesigner": "memstore_014SzCGWZ2f9Ufs9jQBXMDQv",
+    "genealogy": "memstore_01Uk2u9dt593HdWk6LdZsWzQ",
+    "conversion-critic": "memstore_011cjbxGwxSwjQthTQtrzqAg",
+    "visual-reviewer": "memstore_01GRnTJzPSGQoUpYtSwy1mTt"
+  },
+  "weeks": [
+    {
+      "week": "week-00",
+      "index": 0,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-00",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-00/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-00/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-00/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-00/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-00/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-00/screenshots/index/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-01",
+      "index": 1,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-01",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-01/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-01/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-01/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-01/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-01/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-01/screenshots/index/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-02",
+      "index": 2,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-02",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-02/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-02/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-02/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-02/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-02/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-02/screenshots/index/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-03",
+      "index": 3,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-03",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-03/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-03/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-03/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-03/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-03/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-03/screenshots/index/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-04",
+      "index": 4,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-04",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-04/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-04/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-04/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-04/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-04/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-04/screenshots/index/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-05",
+      "index": 5,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-05",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-05/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-05/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-05/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-05/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-05/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-05/screenshots/index/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-06",
+      "index": 6,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-06",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-06/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-06/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-06/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-06/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-06/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-06/screenshots/index/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-07",
+      "index": 7,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-07",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-07/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-07/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-07/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-07/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-07/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-07/screenshots/index/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-08",
+      "index": 8,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-08",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-08/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-08/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-08/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-08/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-08/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-08/screenshots/index/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-09",
+      "index": 9,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-09",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-09/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-09/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-09/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-09/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-09/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-09/screenshots/index/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    },
+    {
+      "week": "week-10",
+      "index": 10,
+      "path": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-10",
+      "summary": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-10/week-summary.json",
+      "history": {
+        "analytics": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-10/history/analytics.json",
+        "reasoning": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-10/history/analytics-reasoning.md"
+      },
+      "screenshots": {
+        "index": {
+          "desktop": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-10/screenshots/index/desktop.png",
+          "tablet": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-10/screenshots/index/tablet.png",
+          "mobile": "/Users/richiesakhon/Projects/webster/demo-output/landing-page/week-10/screenshots/index/mobile.png"
+        }
+      },
+      "councilArtifacts": {},
+      "genealogyEvents": []
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Synthetic analytics reasoning — lp week 1
 
-Bounce moved from 0.548 to 0.556; CTA clicks moved from 242 to 241.
+Bounce moved from 0.541 to 0.544; CTA clicks moved from 242 to 242.
 
 - Credentials-Conscious Executive: Clinic owner who needs proof before changing team protocols. Panel response is trust-led; current site score 0.52 shapes bounce and CTA confidence.
 - Curious Self-Starter: Warm lead already interested in food-as-medicine and ready for a practical next step. Panel response is curiosity-led; current site score 0.52 shapes bounce and CTA confidence.
