@@ -1,0 +1,11 @@
+{
+  "substrate": "site",
+  "week": "w04",
+  "weekDate": "2026-03-01",
+  "branch": "demo-sim-site/w04",
+  "screenshotDirs": [
+    "demo-output/northwest-reno/week-04/screenshots/index",
+    "demo-output/northwest-reno/week-04/screenshots/services",
+    "demo-output/northwest-reno/week-04/screenshots/free-estimate"
+  ]
+}
