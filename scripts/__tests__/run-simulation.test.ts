@@ -207,6 +207,40 @@ describe("runSimulation", () => {
     ).rejects.toThrow("site substrate is missing required pages");
   });
 
+  test("site simulation rejects an incomplete one-page site through the default screenshot path", async () => {
+    const siteDir = mkdtempSync(join(tmpdir(), "webster-run-sim-default-one-page-site-"));
+    const outDir = mkdtempSync(join(tmpdir(), "webster-run-sim-default-one-page-out-"));
+    writeFileSync(join(siteDir, "index.html"), "<main><h1>Contractor home</h1></main>");
+    const originalReview = process.env.WEBSTER_SYNTHETIC_ANALYTICS_REVIEW;
+    process.env.WEBSTER_SYNTHETIC_ANALYTICS_REVIEW = "0";
+
+    try {
+      await expect(
+        runSimulation(
+          {
+            ...config(outDir),
+            substrate: "site",
+            sitePath: siteDir,
+            outputDir: outDir,
+            agentSet: "webster-site-sim",
+            weekCount: 0,
+          },
+          {
+            runCouncil: () => {
+              readFileSync(join(siteDir, "index.html"), "utf8");
+            },
+          },
+        ),
+      ).rejects.toThrow("site substrate is missing required pages");
+    } finally {
+      if (originalReview === undefined) {
+        delete process.env.WEBSTER_SYNTHETIC_ANALYTICS_REVIEW;
+      } else {
+        process.env.WEBSTER_SYNTHETIC_ANALYTICS_REVIEW = originalReview;
+      }
+    }
+  });
+
   test("screenshot capture writes browser-audit artifacts for file URLs or fallback summary", async () => {
     const outDir = mkdtempSync(join(tmpdir(), "webster-run-sim-shots-"));
 

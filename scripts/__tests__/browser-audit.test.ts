@@ -39,6 +39,21 @@ describe("browser-audit", () => {
     }
   });
 
+  test("fails loudly on real Playwright runtime errors", () => {
+    const outDir = mkdtempSync(join(tmpdir(), "browser-audit-runtime-failure-"));
+    try {
+      const result = Bun.spawnSync(["bun", SCRIPT, "not-a-valid-url", "--out", outDir], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+
+      expect(result.exitCode).not.toBe(0);
+      expect(existsSync(join(outDir, "summary.json"))).toBe(false);
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  });
+
   test("writes fallback artifacts when Playwright is unavailable", () => {
     const outDir = mkdtempSync(join(tmpdir(), "browser-audit-"));
     try {
