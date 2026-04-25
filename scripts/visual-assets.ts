@@ -206,6 +206,13 @@ export function normalizeGenerateVisualAssetInput(
   };
 }
 
+const OPENAI_IMAGE_SIZES = new Set(["1024x1024", "1536x1024", "1024x1536", "auto"]);
+
+function openAiImageSizeForDims(dims: VisualAssetDims): string | undefined {
+  const requested = `${dims.width}x${dims.height}`;
+  return OPENAI_IMAGE_SIZES.has(requested) ? requested : undefined;
+}
+
 function shouldRetry(status: number): boolean {
   return status === 408 || status === 409 || status === 429 || status >= 500;
 }
@@ -297,6 +304,11 @@ export async function generateVisualAsset(
     return buildAssetStub(input.type, "missing-openai-api-key");
   }
 
+  const openAiSize = openAiImageSizeForDims(input.dims);
+  if (!openAiSize) {
+    return buildAssetStub(input.type, "unsupported-image-size");
+  }
+
   const fetchImpl = options.fetchImpl ?? fetch;
   const retryDelaysMs = options.retryDelaysMs ?? [250, 1000];
   const attempts = retryDelaysMs.length + 1;
@@ -312,7 +324,7 @@ export async function generateVisualAsset(
       body: JSON.stringify({
         model: options.model ?? DEFAULT_IMAGE_MODEL,
         prompt: `${input.prompt}\n\nBrand context: ${JSON.stringify(input.brand_context)}`,
-        size: `${input.dims.width}x${input.dims.height}`,
+        size: openAiSize,
         response_format: "b64_json",
       }),
     });

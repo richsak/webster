@@ -81,7 +81,7 @@ describe("visual asset tool schema", () => {
     const input = normalizeGenerateVisualAssetInput({
       type: "icon",
       brand_context: { tone: "warm" },
-      dims: { width: 128, height: 128 },
+      dims: { width: 1024, height: 1024 },
       prompt: "Leaf icon",
     });
     let calls = 0;
@@ -187,11 +187,32 @@ describe("visual asset tool schema", () => {
     }
   });
 
+  test("falls back to a structured unsupported-size stub before fetching", async () => {
+    const input = normalizeGenerateVisualAssetInput({
+      type: "og_card",
+      brand_context: {},
+      dims: { width: 1200, height: 630 },
+      prompt: "OG card",
+    });
+    let calls = 0;
+
+    await expect(
+      generateVisualAsset(input, {
+        apiKey: "test-key",
+        fetchImpl: async () => {
+          calls += 1;
+          return new Response(JSON.stringify({ data: [{ b64_json: "abc123" }] }), { status: 200 });
+        },
+      }),
+    ).resolves.toMatchObject({ status: "stub", reason: "unsupported-image-size" });
+    expect(calls).toBe(0);
+  });
+
   test("falls back to a structured NSFW stub on safety rejection", async () => {
     const input = normalizeGenerateVisualAssetInput({
       type: "testimonial_headshot",
       brand_context: {},
-      dims: { width: 512, height: 512 },
+      dims: { width: 1024, height: 1024 },
       prompt: "Headshot",
     });
 

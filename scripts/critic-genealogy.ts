@@ -891,7 +891,7 @@ async function fetchSessionSnapshot(apiKey: string, sessionId: string): Promise<
     },
   });
   if (!res.ok) {
-    return { error: `fetch failed ${res.status}`, body: await res.text() };
+    throw new Error(`session snapshot fetch failed ${res.status}: ${await res.text()}`);
   }
   return res.json();
 }

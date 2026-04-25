@@ -81,8 +81,8 @@ acquire_lock() {
 
 acquire_lock
 
-: > "$COMPLETED_FILE"
-: > "$WATCHER_LOG"
+touch "$COMPLETED_FILE"
+touch "$WATCHER_LOG"
 
 log "watcher started, pid=$$, slug-hash=$SLUG_HASH"
 log "watching:"

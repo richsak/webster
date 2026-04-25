@@ -72,6 +72,9 @@ export function parseProposalV2Issue(value: unknown): ProposalV2Issue {
   if (!Array.isArray(constraints.preserves)) {
     throw new Error("Proposal constraints.preserves must be an array");
   }
+  if (!isRecord(constraints.within)) {
+    throw new Error("Proposal constraints.within must be an object");
+  }
 
   const id = typeof value.id === "string" ? value.id.trim() : "";
   const title = typeof value.title === "string" ? value.title.trim() : "";
@@ -89,7 +92,7 @@ export function parseProposalV2Issue(value: unknown): ProposalV2Issue {
     files_touched: value.files_touched.map(String),
     constraints: {
       preserves: constraints.preserves.map(String),
-      within: isRecord(constraints.within) ? constraints.within : {},
+      within: constraints.within,
     },
   };
 }

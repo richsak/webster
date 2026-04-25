@@ -133,6 +133,35 @@ describe("proposal schema v2", () => {
     ).toThrow("Proposal issue title must be a non-empty string");
   });
 
+  test("rejects missing or non-object within constraints", () => {
+    expect(() =>
+      parseProposalV2({
+        issues: [
+          {
+            id: "x",
+            title: "x",
+            kind: "text",
+            files_touched: [],
+            constraints: { preserves: [] },
+          },
+        ],
+      }),
+    ).toThrow("Proposal constraints.within must be an object");
+    expect(() =>
+      parseProposalV2({
+        issues: [
+          {
+            id: "x",
+            title: "x",
+            kind: "text",
+            files_touched: [],
+            constraints: { preserves: [], within: [] },
+          },
+        ],
+      }),
+    ).toThrow("Proposal constraints.within must be an object");
+  });
+
   test("rejects unknown kinds", () => {
     expect(() =>
       parseProposalV2({
