@@ -37,9 +37,33 @@ Two active workstreams:
 ## Branch strategy
 
 - `main` — production Webster. Nicolette's live council runs here. Stable.
-- `dev/` — hackathon expansion work merges here. Eventually rolled up into main as a single batch once the submission ships.
-- Feature branches / worktrees → merge into `dev/`, not directly to `main`.
-- Never force-push to `main` or `dev/`.
+- `dev` — hackathon expansion trunk. All expansion work eventually merges here. Once the submission ships, `dev` rolls up to `main` as a single batch.
+- **Feature / worktree branches → PR to `dev`, not `main`.**
+- Never force-push to `main` or `dev`.
+
+## Worktree + PR flow
+
+Every task in `context/EXPANSION-TASKS.md` (and any other implementation work during the hackathon expansion) follows this pattern:
+
+1. **Branch off `dev`**, not `main`:
+   - Claude Code (manual): `git worktree add ../webster-T<n>-<slug> dev -b feat/T<n>-<slug>`
+   - Forge workers: spawn from the `dev` base; Forge auto-creates `forge/task-feat-<slug>` branches (existing pattern)
+2. Work on the worktree branch. Commits conventional (`feat:` / `fix:` / `test:` / `docs:` / `refactor:` / `chore:`)
+3. Push the branch and open a PR with **base = `dev`**
+4. After review + green CI, merge the PR into `dev` (squash preferred for feature branches; merge commit acceptable for Forge multi-commit task branches)
+5. Delete the feature branch after merge. Local worktree cleanup per the Forge lifecycle rules
+
+Feature branch naming:
+
+- Claude Code manual: `feat/T<n>-<kebab-slug>` (example: `feat/T1-memory-provisioning`)
+- Forge-generated: `forge/task-feat-<slug>` (unchanged from existing pattern)
+- `fix:` for Pass-7 review fixes and bug fixes: `fix/T0-pass7-visual-veto` style
+
+Hackathon rollup procedure (after T10 completes):
+
+- Final `dev → main` merge is a single PR with the full expansion as a commit block
+- Nicolette's production council on `main` is not affected until that PR lands
+- Do NOT merge `dev → main` in pieces before T10 completes — the expansion lands atomically so production stays coherent
 
 ## Operating rules
 
