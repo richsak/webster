@@ -12,7 +12,7 @@ describe("browser-audit", () => {
       const result = Bun.spawnSync(["bun", SCRIPT, "https://example.test", "--out", outDir], {
         stdout: "pipe",
         stderr: "pipe",
-        env: { ...process.env, NODE_PATH: "/definitely/missing" },
+        env: { ...process.env, WEBSTER_BROWSER_AUDIT_DISABLE_PLAYWRIGHT: "1" },
       });
 
       expect(result.exitCode).toBe(0);

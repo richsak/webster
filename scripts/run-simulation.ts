@@ -146,10 +146,12 @@ async function defaultWriteMemorySummary(
   if (!substrateStores) {
     throw new Error(`missing memory stores for substrate ${config.substrate}`);
   }
-  const body = {
-    text: `Week ${weekLabel(week)} ${config.substrate} synthetic analytics: sessions=${analytics.sessions}, bounce=${analytics.bounce_rate}, cta_clicks=${Object.values(analytics.cta_clicks).reduce((sum, value) => sum + value, 0)}.`,
-    metadata: { substrate: config.substrate, week: weekLabel(week), source: "run-simulation" },
-  };
+  const ctaClicks = Object.values(analytics.cta_clicks).reduce((sum, value) => sum + value, 0);
+  const summaries = {
+    council: `Week ${weekLabel(week)} ${config.substrate} council memory: synthetic panel saw sessions=${analytics.sessions}, bounce=${analytics.bounce_rate}, cta_clicks=${ctaClicks}; use this as shared context for critic weighting.`,
+    planner: `Week ${weekLabel(week)} ${config.substrate} planner memory: site_signature=${analytics.site_signature}, scroll75=${analytics.scroll_depth_75}, cta_clicks=${ctaClicks}; compare against prior week before choosing promote/hold/retry/explore.`,
+    redesigner: `Week ${weekLabel(week)} ${config.substrate} redesigner memory: strongest visible outcome signal is bounce=${analytics.bounce_rate} with avg_time_s=${analytics.avg_time_s}; propose changes that improve this without violating brand context.`,
+  } satisfies Record<"council" | "planner" | "redesigner", string>;
   for (const role of ["council", "planner", "redesigner"] as const) {
     const storeId = substrateStores[role];
     if (!storeId) {
@@ -163,7 +165,15 @@ async function defaultWriteMemorySummary(
         "anthropic-beta": BETA,
         "content-type": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        text: summaries[role],
+        metadata: {
+          substrate: config.substrate,
+          week: weekLabel(week),
+          role,
+          source: "run-simulation",
+        },
+      }),
     });
   }
 }

@@ -82,8 +82,14 @@ describe("runSimulation", () => {
     const summary = JSON.parse(readFileSync(join(outDir, "index/summary.json"), "utf8")) as {
       url: string;
       breakpoints: unknown[];
+      screenshot_capture_unavailable?: string;
     };
     expect(summary.url).toContain("file://");
     expect(summary.breakpoints).toHaveLength(3);
+    if (!("screenshot_capture_unavailable" in summary)) {
+      expect(existsSync(join(outDir, "index/mobile.png"))).toBe(true);
+      expect(existsSync(join(outDir, "index/tablet.png"))).toBe(true);
+      expect(existsSync(join(outDir, "index/desktop.png"))).toBe(true);
+    }
   });
 });
