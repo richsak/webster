@@ -83,6 +83,14 @@ describe("buildDemoManifest", () => {
       "89504e470d0a1a0a",
     );
     expect(DEMO_MANIFEST_SCHEMA.properties.schema_version.const).toBe(1);
+    expect(DEMO_MANIFEST_SCHEMA.properties.weeks.items.properties.history.required).toEqual([
+      "analytics",
+      "reasoning",
+    ]);
+    expect(
+      DEMO_MANIFEST_SCHEMA.properties.weeks.items.properties.screenshots.additionalProperties
+        .properties.desktop.path,
+    ).toBe("absolute");
     expect(manifest.schema_version).toBe(1);
     expect(manifest.memory_stores).toEqual({ council: "mem_council" });
     expect(isAbsolute(manifest.output_dir)).toBe(true);
@@ -127,6 +135,16 @@ describe("buildDemoManifest", () => {
       council: "mem_site_council",
       planner: "mem_site_planner",
     });
+  });
+
+  test("requires week-00 as the final-sheet baseline", () => {
+    requireMagick();
+    const outDir = mkdtempSync(join(tmpdir(), "webster-demo-manifest-no-week-zero-"));
+    seedWeek(outDir, "week-01", "#581c87");
+
+    expect(() =>
+      buildDemoManifest({ substrate: "lp", outputDir: outDir, memoryStoresPath: "missing.json" }),
+    ).toThrow("final sheet requires week-00");
   });
 
   test("fails when final desktop screenshots are missing", () => {

@@ -70,6 +70,39 @@ export const DEMO_MANIFEST_SCHEMA = {
           "councilArtifacts",
           "genealogyEvents",
         ],
+        properties: {
+          week: { type: "string", pattern: "^week-\\d+$" },
+          index: { type: "integer", minimum: 0 },
+          path: { type: "string", path: "absolute" },
+          summary: { anyOf: [{ type: "string", path: "absolute" }, { type: "null" }] },
+          history: {
+            type: "object",
+            required: ["analytics", "reasoning"],
+            properties: {
+              analytics: { anyOf: [{ type: "string", path: "absolute" }, { type: "null" }] },
+              reasoning: { anyOf: [{ type: "string", path: "absolute" }, { type: "null" }] },
+            },
+          },
+          screenshots: {
+            type: "object",
+            additionalProperties: {
+              type: "object",
+              properties: {
+                mobile: { type: "string", path: "absolute" },
+                tablet: { type: "string", path: "absolute" },
+                desktop: { type: "string", path: "absolute" },
+              },
+            },
+          },
+          councilArtifacts: {
+            type: "object",
+            additionalProperties: { type: "string", path: "absolute" },
+          },
+          genealogyEvents: {
+            type: "array",
+            items: { type: "string", path: "absolute" },
+          },
+        },
       },
     },
   },
@@ -233,10 +266,10 @@ function assertPng(path: string): void {
 }
 
 function buildFinalSheet(manifest: DemoManifest): void {
-  const first = manifest.weeks[0];
+  const first = manifest.weeks.find((week) => week.week === "week-00");
   const last = manifest.weeks.at(-1);
   if (!first || !last) {
-    throw new Error("final sheet requires at least one week");
+    throw new Error("final sheet requires week-00 and at least one final week");
   }
   const firstDesktop = findDesktopHero(first);
   const lastDesktop = findDesktopHero(last);
