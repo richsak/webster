@@ -91,6 +91,7 @@ describe("buildDemoManifest", () => {
     expect(DEMO_MANIFEST_SCHEMA.properties.schema_version.const).toBe(1);
     expect(DEMO_MANIFEST_SCHEMA.properties.weeks.contains.properties.week.const).toBe("week-00");
     expect(DEMO_MANIFEST_SCHEMA.properties.weeks.items.xWeekIndexMatchesLabel).toBe(true);
+    expect(DEMO_MANIFEST_SCHEMA.properties.weeks.items.description).toContain("enforced");
     expect(DEMO_MANIFEST_SCHEMA.properties.weeks.items.properties.history.required).toEqual([
       "analytics",
       "reasoning",
@@ -168,6 +169,31 @@ describe("buildDemoManifest", () => {
     manifest.weeks[0] = { ...firstWeek, index: 999 };
 
     expect(() => validateDemoManifest(manifest)).toThrow("invalid week entry week-00");
+  });
+
+  test("rejects relative nested manifest paths", () => {
+    requireMagick();
+    const outDir = mkdtempSync(join(tmpdir(), "webster-demo-manifest-relative-path-"));
+    seedWeek(outDir, "week-00", "#111827");
+    const manifest = buildDemoManifest({
+      substrate: "lp",
+      outputDir: outDir,
+      memoryStoresPath: "missing.json",
+    });
+    const firstWeek = manifest.weeks[0];
+    expect(firstWeek).toBeDefined();
+    if (!firstWeek) {
+      throw new Error("missing seeded week");
+    }
+
+    firstWeek.screenshots.index = { ...firstWeek.screenshots.index, desktop: "relative.png" };
+    expect(() => validateDemoManifest(manifest)).toThrow("screenshot path must be absolute");
+    firstWeek.screenshots.index.desktop = join(outDir, "week-00/screenshots/index/desktop.png");
+    firstWeek.councilArtifacts["history/proposal.md"] = "relative-proposal.md";
+    expect(() => validateDemoManifest(manifest)).toThrow("council artifact path must be absolute");
+    firstWeek.councilArtifacts["history/proposal.md"] = join(outDir, "week-00/history/proposal.md");
+    firstWeek.genealogyEvents = ["relative-genealogy.md"];
+    expect(() => validateDemoManifest(manifest)).toThrow("genealogy event path must be absolute");
   });
 
   test("requires week-00 as the final-sheet baseline", () => {

@@ -65,6 +65,8 @@ export const DEMO_MANIFEST_SCHEMA = {
       contains: { properties: { week: { const: "week-00" }, index: { const: 0 } } },
       items: {
         type: "object",
+        description:
+          "Week label must equal `week-${index padded to 2 digits}`; enforced by validateDemoManifest().",
         xWeekIndexMatchesLabel: true,
         required: [
           "week",
@@ -171,8 +173,7 @@ function loadMemoryStores(path: string, substrate: string): Record<string, strin
   return stores?.[substrate] ?? {};
 }
 
-function buildWeek(weekDir: string): DemoManifestWeek {
-  const week = basename(weekDir);
+function parseWeekIndex(week: string): number {
   if (!/^week-\d{2}$/.test(week)) {
     throw new Error(`invalid week directory name: ${week}`);
   }
@@ -180,6 +181,12 @@ function buildWeek(weekDir: string): DemoManifestWeek {
   if (!Number.isInteger(index) || week !== `week-${String(index).padStart(2, "0")}`) {
     throw new Error(`invalid week index for directory: ${week}`);
   }
+  return index;
+}
+
+function buildWeek(weekDir: string): DemoManifestWeek {
+  const week = basename(weekDir);
+  const index = parseWeekIndex(week);
   const files = listFilesRecursive(weekDir);
   const screenshots: Record<string, Record<string, string>> = {};
   const councilArtifacts: Record<string, string> = {};
@@ -314,7 +321,7 @@ function buildFinalSheet(manifest: DemoManifest): void {
     throw new Error("final sheet requires week-00 and final desktop screenshots");
   }
   mkdirSync(dirname(manifest.final_sheet), { recursive: true });
-  const title = `${manifest.substrate.toUpperCase()} Webster simulation: Week 0 to ${last.week}`;
+  const title = `${manifest.substrate.toUpperCase()} Webster simulation: Week 00 to ${last.week.replace("week-", "Week ")}`;
   execFileSync("magick", [
     "(",
     firstDesktop,
@@ -371,7 +378,7 @@ export function buildDemoManifest(args: Args): DemoManifest {
   const weekDirs = readdirSync(outputDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && /^week-\d{2}$/.test(entry.name))
     .map((entry) => join(outputDir, entry.name))
-    .sort();
+    .sort((left, right) => parseWeekIndex(basename(left)) - parseWeekIndex(basename(right)));
   const manifest: DemoManifest = {
     schema_version: 1,
     substrate: args.substrate,
