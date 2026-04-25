@@ -1,0 +1,92 @@
+{
+  "version_sha": "synthetic-lp-w03-31a8c1eb",
+  "site_signature": "f3987cbe",
+  "substrate": "lp",
+  "week": 3,
+  "weekDate": "2026-02-22",
+  "sessions": 5045,
+  "bounce_rate": 0.554,
+  "avg_time_s": 118.2,
+  "scroll_depth_25": 0.8,
+  "scroll_depth_50": 0.631,
+  "scroll_depth_75": 0.426,
+  "scroll_depth_100": 0.204,
+  "cta_clicks": {
+    "discovery_call": 241
+  },
+  "persona_metrics": [
+    {
+      "persona_id": "credentials-conscious-executive",
+      "sessions": 1867,
+      "bounce_rate": 0.536,
+      "cta_clicks": 91,
+      "avg_time_s": 120.3
+    },
+    {
+      "persona_id": "curious-self-starter",
+      "sessions": 1715,
+      "bounce_rate": 0.554,
+      "cta_clicks": 82,
+      "avg_time_s": 118.2
+    },
+    {
+      "persona_id": "skeptical-researcher",
+      "sessions": 1463,
+      "bounce_rate": 0.572,
+      "cta_clicks": 69,
+      "avg_time_s": 116.1
+    }
+  ],
+  "section_engagement": [
+    {
+      "section": "hero",
+      "views": 5045,
+      "avg_time_s": 28.4,
+      "dropoff_rate": 0.554
+    },
+    {
+      "section": "proof",
+      "views": 3033,
+      "avg_time_s": 42.6,
+      "dropoff_rate": 0.399
+    },
+    {
+      "section": "cta",
+      "views": 1530,
+      "avg_time_s": 21.3,
+      "dropoff_rate": 0.809
+    }
+  ],
+  "events": [
+    {
+      "version_sha": "synthetic-lp-w03-31a8c1eb",
+      "metric": "sessions",
+      "value": 5045,
+      "timestamp": "2026-02-22T12:00:00.000Z"
+    },
+    {
+      "version_sha": "synthetic-lp-w03-31a8c1eb",
+      "metric": "bounce_rate",
+      "value": 0.554,
+      "timestamp": "2026-02-22T12:00:00.000Z"
+    },
+    {
+      "version_sha": "synthetic-lp-w03-31a8c1eb",
+      "metric": "avg_time_s",
+      "value": 118.2,
+      "timestamp": "2026-02-22T12:00:00.000Z"
+    },
+    {
+      "version_sha": "synthetic-lp-w03-31a8c1eb",
+      "metric": "scroll_depth_75",
+      "value": 0.426,
+      "timestamp": "2026-02-22T12:00:00.000Z"
+    },
+    {
+      "version_sha": "synthetic-lp-w03-31a8c1eb",
+      "metric": "cta_click",
+      "value": 241,
+      "timestamp": "2026-02-22T12:00:00.000Z"
+    }
+  ]
+}
