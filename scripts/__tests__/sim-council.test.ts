@@ -37,6 +37,10 @@ describe("sim-council prompt", () => {
     const body = prompt();
 
     expect(body).toContain("SIM_AGENTS_JSON:=context/sim-agents.json");
+    expect(body).toContain('WEEK_LABEL="${BRANCH##*/}"');
+    expect(body).toContain(
+      'ANALYTICS_PATH="history/${SUBSTRATE}-demo/${WEEK_LABEL}/analytics.json"',
+    );
     expect(body).toContain("agent_id() {");
     expect(body).toContain("store_id() {");
     expect(body).toContain("memory_store_id");

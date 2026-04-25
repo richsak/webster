@@ -14,7 +14,8 @@ export function buildLpSimulationConfig(env: NodeJS.ProcessEnv = process.env): S
     agentSet: "webster-lp-sim",
     memoryStoresPath: "context/memory-stores.json",
     simAgentsPath: "context/sim-agents.json",
-    councilCommand: env.WEBSTER_SIM_COUNCIL_CMD ?? "wbs @prompts/sim-council.md",
+    councilCommand:
+      env.WEBSTER_SIM_COUNCIL_CMD ?? "bun scripts/run-markdown-bash.ts prompts/sim-council.md",
     skipGit: env.WEBSTER_SIM_SKIP_GIT === "1",
     skipMemorySummaries: env.WEBSTER_SIM_SKIP_MEMORY === "1",
   };

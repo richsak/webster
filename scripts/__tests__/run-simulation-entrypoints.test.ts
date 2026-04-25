@@ -11,6 +11,7 @@ describe("simulation entrypoint configs", () => {
       contextPath: "demo-landing-page/context",
       outputDir: "demo-output/landing-page",
       agentSet: "webster-lp-sim",
+      councilCommand: "bun scripts/run-markdown-bash.ts prompts/sim-council.md",
     });
   });
 
@@ -22,6 +23,7 @@ describe("simulation entrypoint configs", () => {
       contextPath: "demo-sites/northwest-reno/context",
       outputDir: "demo-output/northwest-reno",
       agentSet: "webster-site-sim",
+      councilCommand: "bun scripts/run-markdown-bash.ts prompts/sim-council.md",
     });
   });
 

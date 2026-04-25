@@ -49,13 +49,19 @@ if [[ -z "$ANTHROPIC_API_KEY" ]]; then
 fi
 export ANTHROPIC_API_KEY
 
+WEEK_LABEL="${BRANCH##*/}"
+if [[ ! "$WEEK_LABEL" =~ ^w[0-9][0-9]$ ]]; then
+  echo "ABORT: BRANCH must end in a week label like w00; got $BRANCH" >&2
+  exit 1
+fi
+
 ENV_ID=$(cat environments/webster-council-env.id)
 API="https://api.anthropic.com/v1"
 BETA_HDR="anthropic-beta: managed-agents-2026-04-01"
 VERSION_HDR="anthropic-version: 2023-06-01"
-mkdir -p tmp/sim-sessions tmp/logs "history/${SUBSTRATE}-demo/${WEEK_DATE}"
+mkdir -p tmp/sim-sessions tmp/logs "history/${SUBSTRATE}-demo/${WEEK_LABEL}"
 
-echo "SUBSTRATE=$SUBSTRATE WEEK_DATE=$WEEK_DATE BRANCH=$BRANCH AGENT_SET=$AGENT_SET"
+echo "SUBSTRATE=$SUBSTRATE WEEK_DATE=$WEEK_DATE WEEK_LABEL=$WEEK_LABEL BRANCH=$BRANCH AGENT_SET=$AGENT_SET"
 ```
 
 ## Shared helpers
@@ -145,7 +151,7 @@ CONTEXT_PATH=$CONTEXT_PATH
 SITE_PATH=$SITE_PATH
 
 Read site files and context through GitHub MCP get_file_contents at ref=$BRANCH.
-Read analytics from history/${SUBSTRATE}-demo/${WEEK_DATE}/analytics.json when relevant.
+Read analytics from history/${SUBSTRATE}-demo/${WEEK_LABEL}/analytics.json when relevant.
 Do not use live production URLs, external fetches, localhost, shell git, or deployment previews.
 Judge against the context files, not against the ugly baseline.
 MSG
@@ -157,7 +163,7 @@ MSG
 The simulation wrapper generates analytics before this prompt runs. This prompt does not seed mock history.
 
 ```bash
-ANALYTICS_PATH="history/${SUBSTRATE}-demo/${WEEK_DATE}/analytics.json"
+ANALYTICS_PATH="history/${SUBSTRATE}-demo/${WEEK_LABEL}/analytics.json"
 if [[ ! -s "$ANALYTICS_PATH" ]]; then
   echo "ABORT: $ANALYTICS_PATH missing. Run scripts/synthetic-analytics.ts before sim council." >&2
   exit 1

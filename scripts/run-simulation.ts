@@ -76,7 +76,7 @@ function defaultRunCommand(
 
 function defaultRunCouncil(
   env: Record<string, string>,
-  command = "wbs @prompts/sim-council.md",
+  command = "bun scripts/run-markdown-bash.ts prompts/sim-council.md",
 ): void {
   execFileSync("bash", ["-lc", command], { env: { ...process.env, ...env }, stdio: "inherit" });
 }
