@@ -886,18 +886,23 @@ function writeArtifacts(
   spec: AgentJSON,
   sessionSnapshot: unknown,
   rationale: string,
-): { specPath: string; agentPath: string; logPath: string; dir: string } {
+  snapshotError?: string,
+): { specPath: string; agentPath: string; logPath: string; dir: string; errorPath?: string } {
   const dir = join(ROOT, "history", weekDate, "genealogy");
   mkdirSync(dir, { recursive: true });
   const specPath = join(dir, "spec.json");
   const logPath = join(dir, "session.json");
   const rationalePath = join(dir, "rationale.md");
+  const errorPath = snapshotError ? join(dir, "snapshot-error.txt") : undefined;
   const agentPath = join(ROOT, "agents", `${spec.name}.json`);
   writeFileSync(specPath, JSON.stringify(spec, null, 2) + "\n");
   writeFileSync(agentPath, JSON.stringify(spec, null, 2) + "\n");
   writeFileSync(logPath, JSON.stringify(sessionSnapshot, null, 2) + "\n");
+  if (errorPath) {
+    writeFileSync(errorPath, `${snapshotError}\n`);
+  }
   writeFileSync(rationalePath, `# Genealogy — week ${weekDate}\n\n${rationale.trim()}\n`);
-  return { specPath, agentPath, logPath, dir };
+  return { specPath, agentPath, logPath, dir, errorPath };
 }
 
 function commitArtifacts(paths: string[], message: string): void {
@@ -926,7 +931,7 @@ async function fetchAndPersistSpawnArtifacts({
   commitMsg,
   commitFn = commitArtifacts,
 }: FetchAndPersistSpawnArtifactsOptions): Promise<{
-  paths: { specPath: string; agentPath: string; logPath: string; dir: string };
+  paths: { specPath: string; agentPath: string; logPath: string; dir: string; errorPath?: string };
   snapshotError?: string;
 }> {
   let snapshot: unknown;
@@ -937,9 +942,15 @@ async function fetchAndPersistSpawnArtifacts({
     snapshotError = (err as Error).message;
     snapshot = { error: snapshotError, agent_id: agentId, session_id: sessionId };
   }
-  const paths = writeArtifacts(weekDate, spec, snapshot, rationale);
+  const paths = writeArtifacts(weekDate, spec, snapshot, rationale, snapshotError);
   commitFn(
-    [paths.specPath, paths.agentPath, paths.logPath, join(paths.dir, "rationale.md")],
+    [
+      paths.specPath,
+      paths.agentPath,
+      paths.logPath,
+      ...(paths.errorPath ? [paths.errorPath] : []),
+      join(paths.dir, "rationale.md"),
+    ],
     commitMsg,
   );
   return { paths, snapshotError };

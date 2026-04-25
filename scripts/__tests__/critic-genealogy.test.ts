@@ -469,7 +469,12 @@ describe("spliceNewSpec", () => {
         agent_id: "agent-test",
         session_id: "session-test",
       });
+      expect(result.paths.errorPath).toBeDefined();
+      expect(readFileSync(result.paths.errorPath ?? "", "utf8")).toContain(
+        "session snapshot fetch failed 503",
+      );
       expect(committed[0]?.paths).toContain(result.paths.specPath);
+      expect(committed[0]?.paths).toContain(result.paths.errorPath);
     } finally {
       globalThis.fetch = originalFetch;
       rmSync(join(ROOT, "history", weekDate), { recursive: true, force: true });
