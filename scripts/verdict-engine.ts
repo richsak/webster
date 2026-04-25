@@ -32,7 +32,10 @@ function ctr(events: NormalizedAnalyticsEvent[]): number {
   return views <= 0 ? 0 : clicks / views;
 }
 
-function confidenceFromDelta(delta: number): number {
+// Heuristic operator confidence for demo/orchestration. This is not a
+// statistical significance score; production analytics should replace it with
+// an explicit sample-size + test policy before making p-value claims.
+function heuristicConfidenceFromDelta(delta: number): number {
   return Math.min(0.99, Math.max(0.5, 0.5 + Math.abs(delta) * 10));
 }
 
@@ -53,7 +56,7 @@ export function verdictForExperiment(
     { gate: "scroll-floor", passed: scrollDelta >= 0, delta: scrollDelta },
   ];
   const gatesPassed = gateStatus.every((gate) => gate.passed);
-  const confidence = confidenceFromDelta(rewardDelta);
+  const confidence = heuristicConfidenceFromDelta(rewardDelta);
 
   if (rewardDelta <= -0.01 && confidence >= 0.6) {
     return {

@@ -203,6 +203,10 @@ DAY 7 — NEXT MONDAY
                        week N+1 …
 ```
 
+## Verdict confidence policy
+
+The current `scripts/verdict-engine.ts` `confidence` field is a heuristic operator-priority score for the hackathon demo loop. It is not a p-value, statistical-significance result, or sample-size-aware claim. The p-threshold language in this domain model describes the intended production policy once Webster has real analytics volume and an explicit one-sided/two-sided/minimum-sample decision.
+
 ## Invariants (the rules nothing else breaks)
 
 1. **Validate before human approval** — every PR passes the full stack (runtime gate → critic re-run → visual reviewer → planner direction-check) before reaching a human.
