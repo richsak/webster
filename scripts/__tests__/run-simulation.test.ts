@@ -148,7 +148,11 @@ describe("runSimulation", () => {
 
     let dirs: string[];
     try {
-      dirs = await captureLocalScreenshots("demo-sites/northwest-reno/ugly", outDir);
+      dirs = await captureLocalScreenshots("demo-sites/northwest-reno/ugly", outDir, [
+        "index.html",
+        "services.html",
+        "free-estimate.html",
+      ]);
     } finally {
       if (originalDisable === undefined) {
         delete process.env.WEBSTER_BROWSER_AUDIT_DISABLE_PLAYWRIGHT;
@@ -180,9 +184,27 @@ describe("runSimulation", () => {
     writeFileSync(join(siteDir, "index.html"), "<main>Home</main>");
     writeFileSync(join(siteDir, "services.html"), "<main>Services</main>");
 
-    await expect(captureLocalScreenshots(siteDir, outDir)).rejects.toThrow(
-      "site substrate is missing required pages",
-    );
+    await expect(
+      captureLocalScreenshots(siteDir, outDir, [
+        "index.html",
+        "services.html",
+        "free-estimate.html",
+      ]),
+    ).rejects.toThrow("site substrate is missing required pages");
+  });
+
+  test("site screenshot capture fails loudly when only the home page exists", async () => {
+    const siteDir = mkdtempSync(join(tmpdir(), "webster-run-sim-one-page-site-"));
+    const outDir = mkdtempSync(join(tmpdir(), "webster-run-sim-one-page-shots-"));
+    writeFileSync(join(siteDir, "index.html"), "<main>Home</main>");
+
+    await expect(
+      captureLocalScreenshots(siteDir, outDir, [
+        "index.html",
+        "services.html",
+        "free-estimate.html",
+      ]),
+    ).rejects.toThrow("site substrate is missing required pages");
   });
 
   test("screenshot capture writes browser-audit artifacts for file URLs or fallback summary", async () => {

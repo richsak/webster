@@ -37,7 +37,11 @@ interface RunDeps {
     options?: { cwd?: string; env?: Record<string, string> },
   ) => void;
   runCouncil?: (env: Record<string, string>) => void | Promise<void>;
-  captureScreenshots?: (siteDir: string, outDir: string) => Promise<string[]>;
+  captureScreenshots?: (
+    siteDir: string,
+    outDir: string,
+    requiredPages?: string[],
+  ) => Promise<string[]>;
   writeMemorySummary?: (
     config: SimulationConfig,
     week: number,
@@ -81,21 +85,25 @@ function fileUrl(path: string): string {
   return `file://${resolve(path)}`;
 }
 
-function pagesForSite(siteDir: string): string[] {
-  const expectedPages = ["index.html", "services.html", "free-estimate.html"];
-  const pagePaths = expectedPages.map((file) => join(siteDir, file));
+function pagesForSite(siteDir: string, requiredPages?: string[]): string[] {
+  const pageNames = requiredPages ?? ["index.html", "services.html", "free-estimate.html"];
+  const pagePaths = pageNames.map((file) => join(siteDir, file));
   const existingPages = pagePaths.filter((file) => existsSync(file));
-  if (existingPages.length > 1 && existingPages.length !== expectedPages.length) {
+  if (requiredPages && existingPages.length !== pagePaths.length) {
     const missingPages = pagePaths.filter((file) => !existsSync(file));
     throw new Error(`site substrate is missing required pages: ${missingPages.join(", ")}`);
   }
-  return existingPages;
+  return requiredPages ? existingPages : existingPages.slice(0, 1);
 }
 
-export async function captureLocalScreenshots(siteDir: string, outDir: string): Promise<string[]> {
+export async function captureLocalScreenshots(
+  siteDir: string,
+  outDir: string,
+  requiredPages?: string[],
+): Promise<string[]> {
   mkdirSync(outDir, { recursive: true });
   const outputs: string[] = [];
-  for (const pagePath of pagesForSite(siteDir)) {
+  for (const pagePath of pagesForSite(siteDir, requiredPages)) {
     const pageOutDir = join(outDir, basename(pagePath, ".html"));
     mkdirSync(pageOutDir, { recursive: true });
     const result = Bun.spawnSync(
@@ -261,9 +269,14 @@ export async function runSimulation(
       SIM_AGENTS_JSON: config.simAgentsPath,
     });
 
+    const requiredScreenshotPages =
+      config.substrate === "site"
+        ? ["index.html", "services.html", "free-estimate.html"]
+        : undefined;
     const screenshotDirs = await captureScreenshots(
       config.sitePath,
       join(outputWeekDir, "screenshots"),
+      requiredScreenshotPages,
     );
     await writeMemorySummary(config, week, analyticsOutput.analytics);
     copyArtifacts(historyDir, join(outputWeekDir, "history"));
