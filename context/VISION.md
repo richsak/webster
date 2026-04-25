@@ -70,6 +70,7 @@ The video's genealogy beat dramatizes whatever happened, not what we wished.
 
 - **`history/memory.jsonl`** remains ground truth. Deterministic, inspectable, the substrate the planner and verdict engine already depend on.
 - **Anthropic Managed Memory Stores** (public beta, `managed-agents-2026-04-01`) are populated in parallel as demo artifacts. **12 stores total, 6 per substrate**: council, planner, redesigner, genealogy, conversion-critic, visual-reviewer. Orchestrator writes summaries after each week. Planner + redesigner + genealogy attach their stores at session creation and read during work.
+- **Store attachment is intentionally asymmetric.** Planner, redesigner, genealogy, conversion-critic, and visual-reviewer get role-specific stores because they make durable decisions or own a long-running critique lane. Monitor, SEO, brand-voice, copy, and compliance/licensing critics read the shared council store so the demo stays within the 12-store visual story instead of exploding into per-critic storage.
 
 The simulation works without memory stores. Memory stores make the showcase real.
 

@@ -221,6 +221,11 @@ done
 if (( ${#failed_roles[@]} > 0 )); then
   echo "ABORT: failed sim sessions: ${failed_roles[*]}" >&2
   for role in "${failed_roles[@]}"; do
+    status=$(cat "tmp/sim-sessions/${SUBSTRATE}-${WEEK_DATE}-${role}.status" 2>/dev/null || echo 1)
+    cause=$(tail -20 "tmp/logs/${SUBSTRATE}-${WEEK_DATE}-${role}.log" | grep -E "^(ABORT|ERROR|TIMEOUT|session .*: failed|session .*: errored)" | tail -1 || true)
+    echo "- $role status=$status cause=${cause:-see log}" >&2
+  done
+  for role in "${failed_roles[@]}"; do
     echo "--- $role log ---" >&2
     tail -60 "tmp/logs/${SUBSTRATE}-${WEEK_DATE}-${role}.log" >&2
   done
@@ -254,8 +259,12 @@ printf '%s\n' "$REDESIGNER_SESSION" > "tmp/sim-sessions/${SUBSTRATE}-${WEEK_DATE
 VISUAL_ID=$(agent_id visual-reviewer)
 VISUAL_RESOURCE=$(memory_resource visual-reviewer read_write "Visual-reviewer memory for this substrate simulation.")
 VISUAL_SESSION=$(create_session visual-reviewer "$VISUAL_ID" "$VISUAL_RESOURCE")
-send_message "$VISUAL_SESSION" "$(base_message)
-Screenshot artifacts will be supplied by scripts/run-simulation.ts after local file rendering. If screenshot paths are absent for week 0, write a pending visual-review note instead of blocking."
+VISUAL_MESSAGE=$(cat <<MSG
+$(base_message)
+Screenshot artifacts will be supplied by scripts/run-simulation.ts after local file rendering. If screenshot paths are absent for week 0, write a pending visual-review note instead of blocking.
+MSG
+)
+send_message "$VISUAL_SESSION" "$VISUAL_MESSAGE"
 poll_idle "$VISUAL_SESSION" visual-reviewer
 printf '%s\n' "$VISUAL_SESSION" > "tmp/sim-sessions/${SUBSTRATE}-${WEEK_DATE}-visual-reviewer.txt"
 ```
