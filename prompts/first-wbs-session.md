@@ -53,23 +53,64 @@ If any check fails, print the error, checkpoint the state, and exit. Do NOT proc
 Check for existing env first (name collision returns 400):
 
 ```bash
-EXISTING=$(curl -fsS "https://api.anthropic.com/v1/environments" \
+ENV_LIST_BODY=$(mktemp)
+ENV_LIST_STATUS=$(curl -sS -o "$ENV_LIST_BODY" -w "%{http_code}" "https://api.anthropic.com/v1/environments" \
   -H "x-api-key: $ANTHROPIC_API_KEY" \
   -H "anthropic-version: 2023-06-01" \
-  -H "anthropic-beta: managed-agents-2026-04-01" \
-  | jq -r '.data[] | select(.name=="webster-council-env") | .id')
+  -H "anthropic-beta: managed-agents-2026-04-01") || {
+  echo "env list API call failed"
+  cat "$ENV_LIST_BODY" >&2
+  rm -f "$ENV_LIST_BODY"
+  exit 1
+}
+if [[ ! "$ENV_LIST_STATUS" =~ ^2 ]]; then
+  echo "env list API returned HTTP $ENV_LIST_STATUS" >&2
+  cat "$ENV_LIST_BODY" >&2
+  rm -f "$ENV_LIST_BODY"
+  exit 1
+fi
+jq -e '.data | type == "array"' "$ENV_LIST_BODY" >/dev/null || {
+  echo "env list response missing .data array" >&2
+  cat "$ENV_LIST_BODY" >&2
+  rm -f "$ENV_LIST_BODY"
+  exit 1
+}
+EXISTING=$(jq -r '.data[] | select(.name=="webster-council-env") | .id' "$ENV_LIST_BODY")
+rm -f "$ENV_LIST_BODY"
 
 if [[ -n "$EXISTING" ]]; then
-  echo "$EXISTING" > environments/webster-council-env.id
+  printf '%s
+' "$EXISTING" > environments/webster-council-env.id
   echo "env: reusing $EXISTING"
 else
-  curl -fsS https://api.anthropic.com/v1/environments \
+  ENV_CREATE_BODY=$(mktemp)
+  ENV_CREATE_STATUS=$(curl -sS -o "$ENV_CREATE_BODY" -w "%{http_code}" https://api.anthropic.com/v1/environments \
     -H "x-api-key: $ANTHROPIC_API_KEY" \
     -H "anthropic-version: 2023-06-01" \
     -H "anthropic-beta: managed-agents-2026-04-01" \
     -H "content-type: application/json" \
-    --data @environments/webster-council-env.json \
-    | jq -r '.id' > environments/webster-council-env.id
+    --data @environments/webster-council-env.json) || {
+    echo "env create API call failed" >&2
+    cat "$ENV_CREATE_BODY" >&2
+    rm -f "$ENV_CREATE_BODY"
+    exit 1
+  }
+  if [[ ! "$ENV_CREATE_STATUS" =~ ^2 ]]; then
+    echo "env create API returned HTTP $ENV_CREATE_STATUS" >&2
+    cat "$ENV_CREATE_BODY" >&2
+    rm -f "$ENV_CREATE_BODY"
+    exit 1
+  fi
+  NEW_ENV_ID=$(jq -r '.id // empty' "$ENV_CREATE_BODY")
+  if [[ -z "$NEW_ENV_ID" ]]; then
+    echo "env create response missing .id" >&2
+    cat "$ENV_CREATE_BODY" >&2
+    rm -f "$ENV_CREATE_BODY"
+    exit 1
+  fi
+  printf '%s
+' "$NEW_ENV_ID" > environments/webster-council-env.id
+  rm -f "$ENV_CREATE_BODY"
 fi
 
 # Verify non-empty + sane shape
@@ -172,14 +213,20 @@ NOTE: site/ is not yet forked for Webster — the repo has no site/ directory th
 EOF
 )
 
-# Send user.message
-curl -fsS "https://api.anthropic.com/v1/sessions/$SESSION_ID/events" \
+# Send user.message. Capture only HTTP status; never persist the request or response body.
+EVENT_STATUS=$(curl -sS -o /dev/null -w "%{http_code}" "https://api.anthropic.com/v1/sessions/$SESSION_ID/events" \
   -H "x-api-key: $ANTHROPIC_API_KEY" \
   -H "anthropic-version: 2023-06-01" \
   -H "anthropic-beta: managed-agents-2026-04-01" \
   -H "content-type: application/json" \
-  --data "$(jq -cn --arg text "$USER_MSG" '{events:[{type:"user.message",content:[{type:"text",text:$text}]}]}')" \
-  > tmp/logs/seo-hello-event.log
+  --data "$(jq -cn --arg text "$USER_MSG" '{events:[{type:"user.message",content:[{type:"text",text:$text}]}]}')") || {
+  echo "event send API call failed" >&2
+  exit 1
+}
+if [[ ! "$EVENT_STATUS" =~ ^2 ]]; then
+  echo "event send API returned HTTP $EVENT_STATUS" >&2
+  exit 1
+fi
 
 # Stream until idle (with 10-min timeout)
 timeout 600 curl -N -fsS "https://api.anthropic.com/v1/sessions/$SESSION_ID/stream" \
@@ -197,7 +244,7 @@ status=$(curl -fsS "https://api.anthropic.com/v1/sessions/$SESSION_ID" \
   | jq -r '.status')
 
 echo "session status: $status"
-[[ "$status" == "idle" ]] || { echo "session not idle — checkpoint + exit"; exit 1; }
+[[ "$status" == "idle" ]] || { echo "session not idle — write checkpoint from current state before retrying"; exit 1; }
 ```
 
 ## Step 4 — Verify the commit landed
