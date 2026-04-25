@@ -1,0 +1,92 @@
+{
+  "version_sha": "synthetic-site-w05-cf74d72e",
+  "site_signature": "eee2365a",
+  "substrate": "site",
+  "week": 5,
+  "weekDate": "2026-03-08",
+  "sessions": 4958,
+  "bounce_rate": 0.444,
+  "avg_time_s": 150,
+  "scroll_depth_25": 0.82,
+  "scroll_depth_50": 0.675,
+  "scroll_depth_75": 0.476,
+  "scroll_depth_100": 0.235,
+  "cta_clicks": {
+    "free_estimate": 353
+  },
+  "persona_metrics": [
+    {
+      "persona_id": "first-time-homeowner-anxious",
+      "sessions": 1834,
+      "bounce_rate": 0.426,
+      "cta_clicks": 133,
+      "avg_time_s": 152.7
+    },
+    {
+      "persona_id": "price-comparing-pragmatist",
+      "sessions": 1686,
+      "bounce_rate": 0.444,
+      "cta_clicks": 120,
+      "avg_time_s": 150
+    },
+    {
+      "persona_id": "warranty-conscious-veteran",
+      "sessions": 1438,
+      "bounce_rate": 0.462,
+      "cta_clicks": 101,
+      "avg_time_s": 147.3
+    }
+  ],
+  "section_engagement": [
+    {
+      "section": "hero",
+      "views": 4958,
+      "avg_time_s": 36,
+      "dropoff_rate": 0.444
+    },
+    {
+      "section": "services",
+      "views": 3373,
+      "avg_time_s": 54,
+      "dropoff_rate": 0.32
+    },
+    {
+      "section": "cta",
+      "views": 1875,
+      "avg_time_s": 27,
+      "dropoff_rate": 0.716
+    }
+  ],
+  "events": [
+    {
+      "version_sha": "synthetic-site-w05-cf74d72e",
+      "metric": "sessions",
+      "value": 4958,
+      "timestamp": "2026-03-08T12:00:00.000Z"
+    },
+    {
+      "version_sha": "synthetic-site-w05-cf74d72e",
+      "metric": "bounce_rate",
+      "value": 0.444,
+      "timestamp": "2026-03-08T12:00:00.000Z"
+    },
+    {
+      "version_sha": "synthetic-site-w05-cf74d72e",
+      "metric": "avg_time_s",
+      "value": 150,
+      "timestamp": "2026-03-08T12:00:00.000Z"
+    },
+    {
+      "version_sha": "synthetic-site-w05-cf74d72e",
+      "metric": "scroll_depth_75",
+      "value": 0.476,
+      "timestamp": "2026-03-08T12:00:00.000Z"
+    },
+    {
+      "version_sha": "synthetic-site-w05-cf74d72e",
+      "metric": "cta_click",
+      "value": 353,
+      "timestamp": "2026-03-08T12:00:00.000Z"
+    }
+  ]
+}
