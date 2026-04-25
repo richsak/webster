@@ -38,6 +38,10 @@ describe("sim-council prompt", () => {
 
     expect(body).toContain("SIM_AGENTS_JSON:=context/sim-agents.json");
     expect(body).toContain('WEEK_LABEL="${BRANCH##*/}"');
+    expect(body).toContain('local title="Webster sim ${SUBSTRATE} ${role} ${WEEK_DATE}"');
+    expect(body).toContain(
+      'printf \'%s\\n\' "$PLANNER_SESSION" > "tmp/sim-sessions/${SUBSTRATE}-${WEEK_DATE}-planner.txt"',
+    );
     expect(body).toContain(
       'ANALYTICS_PATH="history/${SUBSTRATE}-demo/${WEEK_LABEL}/analytics.json"',
     );
