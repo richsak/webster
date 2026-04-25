@@ -1,0 +1,92 @@
+{
+  "version_sha": "synthetic-lp-w04-31a8c1eb",
+  "site_signature": "f3987cbe",
+  "substrate": "lp",
+  "week": 4,
+  "weekDate": "2026-03-01",
+  "sessions": 5048,
+  "bounce_rate": 0.55,
+  "avg_time_s": 117.8,
+  "scroll_depth_25": 0.801,
+  "scroll_depth_50": 0.632,
+  "scroll_depth_75": 0.427,
+  "scroll_depth_100": 0.204,
+  "cta_clicks": {
+    "discovery_call": 241
+  },
+  "persona_metrics": [
+    {
+      "persona_id": "credentials-conscious-executive",
+      "sessions": 1868,
+      "bounce_rate": 0.532,
+      "cta_clicks": 91,
+      "avg_time_s": 119.9
+    },
+    {
+      "persona_id": "curious-self-starter",
+      "sessions": 1716,
+      "bounce_rate": 0.55,
+      "cta_clicks": 82,
+      "avg_time_s": 117.8
+    },
+    {
+      "persona_id": "skeptical-researcher",
+      "sessions": 1464,
+      "bounce_rate": 0.568,
+      "cta_clicks": 69,
+      "avg_time_s": 115.7
+    }
+  ],
+  "section_engagement": [
+    {
+      "section": "hero",
+      "views": 5048,
+      "avg_time_s": 28.3,
+      "dropoff_rate": 0.55
+    },
+    {
+      "section": "proof",
+      "views": 3049,
+      "avg_time_s": 42.4,
+      "dropoff_rate": 0.396
+    },
+    {
+      "section": "cta",
+      "views": 1545,
+      "avg_time_s": 21.2,
+      "dropoff_rate": 0.809
+    }
+  ],
+  "events": [
+    {
+      "version_sha": "synthetic-lp-w04-31a8c1eb",
+      "metric": "sessions",
+      "value": 5048,
+      "timestamp": "2026-03-01T12:00:00.000Z"
+    },
+    {
+      "version_sha": "synthetic-lp-w04-31a8c1eb",
+      "metric": "bounce_rate",
+      "value": 0.55,
+      "timestamp": "2026-03-01T12:00:00.000Z"
+    },
+    {
+      "version_sha": "synthetic-lp-w04-31a8c1eb",
+      "metric": "avg_time_s",
+      "value": 117.8,
+      "timestamp": "2026-03-01T12:00:00.000Z"
+    },
+    {
+      "version_sha": "synthetic-lp-w04-31a8c1eb",
+      "metric": "scroll_depth_75",
+      "value": 0.427,
+      "timestamp": "2026-03-01T12:00:00.000Z"
+    },
+    {
+      "version_sha": "synthetic-lp-w04-31a8c1eb",
+      "metric": "cta_click",
+      "value": 241,
+      "timestamp": "2026-03-01T12:00:00.000Z"
+    }
+  ]
+}

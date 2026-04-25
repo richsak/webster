@@ -1,0 +1,9 @@
+{
+  "substrate": "lp",
+  "week": "w04",
+  "weekDate": "2026-03-01",
+  "branch": "demo-sim-lp/w04",
+  "screenshotDirs": [
+    "demo-output/landing-page/week-04/screenshots/index"
+  ]
+}
