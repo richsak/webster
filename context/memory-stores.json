@@ -1,0 +1,18 @@
+{
+  "lp": {
+    "council": "memstore_019FRQvVBANSM5AQZCxu5xmP",
+    "planner": "memstore_01Ubp9VSNBugJGe47ZHMTQ2R",
+    "redesigner": "memstore_014SzCGWZ2f9Ufs9jQBXMDQv",
+    "genealogy": "memstore_01Uk2u9dt593HdWk6LdZsWzQ",
+    "conversion-critic": "memstore_011cjbxGwxSwjQthTQtrzqAg",
+    "visual-reviewer": "memstore_01GRnTJzPSGQoUpYtSwy1mTt"
+  },
+  "site": {
+    "council": "memstore_0157JFZEhKzFfJowRkWwLCqS",
+    "planner": "memstore_01TY8ZwSs3FMb35G8aiA3vDJ",
+    "redesigner": "memstore_01BPy8JUR6AeyhXgAXM62rsJ",
+    "genealogy": "memstore_01JSwDtY4wVLtKiNS1M1SJ9E",
+    "conversion-critic": "memstore_01Aa1dWtui6K3NcfLEJVtHCx",
+    "visual-reviewer": "memstore_016QX1spnGjJfoXefKAniD85"
+  }
+}
