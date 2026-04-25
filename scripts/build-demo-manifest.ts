@@ -35,6 +35,46 @@ interface Args {
   memoryStoresPath: string;
 }
 
+export const DEMO_MANIFEST_SCHEMA = {
+  type: "object",
+  required: [
+    "schema_version",
+    "substrate",
+    "generated_at",
+    "output_dir",
+    "manifest_path",
+    "final_sheet",
+    "memory_stores",
+    "weeks",
+  ],
+  properties: {
+    schema_version: { const: 1 },
+    substrate: { type: "string", minLength: 1 },
+    generated_at: { type: "string", minLength: 1 },
+    output_dir: { type: "string", path: "absolute" },
+    manifest_path: { type: "string", path: "absolute" },
+    final_sheet: { type: "string", path: "absolute" },
+    memory_stores: { type: "object", additionalProperties: { type: "string" } },
+    weeks: {
+      type: "array",
+      minItems: 1,
+      items: {
+        type: "object",
+        required: [
+          "week",
+          "index",
+          "path",
+          "summary",
+          "history",
+          "screenshots",
+          "councilArtifacts",
+          "genealogyEvents",
+        ],
+      },
+    },
+  },
+} as const;
+
 const SCREENSHOT_NAMES = new Set(["mobile.png", "tablet.png", "desktop.png"]);
 const COUNCIL_ARTIFACT_NAMES = new Set([
   "plan.md",
@@ -115,7 +155,7 @@ function buildWeek(weekDir: string): DemoManifestWeek {
         councilArtifacts[key] = absolute(file);
       }
     }
-    if (/genealogy|critic-genealogy|spawn/i.test(file)) {
+    if (/^(critic-genealogy|genealogy|spawn).*(\.md|\.json|\.jsonl|\.txt)$/i.test(name)) {
       genealogyEvents.push(absolute(file));
     }
   }
@@ -141,7 +181,7 @@ function buildWeek(weekDir: string): DemoManifestWeek {
   };
 }
 
-function validateManifest(manifest: DemoManifest): void {
+export function validateDemoManifest(manifest: DemoManifest): void {
   if (manifest.schema_version !== 1) {
     throw new Error("manifest schema_version must be 1");
   }
@@ -269,7 +309,7 @@ export function buildDemoManifest(args: Args): DemoManifest {
     memory_stores: loadMemoryStores(args.memoryStoresPath, args.substrate),
     weeks: weekDirs.map(buildWeek),
   };
-  validateManifest(manifest);
+  validateDemoManifest(manifest);
   buildFinalSheet(manifest);
   writeFileSync(manifest.manifest_path, `${JSON.stringify(manifest, null, 2)}\n`);
   return manifest;

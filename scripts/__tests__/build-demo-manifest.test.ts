@@ -3,7 +3,11 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os";
 import { isAbsolute, join } from "node:path";
 import { describe, expect, test } from "bun:test";
-import { buildDemoManifest } from "../build-demo-manifest.ts";
+import {
+  buildDemoManifest,
+  DEMO_MANIFEST_SCHEMA,
+  validateDemoManifest,
+} from "../build-demo-manifest.ts";
 
 function requireMagick(): void {
   execFileSync("magick", ["-version"], { stdio: "ignore" });
@@ -48,9 +52,24 @@ describe("buildDemoManifest", () => {
     requireMagick();
     const outDir = mkdtempSync(join(tmpdir(), "webster-demo-manifest-"));
     const memoryPath = join(outDir, "memory-stores.json");
-    writeFileSync(memoryPath, JSON.stringify({ lp: { council: "mem_council" } }));
-    seedWeek(outDir, "week-00", "#7f1d1d");
+    writeFileSync(
+      memoryPath,
+      JSON.stringify({
+        lp: { council: "mem_council" },
+        site: { council: "mem_site_council" },
+      }),
+    );
     seedWeek(outDir, "week-10", "#14532d");
+    seedWeek(outDir, "week-00", "#7f1d1d");
+    seedWeek(outDir, "week-02", "#1e3a8a");
+    writeFileSync(
+      join(outDir, "week-00/history/decision.json"),
+      JSON.stringify({ selected: true }),
+    );
+    writeFileSync(
+      join(outDir, "week-00/history/spawn-event.json"),
+      JSON.stringify({ critic: "x" }),
+    );
 
     const manifest = buildDemoManifest({
       substrate: "lp",
@@ -63,18 +82,51 @@ describe("buildDemoManifest", () => {
     expect(readFileSync(join(outDir, "final-sheet.png")).subarray(0, 8).toString("hex")).toBe(
       "89504e470d0a1a0a",
     );
+    expect(DEMO_MANIFEST_SCHEMA.properties.schema_version.const).toBe(1);
     expect(manifest.schema_version).toBe(1);
     expect(manifest.memory_stores).toEqual({ council: "mem_council" });
-    expect(manifest.weeks.map((week) => week.week)).toEqual(["week-00", "week-10"]);
+    expect(isAbsolute(manifest.output_dir)).toBe(true);
+    expect(isAbsolute(manifest.manifest_path)).toBe(true);
+    expect(isAbsolute(manifest.final_sheet)).toBe(true);
+    expect(manifest.weeks.map((week) => week.week)).toEqual(["week-00", "week-02", "week-10"]);
     expect(isAbsolute(manifest.weeks[0]?.history.analytics ?? "")).toBe(true);
     expect(isAbsolute(manifest.weeks[0]?.screenshots.index?.desktop ?? "")).toBe(true);
     expect(isAbsolute(manifest.weeks[0]?.councilArtifacts["history/proposal.md"] ?? "")).toBe(true);
-    expect(manifest.weeks[0]?.genealogyEvents).toHaveLength(1);
+    expect(isAbsolute(manifest.weeks[0]?.councilArtifacts["history/decision.json"] ?? "")).toBe(
+      true,
+    );
+    expect(manifest.weeks[0]?.genealogyEvents).toHaveLength(2);
+    validateDemoManifest(manifest);
 
     const written = JSON.parse(
       readFileSync(join(outDir, "demo-manifest.json"), "utf8"),
     ) as typeof manifest;
     expect(written.final_sheet).toBe(manifest.final_sheet);
+  });
+
+  test("loads substrate-specific memory stores", () => {
+    requireMagick();
+    const outDir = mkdtempSync(join(tmpdir(), "webster-demo-manifest-site-memory-"));
+    const memoryPath = join(outDir, "memory-stores.json");
+    writeFileSync(
+      memoryPath,
+      JSON.stringify({
+        lp: { council: "mem_lp_council" },
+        site: { council: "mem_site_council", planner: "mem_site_planner" },
+      }),
+    );
+    seedWeek(outDir, "week-00", "#172554");
+
+    const manifest = buildDemoManifest({
+      substrate: "site",
+      outputDir: outDir,
+      memoryStoresPath: memoryPath,
+    });
+
+    expect(manifest.memory_stores).toEqual({
+      council: "mem_site_council",
+      planner: "mem_site_planner",
+    });
   });
 
   test("fails when final desktop screenshots are missing", () => {
