@@ -1,0 +1,31 @@
+node_modules/
+.env
+.env.local
+.env.*.local
+dist/
+build/
+.cache/
+.DS_Store
+*.log
+coverage/
+.claude/settings.local.json
+.claude/checkpoints/
+.claude/compactions/
+.wrangler/
+tmp/
+.eslintcache
+.claude/scheduled_tasks.lock
+*.zip
+!examples/**/*.zip
+
+# Ralph PRD artifacts — regenerated per dispatch
+.forge/ralph/
+
+# Webster generated asset dedup cache
+.webster/generated-cache/
+
+# Pi subagent transient outputs (scout context.md, planner plan.md at repo root)
+/context.md
+/plan.md
+/research.md
+

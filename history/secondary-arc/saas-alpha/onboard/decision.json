@@ -1,0 +1,26 @@
+{
+  "substrate": "saas-alpha",
+  "run": "onboard",
+  "selected_issues": [
+    {
+      "exp_id": "saas-onboard-hero-clarity",
+      "kind": "text",
+      "target_files": [
+        "site/secondary/saas-alpha/index.html"
+      ],
+      "proposed_change": "Clarify that the product replaces spreadsheet-heavy month-end workflows.",
+      "expected_outcome_lane": "promote-fast-track"
+    },
+    {
+      "exp_id": "saas-onboard-proof-stack",
+      "kind": "component",
+      "target_files": [
+        "site/secondary/saas-alpha/index.html"
+      ],
+      "proposed_change": "Move setup, security, and CRM-sync proof points beside the hero CTA.",
+      "expected_outcome_lane": "promote-gate-win"
+    }
+  ],
+  "reasoning": "Onboard run explores broad message clarity and trust proof before narrowing into lifecycle-specific experiments.",
+  "monitor_signal": "Baseline SaaS traffic shows high CTA hesitation from spreadsheet-replacement queries."
+}

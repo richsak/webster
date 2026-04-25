@@ -1,0 +1,12 @@
+{
+  "week_ending": "2026-04-23",
+  "sessions": 850,
+  "conversions": 6,
+  "bounce_rate_pct": 67,
+  "traffic_sources": {
+    "organic": 0.42,
+    "direct": 0.28,
+    "social": 0.18,
+    "referral": 0.12
+  }
+}

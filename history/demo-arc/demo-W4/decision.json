@@ -1,0 +1,25 @@
+{
+  "week": "demo-W4",
+  "selected_issues": [
+    {
+      "exp_id": "exp-08-hero-safety-copy",
+      "kind": "text",
+      "target_files": [
+        "site/src/components/Hero.astro"
+      ],
+      "proposed_change": "Tune the hero copy toward a calmer safety-and-confidence frame in response to week 3's higher-volatility experiments.",
+      "expected_outcome_lane": "promote-fast-track"
+    },
+    {
+      "exp_id": "exp-09-cta-size-adjust",
+      "kind": "css",
+      "target_files": [
+        "site/src/styles/components/buttons.css"
+      ],
+      "proposed_change": "Reduce CTA size variance so primary actions stay prominent without repeating the bounce-sensitive visual aggression from week 3.",
+      "expected_outcome_lane": "promote-fast-track"
+    }
+  ],
+  "reasoning": "Week 3 taught the planner to favor conservative tuning, preserve copy clarity, and treat bounce sensitivity as a first-class design constraint.",
+  "monitor_signal": "W3 exposed a bounce anomaly on visual changes, so the planner tuned more cautiously and looked for a dedicated bounce-risk critic."
+}

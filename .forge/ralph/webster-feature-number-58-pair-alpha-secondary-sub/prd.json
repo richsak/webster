@@ -1,0 +1,91 @@
+{
+  "project": "webster",
+  "branchName": "ralph/webster-feature-number-58-pair-alpha-secondary-sub",
+  "prdFile": "prd.md",
+  "description": "Seed Pair Alpha secondary SaaS and local-service substrates with deterministic mock run artifacts.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add deterministic secondary substrate model and HTML writers",
+      "description": "As a Webster implementation operator, I want deterministic SaaS and local-service HTML fixtures so that the submission can demonstrate council generalization beyond the primary substrate.",
+      "acceptanceCriteria": [
+        "Create `scripts/seed-secondary-substrates.ts` with `#!/usr/bin/env bun` and pure TypeScript imports from Node/Bun standard libraries only.",
+        "Define typed constants for exactly two substrates: `saas-alpha` and `local-service-alpha`.",
+        "Write `site/secondary/saas-alpha/index.html` and `site/secondary/local-service-alpha/index.html` as complete single-file HTML landing pages.",
+        "HTML output is deterministic and contains no remote scripts, remote stylesheets, or network-fetching code.",
+        "Export constants or helper functions needed by tests without executing `main()` on import.",
+        "Type-check passes",
+        "Tests pass"
+      ],
+      "technicalNotes": "Mirror `scripts/seed-demo-arc.ts:8-17` for ROOT/path constants and fs/path imports. Follow `scripts/seed-demo-arc.ts:21-64` for literal-union types/interfaces. The new script owns `site/secondary/` only for site output and must not touch `site/before/` or `site/after/`.",
+      "dependsOn": [],
+      "priority": 1,
+      "passes": true,
+      "notes": "Implemented in iteration 1. Files: scripts/seed-secondary-substrates.ts, site/secondary/saas-alpha/index.html, site/secondary/local-service-alpha/index.html."
+    },
+    {
+      "id": "US-002",
+      "title": "Write secondary mock run artifacts",
+      "description": "As a Webster implementation operator, I want onboard and two weekly mock runs per secondary substrate so that the demo can show a complete two-cycle council arc for each new vertical.",
+      "acceptanceCriteria": [
+        "Create `history/secondary-arc/saas-alpha/{onboard,week-1,week-2}/` and `history/secondary-arc/local-service-alpha/{onboard,week-1,week-2}/`.",
+        "Every run folder contains exactly the required artifact names: `proposal.md`, `decision.json`, `verdict.json`, and `apply-log.json`.",
+        "Each `proposal.md` includes experiment blocks with exp IDs, kind, target files, proposed change, and rationale.",
+        "Each `decision.json` includes substrate, run, selected issues, reasoning, and monitor signal fields that mirror the `history/demo-arc` decision convention.",
+        "Each `verdict.json` includes substrate, run, experiments, reward delta, p-value, classification, and outcome fields that mirror the `history/demo-arc` verdict convention.",
+        "Each `apply-log.json` records applied status, touched files, skipped rows, and notes for that run.",
+        "Type-check passes",
+        "Tests pass"
+      ],
+      "technicalNotes": "Follow writer shape in `scripts/seed-demo-arc.ts:393-419`: build typed objects, write `JSON.stringify(value, null, 2)` plus trailing newline, and generate Markdown proposal bodies from typed experiment specs. Use the outcome lane names from `scripts/seed-demo-arc.ts:25-31`.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Implemented in iteration 2. Files: scripts/seed-secondary-substrates.ts, history/secondary-arc/*/{onboard,week-1,week-2}/{proposal.md,decision.json,verdict.json,apply-log.json}."
+    },
+    {
+      "id": "US-003",
+      "title": "Wire CLI package script and scope guards",
+      "description": "As a Webster implementation operator, I want a single package command with strict output boundaries so that seeding is repeatable and cannot corrupt primary demo artifacts.",
+      "acceptanceCriteria": [
+        "Add `seed:secondary` to `package.json` scripts with value `bun scripts/seed-secondary-substrates.ts`.",
+        "The script removes/recreates or overwrites only `site/secondary/` and `history/secondary-arc/`.",
+        "The script never reads from or writes to `history/demo-arc/`, `site/before/`, or `site/after/`.",
+        "Running `bun run seed:secondary` exits 0 and prints a concise deterministic success message.",
+        "`main()` is guarded with `if (import.meta.main)` so tests can import the module safely.",
+        "Type-check passes",
+        "Tests pass"
+      ],
+      "technicalNotes": "Mirror CLI/export pattern in `scripts/seed-demo-arc.ts:485-510`. Add the package script near existing scripts in `package.json:12-23`. Protected paths are explicit feature requirements from `context/FEATURES.md:173` and the PRD input.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Implemented in iteration 3. Files: package.json; verified scripts/seed-secondary-substrates.ts guarded main and owned output boundaries."
+    },
+    {
+      "id": "US-004",
+      "title": "Add Bun tests for layout, idempotency, and protected paths",
+      "description": "As a Webster maintainer, I want automated tests around the seeder so that future changes cannot break file layout, determinism, or safety constraints.",
+      "acceptanceCriteria": [
+        "Create `scripts/__tests__/seed-secondary-substrates.test.ts` using Bun's `describe`, `test`, and `expect` APIs.",
+        "Test verifies both secondary HTML files and all six run folders exist after seeding.",
+        "Test verifies every run folder contains `proposal.md`, `decision.json`, `verdict.json`, and `apply-log.json`.",
+        "Test captures contents of all seeded files, runs the seeder a second time, and asserts byte-identical contents for idempotency.",
+        "Test fingerprints `history/demo-arc/`, `site/before/`, and `site/after/` before and after seeding and asserts they are unchanged.",
+        "`bun test` passes.",
+        "`bun run validate` passes."
+      ],
+      "technicalNotes": "Follow filesystem testing style in `scripts/__tests__/memory.test.ts:1-85`: import Bun test helpers, use fs/path utilities, and cleanly assert deterministic data. Existing tests import source modules directly, as shown by `scripts/__tests__/critic-genealogy.test.ts:1-18`.",
+      "dependsOn": [
+        "US-003"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Implemented in iteration 4. Files: scripts/__tests__/seed-secondary-substrates.test.ts."
+    }
+  ]
+}

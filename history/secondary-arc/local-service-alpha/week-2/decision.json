@@ -1,0 +1,26 @@
+{
+  "substrate": "local-service-alpha",
+  "run": "week-2",
+  "selected_issues": [
+    {
+      "exp_id": "local-w2-photo-proof",
+      "kind": "asset",
+      "target_files": [
+        "site/secondary/local-service-alpha/index.html"
+      ],
+      "proposed_change": "Add a local before-after proof placeholder using inline CSS shapes only.",
+      "expected_outcome_lane": "auto-rollback"
+    },
+    {
+      "exp_id": "local-w2-crew-care",
+      "kind": "text",
+      "target_files": [
+        "site/secondary/local-service-alpha/index.html"
+      ],
+      "proposed_change": "Emphasize landscaping protection and completion review in the careful-crews card.",
+      "expected_outcome_lane": "promote-gate-win"
+    }
+  ],
+  "reasoning": "Week 2 rejects synthetic visual proof when it harms trust and promotes crew-care reassurance instead.",
+  "monitor_signal": "Rollback lane triggered for photo-proof placeholder; crew-care copy improved quote completion."
+}

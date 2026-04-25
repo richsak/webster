@@ -1,0 +1,219 @@
+name: webster-idea-to-pr
+description: |
+  Webster-local fork of forge-idea-to-pr. Every LLM node routes to a Pi profile
+  so no claude -p child process spawns and conflicts with the dispatcher's
+  Claude subscription.
+
+  Use when: You have a feature idea or description and want end-to-end development.
+  Input: Feature description in natural language, path to a PRD file, or path to a project-brief artifact
+  Output: PR ready for merge with comprehensive review completed
+
+  Differences vs forge-idea-to-pr:
+  - create-plan / plan-setup / confirm-plan / docs-fetch-plan → pi-planning-operator (gpt-5.5 low)
+  - implement-tasks → pi-implement-heavy (gpt-5.5 medium), no Claude Opus
+  - validate → pi-fix-operator (gpt-5.4-mini medium)
+  - finalize-pr / sync / workflow-summary → pi-light (gpt-5.4-mini medium)
+  - review agents + synthesize → pi-review-operator (gpt-5.4-mini medium)
+  - implement-fixes → pi-fix-operator (gpt-5.4-mini medium)
+
+nodes:
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 0: CREATE PLAN
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: create-plan
+    command: forge-create-plan
+    context: fresh
+    profile: pi-planning-operator
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 1: SETUP
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: plan-setup
+    command: forge-plan-setup
+    profile: pi-planning-operator
+    depends_on: [create-plan]
+    context: fresh
+
+  - id: plan-admission-gate
+    runtime: bun
+    script: |
+      const artifact = JSON.parse(require("node:fs").readFileSync("$ARTIFACTS_DIR/plan-admission.json", "utf8"));
+      const decision = artifact.plan?.decision;
+      if (decision?.status !== "ready") {
+        const reasons = Array.isArray(decision?.reasons) && decision.reasons.length > 0
+          ? ` Reasons: ${decision.reasons.join("; ")}`
+          : "";
+        throw new Error(`Plan admission blocked with status "${decision?.status ?? "unknown"}".${reasons}`);
+      }
+      console.log(`Plan admission ready: ${decision.summary ?? "bounded chunk approved"}`);
+    depends_on: [plan-setup]
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 2: CONFIRM PLAN
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: confirm-plan
+    command: forge-confirm-plan
+    profile: pi-planning-operator
+    depends_on: [plan-admission-gate]
+    context: fresh
+
+  - id: docs-fetch-plan
+    command: forge-build-docs-fetch-plan
+    profile: pi-planning-operator
+    depends_on: [confirm-plan]
+    context: fresh
+
+  - id: docs-fetch-plan-gate
+    runtime: bun
+    script: |
+      const artifact = JSON.parse(require("node:fs").readFileSync("$ARTIFACTS_DIR/docs-fetch-plan.json", "utf8"));
+      if (!["ready", "not_required"].includes(artifact.status)) {
+        throw new Error(`Expected docs-fetch-plan.json status to be "ready" or "not_required", got "${artifact.status ?? "unknown"}".`);
+      }
+      console.log(`Docs fetch plan ready: ${artifact.status}`);
+    depends_on: [docs-fetch-plan]
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 3: IMPLEMENT
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: implement-tasks
+    command: forge-implement-tasks
+    profile: pi-implement-heavy
+    depends_on: [confirm-plan, docs-fetch-plan-gate]
+    context: fresh
+
+  - id: implementation-handoff-gate
+    runtime: bun
+    script: |
+      const artifact = JSON.parse(require("node:fs").readFileSync("$ARTIFACTS_DIR/implementation.json", "utf8"));
+      if (artifact.kind !== "implementation") {
+        throw new Error(`Expected implementation.json to have kind "implementation", got "${artifact.kind ?? "unknown"}".`);
+      }
+      console.log(`Implementation handoff ready: ${artifact.summary ?? "implementation artifact present"}`);
+    depends_on: [implement-tasks]
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 4: VALIDATE
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: validate
+    command: forge-validate
+    profile: pi-fix-operator
+    depends_on: [implementation-handoff-gate]
+    context: fresh
+
+  - id: validation-handoff-gate
+    runtime: bun
+    script: |
+      const artifact = JSON.parse(require("node:fs").readFileSync("$ARTIFACTS_DIR/validation.json", "utf8"));
+      if (artifact.kind !== "validation") {
+        throw new Error(`Expected validation.json to have kind "validation", got "${artifact.kind ?? "unknown"}".`);
+      }
+      console.log(`Validation handoff ready: ${artifact.summary ?? "validation artifact present"}`);
+    depends_on: [validate]
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 5: FINALIZE PR
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: finalize-pr
+    command: forge-finalize-pr
+    profile: pi-light
+    depends_on: [validation-handoff-gate]
+    context: fresh
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 6: CODE REVIEW
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: review-scope
+    command: forge-pr-review-scope
+    profile: pi-review-operator
+    depends_on: [finalize-pr]
+    context: fresh
+
+  - id: sync
+    command: forge-sync-pr-with-main
+    profile: pi-light
+    depends_on: [review-scope]
+    context: fresh
+
+  - id: code-review
+    command: forge-code-review-agent
+    depends_on: [sync]
+    context: fresh
+    profile: pi-review-operator
+
+  - id: error-handling
+    command: forge-error-handling-agent
+    depends_on: [sync]
+    context: fresh
+    profile: pi-review-operator
+
+  - id: test-coverage
+    command: forge-test-coverage-agent
+    depends_on: [sync]
+    context: fresh
+    profile: pi-review-operator
+
+  - id: comment-quality
+    command: forge-comment-quality-agent
+    depends_on: [sync]
+    context: fresh
+    profile: pi-review-operator
+
+  - id: docs-impact
+    command: forge-docs-impact-agent
+    depends_on: [sync]
+    context: fresh
+    profile: pi-review-operator
+
+  - id: synthesize
+    command: forge-synthesize-review
+    depends_on: [code-review, error-handling, test-coverage, comment-quality, docs-impact]
+    context: fresh
+    profile: pi-review-operator
+
+  - id: review-handoff-gate
+    runtime: bun
+    script: |
+      const artifact = JSON.parse(require("node:fs").readFileSync("$ARTIFACTS_DIR/review/review.json", "utf8"));
+      if (artifact.kind !== "review") {
+        throw new Error(`Expected review.json to have kind "review", got "${artifact.kind ?? "unknown"}".`);
+      }
+      console.log(`Review handoff ready: ${artifact.summary ?? "review artifact present"}`);
+    depends_on: [synthesize]
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 7: FIX REVIEW ISSUES
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: implement-fixes
+    command: forge-implement-review-fixes
+    depends_on: [review-handoff-gate]
+    context: fresh
+    profile: pi-fix-operator
+
+  - id: review-fix-handoff-gate
+    runtime: bun
+    script: |
+      const artifact = JSON.parse(require("node:fs").readFileSync("$ARTIFACTS_DIR/review/review-fix.json", "utf8"));
+      if (artifact.kind !== "review_fix") {
+        throw new Error(`Expected review-fix.json to have kind "review_fix", got "${artifact.kind ?? "unknown"}".`);
+      }
+      console.log(`Review fix handoff ready: ${artifact.summary ?? "review-fix artifact present"}`);
+    depends_on: [implement-fixes]
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 8: FINAL SUMMARY & FOLLOW-UP
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: workflow-summary
+    command: forge-workflow-summary
+    profile: pi-light
+    depends_on: [review-fix-handoff-gate]
+    context: fresh

@@ -1,0 +1,7 @@
+{
+  "decision": "merge",
+  "rationale": "High-quality traceable brief; apply + review/fix loop queued as v2 roadmap, not a gate on week 1.",
+  "pr_url": "https://github.com/richsak/webster/pull/1",
+  "merge_sha": "98ebde1d055b9e3d4b67ba41b2de88e939819f00",
+  "timestamp": "2026-04-23T21:07:36Z"
+}

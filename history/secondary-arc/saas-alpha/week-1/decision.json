@@ -1,0 +1,26 @@
+{
+  "substrate": "saas-alpha",
+  "run": "week-1",
+  "selected_issues": [
+    {
+      "exp_id": "saas-w1-audit-cta",
+      "kind": "text",
+      "target_files": [
+        "site/secondary/saas-alpha/index.html"
+      ],
+      "proposed_change": "Change the primary CTA toward a low-friction workflow audit instead of a sales demo.",
+      "expected_outcome_lane": "promote-fallback"
+    },
+    {
+      "exp_id": "saas-w1-export-card",
+      "kind": "component",
+      "target_files": [
+        "site/secondary/saas-alpha/index.html"
+      ],
+      "proposed_change": "Add an executive-ready exports card that explains board-report narrative output.",
+      "expected_outcome_lane": "hold"
+    }
+  ],
+  "reasoning": "Week 1 narrows into CTA intent and executive reporting proof after onboard clarity gains stabilized.",
+  "monitor_signal": "Audit CTA clicks rose, but exports-card engagement did not clear the promotion gate."
+}

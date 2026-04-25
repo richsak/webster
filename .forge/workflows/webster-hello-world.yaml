@@ -1,0 +1,47 @@
+name: webster-hello-world
+description: |
+  Use when: Smoke-testing Pi worker dispatch from Webster's cwd.
+  Triggers: "webster hello world", "pi smoke test".
+
+  Minimal one-node workflow. Uses the pi-ralph-implement profile (Pi/Codex gpt-5.4 high).
+  Writes a file and exits. Proves Pi dispatch works from Webster before we invest in
+  workflow forking or profile copying.
+
+nodes:
+  - id: hello
+    profile: pi-ralph-implement
+    idle_timeout: 180000
+    prompt: |
+      # Pi Worker Smoke Test
+
+      You are in a fresh Pi worker session inside a Forge worktree for the Webster repo.
+
+      ## Your single task
+
+      Create a file named `HELLO.md` in the worktree root with exactly this content:
+
+      ```
+      hello from pi
+      ```
+
+      That is one line, no trailing blank lines, no extra content.
+
+      ## Steps
+
+      1. `pwd` — confirm you are in a worktree root (should contain `package.json`).
+      2. Write `HELLO.md` with the single line `hello from pi`.
+      3. `cat HELLO.md` to verify.
+      4. `git status` — confirm `HELLO.md` appears as untracked.
+      5. `git add HELLO.md && git commit -m "chore: pi hello-world smoke test"` — commit it.
+      6. Exit with output: `HELLO_OK`.
+
+      ## Non-goals
+
+      - Do NOT run `bun run validate` or any build commands.
+      - Do NOT touch any other files.
+      - Do NOT open a PR.
+      - Do NOT attempt anything beyond the six steps above.
+
+      ## User input (ignore)
+
+      $USER_MESSAGE

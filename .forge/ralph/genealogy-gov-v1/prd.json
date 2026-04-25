@@ -1,0 +1,75 @@
+{
+  "project": "Webster",
+  "branchName": "ralph/genealogy-gov-v1",
+  "prdFile": "prd.md",
+  "description": "Implement Feature #55 genealogy governance layers 2-4: dedup, 13-week cap, and archive-on-idle.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Layer 2 embedding dedup blocks overlapping critic specs",
+      "description": "As a Webster operator, I want new critic specs rejected when their scope substantially overlaps an existing critic so that genealogy does not create duplicate weekly agents.",
+      "acceptanceCriteria": [
+        "Add an orchestrator-side dedup helper in scripts/critic-genealogy.ts that compares a candidate NewCriticSpec against active CriticSummary entries using embedding cosine similarity over scope and description text.",
+        "Reject candidate specs with cosine similarity >= 0.60 to any active critic before registerAgent() performs POST /v1/agents.",
+        "Governance rejection prints the closest existing critic name, similarity score, and candidate scope without registering an agent or creating a session.",
+        "Dry-run mode still runs and reports the dedup decision before printing a would-register spec.",
+        "Unit tests cover below-threshold allow, exactly-0.60 reject, and above-threshold reject behavior without live Anthropic network calls.",
+        "Type-check passes",
+        "Tests pass",
+        "bun run validate passes"
+      ],
+      "technicalNotes": "Modify scripts/critic-genealogy.ts around NewCriticSpec/CriticSummary definitions (lines 31-60), active critic loading (lines 155-168), and the main flow before registerAgent() (lines 457+ and main registration section). Follow fail-fast error style from lines 339-356. Add tests in scripts/__tests__/critic-genealogy.test.ts mirroring direct helper tests at lines 93-120 and 160-203. Existing agents expose metadata.scope and description in agents/*-critic.json.",
+      "dependsOn": [],
+      "priority": 1,
+      "passes": true,
+      "notes": "Implemented in iteration 1. Files: scripts/critic-genealogy.ts, scripts/__tests__/critic-genealogy.test.ts, .forge/ralph/genealogy-gov-v1/prd.md."
+    },
+    {
+      "id": "US-002",
+      "title": "Layer 3 13-week cap with operator soft override",
+      "description": "As a Webster operator, I want a maximum of 3 new critics per 13 weeks with a deliberate override flag so that genealogy growth is bounded but not blocked in exceptional cases.",
+      "acceptanceCriteria": [
+        "Add a CLI soft-override flag, named --override-quarterly-cap or equivalent, to parseArgs() and CLIArgs in scripts/critic-genealogy.ts.",
+        "Count spawned critic specs from history/<YYYY-MM-DD>/genealogy/spec.json in the rolling 13-week window ending at args.weekDate.",
+        "Block registration when the count is already 3 or more and the override flag is false.",
+        "Allow registration when the count is 3 or more only if the override flag is true, and print an explicit operator override message.",
+        "Ignore malformed or missing non-genealogy history directories only when they are irrelevant; malformed in-window genealogy spec data fails loudly with an actionable error.",
+        "Unit tests cover count 0, count 2 allow, count 3 block, count 3 with override allow, and boundary dates at exactly 13 weeks.",
+        "Type-check passes",
+        "Tests pass",
+        "bun run validate passes"
+      ],
+      "technicalNotes": "Extend scripts/critic-genealogy.ts parseArgs() at lines 72-105 and printUsage() at lines 107-115. Use writeArtifacts() output convention at lines 570-585: each spawn writes history/<week>/genealogy/spec.json. Gate the main flow before registerAgent() and createSession(). Add parseArgs tests beside scripts/__tests__/critic-genealogy.test.ts lines 44-75 and helper tests with temporary history fixtures.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Implemented in iteration 2. Files: scripts/critic-genealogy.ts, scripts/__tests__/critic-genealogy.test.ts."
+    },
+    {
+      "id": "US-003",
+      "title": "Layer 4 archive idle spawned critics",
+      "description": "As a Webster operator, I want spawned critics with no promoted findings in 8 weeks archived so that inactive council members stop consuming weekly attention and tokens.",
+      "acceptanceCriteria": [
+        "Add archive-on-idle logic in scripts/critic-genealogy.ts that evaluates spawned critics and moves idle specs from agents/<name>.json to agents/archive/<name>.json.",
+        "A spawned critic is archived only when it has 0 findings promoted across the last 8 weeks; critics with at least 1 promoted finding in that window remain active.",
+        "Original committed baseline critics are not archived by the idle rule unless history proves they were genealogy-spawned.",
+        "loadExistingCritics() continues to load only active agents/*-critic.json files and excludes agents/archive/*.json by path.",
+        "Archive actions create agents/archive/ if missing and preserve the JSON spec byte-for-byte except for formatting caused by existing JSON write conventions if needed.",
+        "Unit tests cover idle spawned critic archived, active spawned critic retained, original critic retained, and archived critic excluded from active critic summaries.",
+        "Type-check passes",
+        "Tests pass",
+        "bun run validate passes"
+      ],
+      "technicalNotes": "Implement in scripts/critic-genealogy.ts near loadExistingCritics() lines 155-168 and main startup before active critic summary logging. Use agents/*-critic.json naming shown by agents/brand-voice-critic.json and peers. Use genealogy provenance from history/<week>/genealogy/spec.json created by writeArtifacts() lines 570-585. Add tests in scripts/__tests__/critic-genealogy.test.ts next to loadExistingCritics tests at lines 78-90; use temporary fixture directories or exported pure helpers to avoid mutating real agents during tests.",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Implemented in iteration 3. Files: scripts/critic-genealogy.ts, scripts/__tests__/critic-genealogy.test.ts."
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "substrate": "local-service-alpha",
+  "run": "week-2",
+  "applied": true,
+  "touched_files": [
+    "site/secondary/local-service-alpha/index.html"
+  ],
+  "skipped": [
+    {
+      "exp_id": "local-w2-photo-proof",
+      "reason": "Synthetic visual proof increased mistrust and triggered rollback."
+    }
+  ],
+  "notes": "Rolled back photo-proof placeholder and applied crew-care reassurance copy."
+}

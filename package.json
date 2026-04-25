@@ -1,0 +1,38 @@
+{
+  "name": "webster",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A Council of Claude Managed Agents that autonomously redesigns small-business landing pages weekly.",
+  "license": "MIT",
+  "repository": "github:richsak/webster",
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "lint": "eslint . --cache",
+    "lint:fix": "eslint . --cache --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "apply-worker": "bun scripts/apply-worker-cli.ts",
+    "seed:secondary": "bun scripts/seed-secondary-substrates.ts",
+    "validate:agents": "bun scripts/validate-agents.ts",
+    "validate:findings": "bun scripts/validate-findings.ts",
+    "validate:md": "markdownlint-cli2",
+    "validate": "bun run type-check && bun run lint --max-warnings 0 && bun run format:check && bun run validate:agents && bun run validate:findings && bun run validate:md && bun test",
+    "test": "bun test",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "eslint": "^9.18.0",
+    "husky": "^9.1.7",
+    "markdownlint-cli2": "^0.17.2",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.22.0"
+  }
+}

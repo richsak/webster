@@ -1,0 +1,88 @@
+## Codebase Patterns
+
+### Deterministic local genealogy artifacts
+- **Where**: `scripts/seed-demo-arc.ts`
+- **Pattern**: Model demo-only critic genealogy with typed constants satisfying `NewCriticSpec` and `AgentJSON`, then write those JSON payloads under the week-local `history/demo-arc/demo-W4/genealogy/` directory. Do not mutate live `agents/` specs or call Managed Agent APIs from the seeder.
+- **Example**: `BOUNCE_GUARD_CRITIC_SPEC satisfies NewCriticSpec` and `BOUNCE_GUARD_AGENT_JSON satisfies AgentJSON`.
+
+### Outcome lane mapping for demo baselines and memory
+- **Where**: `scripts/seed-demo-arc.ts`
+- **Pattern**: Keep experiment specs as the single source of truth, then derive baseline status and final memory event from `experiment.outcome`.
+- **Example**: `archive-gate-fail -> archived-gate-fail + regression`, `auto-rollback -> rolled-back + rollback`, `hold -> no baseline row + skip`.
+
+---
+
+## 2026-04-24T07:55:39Z — US-003: Add W3 gate-fail and auto-rollback seeding
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/seed-demo-arc.ts` — added W3 writer and lane-specific baseline/memory helpers.
+- `history/demo-arc/demo-W3/proposal.md` — seeded W3 proposal artifacts.
+- `history/demo-arc/demo-W3/decision.json` — seeded W3 planner decision artifacts.
+- `history/demo-arc/demo-W3/verdict.json` — seeded W3 verdict artifacts.
+- `history/demo-arc/baselines.jsonl` — added W3 archive/rollback rows with no held-experiment promotion.
+- `history/demo-arc/memory.jsonl` — added W3 verdict-ready plus regression/rollback/skip final events.
+- `.forge/ralph/seed-demo-arc-w3w4-v5/prd.md` — removed emphasis from generated footer so repository markdown validation passes.
+
+**Acceptance criteria verified**:
+- [x] `bun scripts/seed-demo-arc.ts` writes `history/demo-arc/demo-W3/proposal.md`, `decision.json`, and `verdict.json`.
+- [x] W3 verdict includes `exp-05-mid-section-image-swap` with outcome `archive-gate-fail` and a failing `bounce_rate` gate.
+- [x] W3 verdict includes `exp-06-cta-color-shift` with outcome `auto-rollback`, classification `hurt`, and `reward_delta_pct` of `-11`.
+- [x] W3 verdict includes `exp-07-subhead-rewrite` with outcome `hold` and classification `neutral`.
+- [x] `history/demo-arc/baselines.jsonl` records W3 lane statuses as `archived-gate-fail`, `rolled-back`, and no promoted baseline for the held experiment.
+- [x] `history/demo-arc/memory.jsonl` contains W3 rows whose final events reflect archive/rollback/hold behavior rather than labeling every W3 experiment as a promotion.
+- [x] Running the seeder twice produces deterministic W3 output under `history/demo-arc/` and does not write outside that directory.
+- [x] `bun run validate` passes.
+
+**Learnings**:
+- `progress.txt` was absent at iteration start, so this iteration created it with a codebase pattern section.
+- The existing W3 specs already contained the required verdict details; implementation only needed orchestration plus derived baseline/memory semantics.
+- `bun run validate` initially failed on the generated PRD footer being emphasis-only markdown; removing the emphasis made markdownlint pass.
+
+**Verification**:
+- `bun scripts/seed-demo-arc.ts && cp -R history/demo-arc /tmp/demo-arc-first && bun scripts/seed-demo-arc.ts && diff -qr /tmp/demo-arc-first history/demo-arc`
+- `jq '.experiments[] | {exp_id,outcome,classification,reward_delta_pct,gates}' history/demo-arc/demo-W3/verdict.json`
+- `grep 'exp-0[567]' history/demo-arc/baselines.jsonl`
+- `grep 'demo-W3' history/demo-arc/memory.jsonl`
+- `bun run type-check && bun run lint --max-warnings 0 && bun run test && bun run format:check && bun run validate`
+
+---
+
+## 2026-04-24T07:59:41Z — US-004: Add W4 conservative wins and genealogy spawn
+
+**Status**: PASSED
+**Files changed**:
+- `scripts/seed-demo-arc.ts` — added W4 writer, deterministic bounce-guard genealogy payloads, W4 gap-detected memory row, and demo-W4 completion output.
+- `history/demo-arc/demo-W4/proposal.md` — seeded W4 proposal artifacts.
+- `history/demo-arc/demo-W4/decision.json` — seeded W4 planner decision artifacts.
+- `history/demo-arc/demo-W4/verdict.json` — seeded W4 verdict artifacts for exp-08 and exp-09.
+- `history/demo-arc/demo-W4/genealogy/new-critic-spec.json` — seeded `NewCriticSpec`-shaped bounce-guard critic payload.
+- `history/demo-arc/demo-W4/genealogy/agent-registration.json` — seeded `AgentJSON`-shaped critic registration payload.
+- `history/demo-arc/baselines.jsonl` — added W4 promoted baseline rows.
+- `history/demo-arc/memory.jsonl` — added W4 gap-detected genealogy trigger and W4 verdict/promote rows.
+- `context/FEATURES.md` — marked feature #57 done.
+
+**Acceptance criteria verified**:
+- [x] `bun scripts/seed-demo-arc.ts` writes `history/demo-arc/demo-W4/proposal.md`, `decision.json`, and `verdict.json`.
+- [x] W4 verdict includes `exp-08-hero-safety-copy` and `exp-09-cta-size-adjust` as passing conservative experiments.
+- [x] Outcome coverage across W1-W4 includes exactly these six lanes at minimum: `promote-fast-track`, `promote-fallback`, `promote-gate-win`, `archive-gate-fail`, `auto-rollback`, and `hold`.
+- [x] The seeder writes one W4 genealogy-spawned critic spec for a bounce-risk concern under `history/demo-arc/demo-W4/genealogy/`.
+- [x] The genealogy artifacts include a `NewCriticSpec`-shaped JSON payload and an `AgentJSON`-shaped critic registration payload using the existing exported interfaces.
+- [x] W4 memory rows include a `gap-detected` event or equivalent genealogy trigger referencing the W3 bounce/gate-fail pattern and the spawned critic.
+- [x] The script completion message reflects seeding through demo-W4 instead of demo-W2.
+- [x] Running the seeder twice produces deterministic W4/genealogy output under `history/demo-arc/` and does not write outside that directory.
+- [x] `bun run validate` passes.
+
+**Learnings**:
+- W4 experiment specs already contained the conservative passing outcomes, so implementation needed orchestration and genealogy artifact emission rather than new experiment modeling.
+- The seeder's exported interfaces can enforce local demo payload shape with `satisfies` while still avoiding live Managed Agent registration.
+- Prettier reformats the long `context/FEATURES.md` table row when feature #57 status changes.
+
+**Verification**:
+- `bun scripts/seed-demo-arc.ts && cp -R history/demo-arc /tmp/demo-arc-first && bun scripts/seed-demo-arc.ts && diff -qr /tmp/demo-arc-first history/demo-arc`
+- `jq -r '.experiments[].outcome' history/demo-arc/demo-W*/verdict.json | sort -u`
+- `jq '.experiments[] | {exp_id,outcome,classification,reward_delta_pct,gates}' history/demo-arc/demo-W4/verdict.json`
+- `grep 'gap-detected' history/demo-arc/memory.jsonl`
+- `bun run type-check && bun run lint --max-warnings 0 && bun run test && bun run format:check && bun run validate`
+
+---

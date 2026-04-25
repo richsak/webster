@@ -1,0 +1,99 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        run: bun run type-check
+
+      - name: Lint (zero warnings)
+        run: bun run lint --max-warnings 0
+
+      - name: Check formatting
+        run: bun run format:check
+
+      - name: Validate agent + environment specs
+        run: bun run validate:agents
+
+      - name: Validate findings format
+        run: bun run validate:findings
+
+      - name: Markdown lint
+        run: bun run validate:md
+
+      - name: Run tests
+        run: bun run test
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Shellcheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: "."
+          ignore_paths: "node_modules site tmp history .claude/checkpoints .claude/compactions"
+          additional_files: ".husky/pre-commit"
+          severity: warning
+
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Actionlint
+        uses: reviewdog/action-actionlint@v1
+        with:
+          reporter: github-check
+          fail_level: error
+
+  site-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check site/ exists
+        id: site-check
+        run: |
+          if [[ -d site && -f site/package.json ]]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "site/ not yet forked — skipping site build"
+          fi
+
+      - name: Setup Bun
+        if: steps.site-check.outputs.exists == 'true'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install site dependencies
+        if: steps.site-check.outputs.exists == 'true'
+        working-directory: site
+        run: bun install --frozen-lockfile
+
+      - name: Astro build check
+        if: steps.site-check.outputs.exists == 'true'
+        working-directory: site
+        run: bun run build

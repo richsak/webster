@@ -1,0 +1,10 @@
+{
+  "substrate": "local-service-alpha",
+  "run": "onboard",
+  "applied": true,
+  "touched_files": [
+    "site/secondary/local-service-alpha/index.html"
+  ],
+  "skipped": [],
+  "notes": "Applied urgency copy and quote-trust proof to the local-service fixture."
+}

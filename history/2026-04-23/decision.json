@@ -1,0 +1,175 @@
+{
+  "week": "2026-04-23",
+  "selected_issues": [
+    {
+      "owner": "conversion",
+      "severity": "CRITICAL",
+      "issue": "All five booking CTAs route to href=\"#\"; Acuity scheduling URL appears nowhere in rendered page source, making booking impossible from the LP.",
+      "evidence": "conversion/findings.md: 'Every \"BOOK YOUR FREE CALL\" and \"BOOK YOUR FREE STRATEGY CALL\" anchor dead-ends at a null fragment instead of routing to app.acuityscheduling.com/schedule.php?owner=16697295. Booking is impossible from this page.' SEO findings.md independently confirms: 'five \"BOOK YOUR FREE CALL\" anchors plus four footer nav links … all point to href=\"#\"'.",
+      "proposed_change": "Replace all five CTA href=\"#\" with href=\"https://app.acuityscheduling.com/schedule.php?owner=16697295\", add target=\"_blank\" rel=\"noopener\", add data-cta=\"book-strategy-call\" for analytics, and standardise the label to \"BOOK YOUR FREE STRATEGY CALL\" everywhere (closes conversion MEDIUM on label inconsistency and brand-voice LOW on CTA copy mismatch).",
+      "files_touched": [
+        "site/src/pages/index.astro",
+        "site/src/components/Nav.astro",
+        "site/src/components/FinalCTA.astro"
+      ]
+    },
+    {
+      "owner": "fh-compliance",
+      "severity": "CRITICAL",
+      "issue": "DSocSci / non-MD disclaimer entirely absent from the page, and the required medical-advice disclaimer is missing from the footer. Nicolette is branded \"FOUNDER & MASTER CLINICIAN\" adjacent to disease-reversal claims.",
+      "evidence": "fh-compliance/findings.md: 'DSocSci / non-MD disclaimer is entirely absent from the page — Nicolette is called \"FOUNDER & MASTER CLINICIAN\" and health-outcome claims appear throughout, yet no disclaimer stating \"Dr. Nicolette Richer holds a Doctorate in Social Sciences (DSocSci). She is not a licensed medical doctor.\" appears anywhere on the LP.' and 'Medical-advice disclaimer absent from footer and page body'. brand-voice/findings.md echoes the same gap as CRITICAL. business.md lists the disclaimer as a standing identity rule.",
+      "proposed_change": "In FounderSection.astro, replace \"FOUNDER & MASTER CLINICIAN / Dr. Nicolette Richer\" with \"FOUNDER, RICHER HEALTH / Dr. Nicolette Richer, DSocSci\" plus a scope-note paragraph that names the Royal Roads University doctorate and explicitly states she is not a licensed medical doctor and does not diagnose, treat, or prescribe. In Footer.astro, prepend a medical-disclaimer paragraph above the nav row and replace the four href=\"#\" footer links with real routes (/privacy, /terms, /clinical-standards, mailto:).",
+      "files_touched": [
+        "site/src/components/FounderSection.astro",
+        "site/src/components/Footer.astro"
+      ]
+    },
+    {
+      "owner": "fh-compliance",
+      "severity": "CRITICAL",
+      "issue": "Unhedged clinical-authority language throughout the founder section: \"25 years reversing chronic disease. Cancer, diabetes, autoimmune, mental health.\", \"72K+ Patients Treated\", and the unqualified Gerson/Campbell/Barnard lineage implies licensed medical practice.",
+      "evidence": "fh-compliance/findings.md: 'Disease-reversal claim, unhedged — … The verb \"reversing\" applied to named diseases (especially cancer) constitutes a therapeutic cure/treatment claim that requires Rx-drug-style substantiation under Health Canada / FTC guidelines.' and '\"72K+ Patients Treated\" — the word \"Treated\" (capital T, stat callout) implies a licensed medical treatment relationship. DSocSci practitioners see clients, not patients, and do not \"treat\" in the legal/clinical sense.' and LOW on the training-lineage sentence without a credential-scope qualifier.",
+      "proposed_change": "Rewrite the founder lede to hedge disease language (\"25 years of nutrition-and-lifestyle education that has helped clients reduce the burden of chronic conditions … alongside their physicians' care\"). Change the 72K stat label from \"Patients Treated\" to \"Clients Served\". Rewrite the training-lineage sentence in first person with an explicit scope clip: \"I trained under Charlotte Gerson, Dr. T. Colin Campbell, and Dr. Neal Barnard — educators in the nutrition-and-lifestyle tradition, not medical-treatment protocols.\" (closes copy MEDIUM on the passive \"Trained under…\" construction).",
+      "files_touched": [
+        "site/src/components/FounderSection.astro",
+        "site/src/components/StatsRow.astro"
+      ]
+    },
+    {
+      "owner": "copy",
+      "severity": "CRITICAL",
+      "issue": "Hero H1 \"YOUR PRACTICE. THEIR PLAYBOOK. PATIENTS NOTICE.\" fails one-read clarity (\"THEIR\" has no clear referent); H1 carries zero keyword surface; subhead is feature-framed not outcome-framed; ICP qualifier only appears at the bottom of the page.",
+      "evidence": "copy/findings.md CRITICAL: '\"THEIR\" has no clear referent on a cold read … The three fragments resolve only after reading the subheadline, violating the one-read test for a hero headline.' seo/findings.md HIGH: 'H1 contains zero keyword signal — … terms a clinic director would search (\"N&D team certification\", \"clinical protocol training\", \"nutrition certification for clinics\", \"practitioner alignment program\") appear nowhere in the H1'. copy/findings.md HIGH on feature-framed subhead and MEDIUM on ICP qualifier placement.",
+      "proposed_change": "Rewrite hero H1 to \"N&D Team Certification for Multi-Practitioner Clinics. One protocol. Every practitioner. No more patient churn.\" and subhead to \"Built for clinical group directors: unify your team on a single evidence-based nutrition & detoxification protocol — so patients get the same answer from every practitioner, and stop walking out the door.\" One edit in Hero.astro closes four findings across two critics: clarity, keyword surface, outcome framing, and first-scroll ICP.",
+      "files_touched": [
+        "site/src/components/Hero.astro"
+      ]
+    },
+    {
+      "owner": "seo",
+      "severity": "CRITICAL",
+      "issue": "Head-tag instrumentation is entirely missing: no JSON-LD structured data, no canonical tag, no meta description, no Open Graph or Twitter Card tags, and the existing title carries no primary keywords. The LP is invisible to Google Rich Results and social preview systems.",
+      "evidence": "seo/findings.md: 'No JSON-LD structured data present — page source contains no <script type=application/ld+json> block' (CRITICAL), 'Canonical tag absent' (CRITICAL), 'Meta description absent' (HIGH), 'Open Graph and Twitter Card tags absent' (MEDIUM), 'Title tag carries no primary keywords — <title>Stop Practitioner Roulette | Richer Health</title> is a tagline; target terms … are absent' (MEDIUM).",
+      "proposed_change": "In the root Layout.astro head, replace the existing <title> with \"N&D Team Certification for Clinics | Richer Health\"; add meta description naming the offer and ICP; add <link rel=canonical href=\"https://certified.richerhealth.ca/\">; add og:type/url/title/description/image and twitter:card/title/description/image meta; add a JSON-LD @graph block with Person (Dr. Nicolette Richer, DSocSci, alumniOf Royal Roads University, explicit not-MD description), Organization (Richer Health, founder linked to the Person), and WebPage nodes. Dependency for the apply session: a 1200x630 og-card.jpg asset.",
+      "files_touched": [
+        "site/src/layouts/Layout.astro"
+      ]
+    }
+  ],
+  "deferred_issues": [
+    {
+      "owner": "conversion",
+      "severity": "HIGH",
+      "issue": "No inline Acuity embed widget; no target=\"_blank\" on any CTA so visitors navigate away cold.",
+      "evidence": "conversion/findings.md: 'there is no scheduler widget embedded on-page and no new-tab directive'. target=\"_blank\" is included in Issue 1 this week; inline embed is deferred.",
+      "proposed_change": "Deferred — inline embed UX polish after CTA wiring (Issue 1) ships.",
+      "files_touched": []
+    },
+    {
+      "owner": "conversion",
+      "severity": "HIGH",
+      "issue": "Only one testimonial (Tony Robbins); no practitioner/clinic-director voices; zero trust signals adjacent to mid-page and bottom CTAs.",
+      "evidence": "conversion/findings.md: 'single testimonial block between trust bar and stats section; Steps section and bottom section CTAs have no neighbouring testimonial or quote' and 'Decision-point reinforcement is missing at the moments of ask.'",
+      "proposed_change": "Deferred — requires new testimonial assets from clinic-director ICP and a layout pass; larger than a surgical edit.",
+      "files_touched": []
+    },
+    {
+      "owner": "copy",
+      "severity": "HIGH",
+      "issue": "Offer stack entirely absent — no delivery format, no cohort size, no timeline, no investment level.",
+      "evidence": "copy/findings.md: 'nowhere on the page does copy state the certification's delivery format (in-person / virtual / hybrid), practitioner count limits, completion timeline, or investment level. Visitors cannot qualify themselves or their budget before booking.'",
+      "proposed_change": "Deferred — blocked on client-side input defining the current cohort configuration.",
+      "files_touched": []
+    },
+    {
+      "owner": "copy",
+      "severity": "HIGH",
+      "issue": "Stats (67%, 3×, $240K) carry no source, sample size, or baseline.",
+      "evidence": "copy/findings.md: '\"Avg\" without N= is weasel-level specificity for B2B clinical operators who will Google these numbers.' fh-compliance MEDIUM on the same strings for unsubstantiated-advertising-statistics risk.",
+      "proposed_change": "Deferred — blocked on attributable data from the client; drafting language before the numbers are confirmed risks another rewrite.",
+      "files_touched": []
+    },
+    {
+      "owner": "brand-voice",
+      "severity": "HIGH",
+      "issue": "Signature phrase \"Your body's ability to heal is greater than anyone has permitted you to believe\" absent from the entire page.",
+      "evidence": "brand-voice/findings.md: 'on a warm-curious LP about patient health outcomes this is the single highest-resonance brand anchor and should appear at least once'.",
+      "proposed_change": "Deferred — earns its own proposal slot; adding the phrase well requires a new placement block and visual treatment rather than a surgical text swap.",
+      "files_touched": []
+    },
+    {
+      "owner": "brand-voice",
+      "severity": "HIGH",
+      "issue": "Hero register is confrontational all-caps B2B sales copy, not warm-authoritative mentor voice.",
+      "evidence": "brand-voice/findings.md: '\"YOUR PRACTICE. THEIR PLAYBOOK. PATIENTS NOTICE.\" opens with pure competitive pressure framing; a warm-curious audience deserves a curiosity reward or mentor hook before the edge lands'.",
+      "proposed_change": "Largely resolved by Issue 4 hero rewrite this week; any residual tonal calibration is a follow-up pass.",
+      "files_touched": []
+    },
+    {
+      "owner": "fh-compliance",
+      "severity": "MEDIUM",
+      "issue": "\"THEORY KILLS.\" hyperbolic headline amplifies clinical-authority impression beyond DSocSci scope; brand-voice echoes the same string as deep-funnel conviction language misplaced on a warm LP.",
+      "evidence": "fh-compliance/findings.md: '\"Kills\" as a consequence of choosing theory over protocol implies life-or-death medical negligence'. brand-voice/findings.md MEDIUM on the same string.",
+      "proposed_change": "Deferred — below the CRITICAL compliance cluster this week; revisit next cycle.",
+      "files_touched": []
+    },
+    {
+      "owner": "brand-voice",
+      "severity": "MEDIUM",
+      "issue": "First-person direct address absent from hero and first three scroll depths; closing CTA section has zero Nicolette voice.",
+      "evidence": "brand-voice/findings.md: 'the page opens in entirely impersonal third-person voice before the founder bio midpage' and closing-CTA MEDIUM: '\"ONE PLAYBOOK. EVERY ROOM. EVERY PATIENT.\" has zero warmth'.",
+      "proposed_change": "Partially addressed by Issue 3 \"I trained under…\" rewrite; fuller voice calibration deferred.",
+      "files_touched": []
+    },
+    {
+      "owner": "conversion",
+      "severity": "MEDIUM",
+      "issue": "No urgency/scarcity signal (\"Q2 intake open\", \"4 spots this quarter\", time-bound offer).",
+      "evidence": "conversion/findings.md: 'For a high-ticket B2B certification, a credible intake-limit signal materially increases commitment from warm visitors.'",
+      "proposed_change": "Deferred — requires a business decision on whether intake is genuinely capped before claiming it.",
+      "files_touched": []
+    },
+    {
+      "owner": "copy",
+      "severity": "MEDIUM",
+      "issue": "Section header \"THE PATH TO MASTERY\" does not signal section content; Step 02 and Step 04 card copy are vague/passive; \"N&D\" acronym undefined inline on the page.",
+      "evidence": "copy/findings.md MEDIUM on header scannability, Step 02 passive construction, Step 04 vagueness, and CRITICAL on N&D acronym definition in the closing CTA.",
+      "proposed_change": "Hero rewrite (Issue 4) now uses \"Nutrition & Detoxification\" in the subhead, partially closing the acronym gap; remaining Step-card copy and section header deferred to the next voice/copy pass.",
+      "files_touched": []
+    },
+    {
+      "owner": "seo",
+      "severity": "MEDIUM",
+      "issue": "Heading hierarchy skips H3 entirely (H1 → H2 → H4); violates logical nesting for accessibility and crawler outline parsing.",
+      "evidence": "seo/findings.md: 'the four process steps … are marked <h4> with no intervening H3 under \"THE PATH TO MASTERY\"'.",
+      "proposed_change": "Deferred — bundle with Step-section copy rewrite so the heading level and content both move in one edit.",
+      "files_touched": []
+    },
+    {
+      "owner": "seo",
+      "severity": "LOW",
+      "issue": "Hero image alt text describes the stock photo, not the business; no <link rel=preload> / fetchpriority=\"high\" hint on the LCP hero image.",
+      "evidence": "seo/findings.md LOW × 2 on alt text and LCP preload.",
+      "proposed_change": "Deferred — technical polish after content stabilises.",
+      "files_touched": []
+    },
+    {
+      "owner": "conversion",
+      "severity": "LOW",
+      "issue": "Nav CTA rendered as plain text link (no button treatment); no secondary micro-conversion / email capture for visitors not ready to book.",
+      "evidence": "conversion/findings.md LOW × 2 on nav button and secondary conversion.",
+      "proposed_change": "Deferred — visual/strategic additions, not critical-path.",
+      "files_touched": []
+    },
+    {
+      "owner": "brand-voice",
+      "severity": "LOW",
+      "issue": "CTA copy inconsistent (\"BOOK YOUR FREE STRATEGY CALL\" in hero vs. \"BOOK YOUR FREE CALL\" elsewhere); \"MASTER CLINICIAN\" title carries no training-anchor parenthetical.",
+      "evidence": "brand-voice/findings.md LOW × 2.",
+      "proposed_change": "Closed by Issues 1 (canonical CTA label) and 2 (MASTER CLINICIAN removed in favour of DSocSci-anchored title).",
+      "files_touched": []
+    }
+  ],
+  "reasoning": "Monitor signal this week is loud and unambiguous: conversions down 40% WoW on an 850-session week (6 total), and organic traffic share down 8 percentage points. Conversion and SEO findings accordingly carry the heaviest weight; brand-voice and copy findings earn slots only where they overlap with compliance risk or with the conversion/SEO hypothesis. fh-compliance CRITICALs are non-negotiable regardless of monitor signal — standing legal-risk class that ships whether traffic moves or not. The conversion drop has an overwhelming single-point explanation: every booking CTA routes to href=\"#\" and the Acuity URL appears nowhere in the rendered page (Conversion CRITICAL + SEO HIGH on the same strings). That is Issue 1, the highest-leverage change of the week. Issue 5 (head-tag foundation) is the counterpart for organic traffic — five SEO findings collapse into one <head> edit. Issues 2 and 3 are the compliance pair that cannot be deferred again: DSocSci disclaimer, medical-advice footer note, and the unhedged reversing/treated/master-clinician language cluster. Issue 4 is the one content edit that earned its slot by closing findings across two critics (copy CRITICAL+HIGH+MEDIUM, SEO HIGH) in a single surgical rewrite of the hero — it simultaneously clarifies, front-loads the ICP, and delivers keyword surface. Everything deferred is either lower severity, blocked on client-side data or assets (offer stack specifics, stat attribution, OG card image), partially addressed by the five selected edits and thus cheaper to revisit after they land, or larger-blast-radius work (signature-phrase placement, mid/bottom trust-signal restructure) deserving its own proposal slot. The cap of five is deliberate: each selected change is reviewable in under ten minutes, and the five together apply in a single short session without colliding edits.",
+  "monitor_signal": "CRITICAL conversions -40% WoW (prior 10, current 6) biased selection toward the CTA-wiring fix (Issue 1) as the single highest-leverage change; HIGH organic-traffic-share -8pp WoW biased selection toward the head-tag SEO bundle (Issue 5) and the keyword-bearing hero H1 rewrite (Issue 4). fh-compliance CRITICALs (Issues 2 and 3) ship regardless of monitor signal as standing legal-risk class."
+}

@@ -1,0 +1,16 @@
+node_modules
+dist
+build
+.cache
+.astro
+tmp
+coverage
+bun.lock
+bun.lockb
+*.log
+.claude/checkpoints
+.claude/compactions
+context/critics/*/findings.md
+context/monitor/alerts.md
+history
+site
