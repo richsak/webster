@@ -1,0 +1,32 @@
+{
+  "url": "file:///Users/richiesakhon/Projects/webster/demo-sites/northwest-reno/ugly/services.html",
+  "breakpoints": [
+    {
+      "name": "mobile",
+      "width": 375,
+      "height": 900,
+      "screenshot": "mobile.png",
+      "document_height": 3578,
+      "horizontal_overflow": false
+    },
+    {
+      "name": "tablet",
+      "width": 768,
+      "height": 1024,
+      "screenshot": "tablet.png",
+      "document_height": 2977,
+      "horizontal_overflow": false
+    },
+    {
+      "name": "desktop",
+      "width": 1440,
+      "height": 900,
+      "screenshot": "desktop.png",
+      "document_height": 2066,
+      "horizontal_overflow": false
+    }
+  ],
+  "cta_count": 6,
+  "console_errors": [],
+  "page_errors": []
+}
