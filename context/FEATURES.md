@@ -72,12 +72,13 @@ See `AGENTS.md` for stream → operator mapping.
 
 ## Layer 5: Substrate + Mock History (Stream 5 — Claude Code)
 
-| #   | Status | Feature                                                                                                                                                    | Hours |
-| --- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| 25  | cut    | Fork `certified.richerhealth.ca` Astro source → `site/` — honest scope note in README. Redesigner emits `proposal.md` brief                                | 2     |
-| 26  | cut    | Analytics pixel → Cloudflare Worker → KV — not needed; mock seeder + monitor feed the council                                                              | 3     |
-| 27  | done   | 10-week mock history seeder — inlined in `prompts/second-wbs-session.md` Step 1 (idempotent, ~2 min)                                                       | 4     |
-| 28  | cut    | Silent secondary substrates (original cut) — **superseded by L11 #58**: Pair Alpha (SaaS + local service) brought in-submission per Q7 (session-4 Phase 7) | 2     |
+| #   | Status | Feature                                                                                                                                                                                                                   | Hours |
+| --- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| 25  | cut    | Fork `certified.richerhealth.ca` Astro source → `site/` — honest scope note in README. Redesigner emits `proposal.md` brief                                                                                               | 2     |
+| 26  | cut    | Analytics pixel → Cloudflare Worker → KV — not needed; mock seeder + monitor feed the council                                                                                                                             | 3     |
+| 27  | done   | 10-week mock history seeder — inlined in `prompts/second-wbs-session.md` Step 1 (idempotent, ~2 min)                                                                                                                      | 4     |
+| 27a | done   | Local LP synthetic heatmap v2 — `analytics.json` schema unchanged; `heatmap.json` now includes neutral `layout_metrics` for document height, section reach, and CTA reach. See `context/ARCHITECTURE.md` for exact shape. | 1     |
+| 28  | cut    | Silent secondary substrates (original cut) — **superseded by L11 #58**: Pair Alpha (SaaS + local service) brought in-submission per Q7 (session-4 Phase 7)                                                                | 2     |
 
 ## Layer 6: Meta Video (Stream 4 — Claude Code or Forge)
 

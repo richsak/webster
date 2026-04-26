@@ -29,3 +29,6 @@ tmp/
 /plan.md
 /research.md
 
+# Local Claude Code council reruns (isolated, regenerated)
+local-runs/
+

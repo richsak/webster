@@ -25,7 +25,7 @@ Required fields in every `*.json` spec:
 
 All API calls touching these specs use:
 
-```
+```text
 anthropic-beta: managed-agents-2026-04-01
 ```
 
