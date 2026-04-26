@@ -44,6 +44,9 @@ async function main(): Promise<void> {
 
   let playwright: { chromium: { launch(options: { headless: boolean }): Promise<BrowserLike> } };
   try {
+    if (process.env.WEBSTER_FORCE_BROWSER_AUDIT_FALLBACK === "1") {
+      throw new Error("WEBSTER_FORCE_BROWSER_AUDIT_FALLBACK=1");
+    }
     playwright = (await new Function("specifier", "return import(specifier)")("playwright")) as {
       chromium: { launch(options: { headless: boolean }): Promise<BrowserLike> };
     };
