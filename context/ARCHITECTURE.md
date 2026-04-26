@@ -103,6 +103,117 @@ Flow:
 - **10-week mock history seeder** (`scripts/seed-mock-history.ts`): generates analytics timeline + council runs + progressively-improved LP states, committed backdated via `GIT_AUTHOR_DATE` / `GIT_COMMITTER_DATE`
 - 2 silent secondary SMB LP forks (generalization-shown-not-narrated)
 
+### Local LP demo synthetic measurement schema
+
+This applies to local Claude Code LP simulation artifacts under `local-runs/lp-council/<run-id>/`. It does **not** change production analytics ingestion.
+
+#### `history/wNN/analytics.json`
+
+Schema remains unchanged. Future sessions should continue treating this as Webster's mock 5000-user panel shape:
+
+```ts
+{
+  version_sha: string;
+  site_signature: string;
+  substrate: "lp" | "site";
+  week: number;
+  weekDate: string;
+  sessions: number;
+  bounce_rate: number;
+  avg_time_s: number;
+  scroll_depth_25: number;
+  scroll_depth_50: number;
+  scroll_depth_75: number;
+  scroll_depth_100: number;
+  cta_clicks: Record<string, number>;
+  persona_metrics: Array<{
+    persona_id: string;
+    sessions: number;
+    bounce_rate: number;
+    cta_clicks: number;
+    avg_time_s: number;
+  }>;
+  section_engagement: Array<{
+    section: string;
+    views: number;
+    avg_time_s: number;
+    dropoff_rate: number;
+  }>;
+  events: Array<{
+    version_sha: string;
+    metric: string;
+    value: number;
+    timestamp: string;
+  }>;
+}
+```
+
+#### `history/wNN/heatmap.json`
+
+`heatmap.json` is the artifact that now carries additional neutral layout/reach measurements. The schema version is `layout-map-plus-analytics-v2`.
+
+Top-level shape:
+
+```ts
+{
+  week: string;
+  synthetic: true;
+  model: "layout-map-plus-analytics-v2";
+  disclaimer: string;
+  measurement_note: string; // explicitly says metrics contain no redesign instructions
+  analytics_version_sha: string;
+  sessions: number;
+  breakpoints: Array<BreakpointHeatmap>;
+}
+```
+
+Each `BreakpointHeatmap`:
+
+```ts
+{
+  breakpoint: string; // mobile | tablet | desktop today
+  width: number;
+  document_height: number;
+  layout_metrics: {
+    document_height_px: number;
+    viewport_height_px: number;
+    viewport_count: number;
+    scroll_depth_25: number;
+    scroll_depth_50: number;
+    scroll_depth_75: number;
+    scroll_depth_100: number;
+    sections: Array<{
+      id: string;
+      label: string;
+      top_px: number;
+      height_px: number;
+      height_share: number;
+      estimated_reach_rate: number;
+      source: "section_engagement" | "scroll_curve";
+    }>;
+    primary_ctas: Array<{
+      id: string;
+      label: string;
+      top_px: number;
+      order: number;
+      estimated_reach_rate: number;
+      estimated_click_rate: number;
+    }>;
+  }
+  regions: Array<{
+    kind: "section" | "cta";
+    id: string;
+    label: string;
+    rect: { x: number; y: number; width: number; height: number };
+    intensity: number;
+    reason: string;
+  }>;
+  svg: string;
+}
+```
+
+Policy: these fields are allowed to expose objective measurement signals such as document height, section reach, CTA reach, and click rate. They must not contain instructions like "shorten the page" or "move booking earlier"; agents infer from measurements.
+
 ### Layer 6: Meta Video
 
 - Remotion template + 5 comps (title, council viz, TAM+10wk morph, Genealogy diagram, end-card)
