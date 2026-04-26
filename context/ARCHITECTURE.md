@@ -214,6 +214,24 @@ Each `BreakpointHeatmap`:
 
 Policy: these fields are allowed to expose objective measurement signals such as document height, section reach, CTA reach, and click rate. They must not contain instructions like "shorten the page" or "move booking earlier"; agents infer from measurements.
 
+#### Production parity note
+
+The local LP council mock proved the desired learning loop, but it also exposed a parity risk: several local Claude Code role agents stalled or returned early during read-heavy planner/critic/redesigner turns, and the operator/runner completed artifacts in clearly marked fallback paths. Before presenting this as equivalent to production Webster, review the Managed Agent/sim runtime and make sure it can execute the same artifact loop without hidden operator completion:
+
+```text
+previous analytics + heatmap/layout metrics
+→ planner hypothesis / falsification note
+→ critics
+→ redesigner proposal + decision + patches
+→ browser screenshots / visual review
+→ analytics adjustment
+→ synthetic heatmap
+→ validation
+→ next-week context
+```
+
+Production/sim agents should receive the same evidence order, especially prior heatmap layout metrics and explicit falsification outcomes. If needed, update Managed Agent prompts, max-turn budgets, or orchestration so the live/sim council can match the mock's behavior without relying on local fallback artifact writing.
+
 ### Layer 6: Meta Video
 
 - Remotion template + 5 comps (title, council viz, TAM+10wk morph, Genealogy diagram, end-card)

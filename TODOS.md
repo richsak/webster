@@ -20,6 +20,11 @@
 
 ## P1 — demo correctness / bug fixes
 
+- [ ] Review local LP council mock vs Managed Agent production/sim runtime for parity before claiming the mock proves production behavior:
+  - local agents sometimes stalled/returned early on read-heavy planner/critic/redesigner turns.
+  - local runner/order evolved into: planner/critics → direct/fallback artifact completion → screenshots → visual review → analytics adjustment → heatmap → validation.
+  - Managed/sim agents should receive the same input order and artifact contracts: prior analytics, prior heatmap/layout metrics, visual review, decision/proposal/patches, screenshots, and explicit falsification notes.
+  - Update Managed Agent prompts/specs or orchestration if needed so production behavior can realistically match the local mock's learning loop without operator-written fallback artifacts.
 - [ ] Ensure local week continuation ingests prior accepted week analytics, heatmaps, and the current interactive judgment from Richie/operator.
 - [ ] Keep synthetic analytics labeled as synthetic everywhere; never imply real visitors.
 - [ ] Ensure all accepted weeks pass no-horizontal-overflow gate after w00.
